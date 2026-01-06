@@ -3,11 +3,13 @@ import { supabase } from '../db.js';
 
 const router = express.Router();
 
+// LISTAR TODAS (COM STATUS DE VÍNCULO)
 router.get('/', async (req, res) => {
   try {
+    // AQUI ESTÁ A MÁGICA: Trazemos os dados da Usina E os Vínculos dela
     const { data, error } = await supabase
       .from('Usinas')
-      .select('UsinaID, NomeProprietario')
+      .select('*, Vinculos(VinculoID)') 
       .order('NomeProprietario');
 
     if (error) throw error;
@@ -17,6 +19,44 @@ router.get('/', async (req, res) => {
   }
 });
 
+// BUSCAR UMA (DETALHES)
+router.get('/:id', async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('Usinas')
+      .select('*')
+      .eq('UsinaID', req.params.id)
+      .single();
+
+    if (error) throw error;
+    if (!data) return res.status(404).json({ error: 'Usina não encontrada' });
+    res.json(data);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// BUSCAR VÍNCULOS DESTA USINA
+router.get('/:id/vinculos', async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('Vinculos')
+      .select(`
+        VinculoID,
+        StatusID,
+        Consumidores ( Nome ),
+        Status ( Descricao )
+      `)
+      .eq('UsinaID', req.params.id);
+
+    if (error) throw error;
+    res.json(data);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// CRIAR
 router.post('/', async (req, res) => {
   try {
     const { data, error } = await supabase
@@ -32,22 +72,7 @@ router.post('/', async (req, res) => {
   }
 });
 
-router.get('/:id', async (req, res) => {
-  try {
-    const { data, error } = await supabase
-      .from('Usinas')
-      .select('*')
-      .eq('UsinaID', req.params.id)
-      .single();
-
-    if (error) throw error;
-    if (!data) return res.status(404).json({ error: 'Usina not found' });
-    res.json(data);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
+// ATUALIZAR
 router.put('/:id', async (req, res) => {
   try {
     const { data, error } = await supabase
@@ -58,13 +83,13 @@ router.put('/:id', async (req, res) => {
       .single();
 
     if (error) throw error;
-    if (!data) return res.status(404).json({ error: 'Usina not found' });
     res.json(data);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
+// EXCLUIR
 router.delete('/:id', async (req, res) => {
   try {
     const { error } = await supabase
@@ -74,27 +99,6 @@ router.delete('/:id', async (req, res) => {
 
     if (error) throw error;
     res.status(204).send();
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-router.get('/:id/vinculos', async (req, res) => {
-  try {
-    const { data, error } = await supabase
-      .from('Vinculos')
-      .select(`
-        VinculoID,
-        ConsumidorID,
-        UsinaID,
-        StatusID,
-        Consumidores(Nome),
-        Status(Descricao)
-      `)
-      .eq('UsinaID', req.params.id);
-
-    if (error) throw error;
-    res.json(data);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

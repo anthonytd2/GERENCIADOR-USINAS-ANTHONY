@@ -22,8 +22,8 @@ app.use('/api/usinas', usinasRoutes);
 app.use('/api/vinculos', vinculosRoutes);
 app.use('/api/status', statusRoutes);
 
-// 4. Inicia o servidor
-const PORT = 3001;
+// O Render escolhe a porta dele, ou usa a 3001 se for local
+const PORT = process.env.PORT || 3001; 
 app.listen(PORT, () => {
   console.log(`✅ Servidor rodando na porta ${PORT}`);
 });

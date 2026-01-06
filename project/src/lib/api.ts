@@ -1,4 +1,4 @@
-const API_BASE = 'https://api-gestao-solar.onrender.com';
+const API_BASE = 'https://api-gestao-solar.onrender.com/api';
 
 export const api = {
   consumidores: {

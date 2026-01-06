@@ -8,6 +8,7 @@ import DetalheUsina from './pages/usinas/DetalheUsina';
 import FormularioUsina from './pages/usinas/FormularioUsina';
 import ListaVinculos from './pages/vinculos/ListaVinculos';
 import FormularioVinculo from './pages/vinculos/FormularioVinculo';
+import DetalheVinculo from './pages/vinculos/DetalheVinculo'; // <--- Importação Nova
 
 function App() {
   return (
@@ -33,6 +34,7 @@ function App() {
           <Route path="vinculos">
             <Route index element={<ListaVinculos />} />
             <Route path="novo" element={<FormularioVinculo />} />
+            <Route path=":id" element={<DetalheVinculo />} /> {/* <--- Rota Nova */}
             <Route path=":id/editar" element={<FormularioVinculo />} />
           </Route>
         </Route>

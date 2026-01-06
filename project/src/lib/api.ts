@@ -42,6 +42,9 @@ export const api = {
   },
   vinculos: {
     list: () => fetch(`${API_BASE}/vinculos`).then(r => r.json()),
+    // --- LINHA NOVA: Busca um único vínculo pelo ID ---
+    get: (id: number) => fetch(`${API_BASE}/vinculos/${id}`).then(r => r.json()),
+    
     create: (data: any) => fetch(`${API_BASE}/vinculos`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

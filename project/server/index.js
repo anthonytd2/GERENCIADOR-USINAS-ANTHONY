@@ -1,25 +1,29 @@
+import 'dotenv/config'; // Lê o arquivo .env
 import express from 'express';
 import cors from 'cors';
-import consumidoresRouter from './routes/consumidores.js';
-import usinasRouter from './routes/usinas.js';
-import statusRouter from './routes/status.js';
-import vinculosRouter from './routes/vinculos.js';
+
+// Importação das rotas
+import consumidoresRoutes from './routes/consumidores.js';
+import usinasRoutes from './routes/usinas.js';
+import vinculosRoutes from './routes/vinculos.js';
+import statusRoutes from './routes/status.js';
 
 const app = express();
-const PORT = process.env.PORT || 3001;
 
+// 1. Configura quem pode acessar (CORS)
 app.use(cors());
+
+// 2. IMPORTANTE: Permite que o servidor entenda dados JSON (O erro estava aqui!)
 app.use(express.json());
 
-app.use('/api/consumidores', consumidoresRouter);
-app.use('/api/usinas', usinasRouter);
-app.use('/api/status', statusRouter);
-app.use('/api/vinculos', vinculosRouter);
+// 3. Configura as Rotas
+app.use('/api/consumidores', consumidoresRoutes);
+app.use('/api/usinas', usinasRoutes);
+app.use('/api/vinculos', vinculosRoutes);
+app.use('/api/status', statusRoutes);
 
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok' });
-});
-
+// 4. Inicia o servidor
+const PORT = 3001;
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`✅ Servidor rodando na porta ${PORT}`);
 });

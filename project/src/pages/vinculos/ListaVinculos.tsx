@@ -79,8 +79,14 @@ export default function ListaVinculos() {
                 {vinculos.map((vinculo) => (
                   <tr key={vinculo.VinculoID} className="hover:bg-gray-50 transition-colors">
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">
-                        {vinculo.Consumidores.Nome}
+                      {/* AQUI ESTÁ A MUDANÇA: O Link envolve o nome */}
+                      <div className="text-sm font-medium">
+                        <Link 
+                          to={`/vinculos/${vinculo.VinculoID}`} 
+                          className="text-blue-600 hover:text-blue-900 hover:underline"
+                        >
+                          {vinculo.Consumidores.Nome}
+                        </Link>
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">

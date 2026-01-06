@@ -3,6 +3,7 @@ import { supabase } from '../db.js';
 
 const router = express.Router();
 
+// LISTAR TODOS
 router.get('/', async (req, res) => {
   try {
     const { data, error } = await supabase
@@ -25,6 +26,32 @@ router.get('/', async (req, res) => {
   }
 });
 
+// --- NOVO: BUSCAR UM VÍNCULO (DETALHES) ---
+router.get('/:id', async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('Vinculos')
+      .select(`
+        VinculoID,
+        ConsumidorID,
+        UsinaID,
+        StatusID,
+        Consumidores(Nome, MediaConsumo), 
+        Usinas(NomeProprietario, GeracaoEstimada), 
+        Status(Descricao)
+      `)
+      .eq('VinculoID', req.params.id)
+      .single();
+
+    if (error) throw error;
+    if (!data) return res.status(404).json({ error: 'Vínculo não encontrado' });
+    res.json(data);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// CRIAR
 router.post('/', async (req, res) => {
   try {
     const { data, error } = await supabase
@@ -40,6 +67,7 @@ router.post('/', async (req, res) => {
   }
 });
 
+// ATUALIZAR
 router.put('/:id', async (req, res) => {
   try {
     const { data, error } = await supabase
@@ -50,13 +78,13 @@ router.put('/:id', async (req, res) => {
       .single();
 
     if (error) throw error;
-    if (!data) return res.status(404).json({ error: 'Vinculo not found' });
     res.json(data);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
+// EXCLUIR
 router.delete('/:id', async (req, res) => {
   try {
     const { error } = await supabase

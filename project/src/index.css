@@ -1,36 +1,24 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* CONFIGURAÇÃO GLOBAL DE TAMANHO */
+/* TRUQUE PARA DIMINUIR O SITE INTEIRO (MODO COMPACTO) */
 :root {
-  font-family: 'Inter', sans-serif;
+  font-size: 13px; /* O padrão é 16px. Baixando para 13px tudo diminui proporcionalmente. */
 }
 
-html {
-  /* Aumenta a escala de todo o site. 
-     16px é o padrão. 18px deixa tudo maior e confortável. */
-  font-size: 18px; 
-}
-
+/* Ajuste fino para monitores pequenos */
 body {
-  @apply bg-gray-50 text-gray-700;
+  @apply bg-slate-50 text-slate-900;
+  zoom: 0.9; /* Reduz mais um pouco (90% do tamanho original) */
 }
 
-/* MELHORIA NOS CAMPOS DE TEXTO (Input) */
-input, select, textarea {
-  @apply rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500;
-  padding: 0.75rem; /* Campos mais altos */
-  font-size: 1rem;   /* Garante que o texto digitado seja grande */
+/* Deixa as tabelas mais "apertadinhas" para caber mais dados */
+td, th {
+  @apply py-2 px-3 !important; /* Força menos espaço entre as linhas */
 }
 
-/* MELHORIA NAS TABELAS */
-table thead th {
-  @apply bg-gray-100 text-gray-600 font-bold uppercase text-sm tracking-wider py-4 px-6;
-}
-
-table tbody td {
-  @apply py-4 px-6 border-b border-gray-100;
+/* Deixa os botões laterais mais compactos */
+.sidebar-link {
+  @apply py-2 px-3 text-sm !important;
 }

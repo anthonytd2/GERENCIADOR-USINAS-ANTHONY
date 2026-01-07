@@ -74,7 +74,7 @@ export default function Dashboard() {
 
       {/* ÁREA DE BOAS VINDAS */}
       <div className="mt-8 bg-gradient-to-r from-[#0B1E3F] to-[#1e40af] rounded-2xl p-8 text-white shadow-lg">
-        <h2 className="text-2xl font-bold mb-2">Bem-vindo ao Gestão Solar Bionova</h2>
+        <h2 className="text-2xl font-bold mb-2">Bem-vindo ao Gestão Solar Locações</h2>
         <p className="text-blue-100 max-w-2xl">
           Use o menu lateral para gerenciar seus consumidores, usinas e lançar os fechamentos mensais dos contratos de locação.
         </p>

@@ -3,71 +3,30 @@ import { supabase } from '../db.js';
 
 const router = express.Router();
 
-// --- 1. LISTAR TODOS OS CONSUMIDORES ---
 router.get('/', async (req, res) => {
-  try {
-    const { data, error } = await supabase
-      .from('Consumidores') // Nome exato da tabela
-      .select('*')
-      .order('Nome');
-
-    if (error) throw error;
-    res.json(data);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
+  const { data, error } = await supabase.from('Consumidores').select('*').order('Nome');
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data);
 });
 
-// --- 2. BUSCAR UM CONSUMIDOR (DETALHES) ---
 router.get('/:id', async (req, res) => {
-  try {
-    const { data, error } = await supabase
-      .from('Consumidores')
-      .select('*')
-      .eq('ConsumidorID', req.params.id) // Nome exato da coluna ID
-      .single();
-
-    if (error) throw error;
-    if (!data) return res.status(404).json({ error: 'Consumidor not found' });
-    
-    res.json(data);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
+  const { data, error } = await supabase.from('Consumidores').select('*').eq('ConsumidorID', req.params.id).single();
+  if (error) return res.status(500).json({ error: error.message });
+  if (!data) return res.status(404).json({ error: 'Não encontrado' });
+  res.json(data);
 });
 
-// --- 3. BUSCAR VÍNCULOS DO CONSUMIDOR ---
-router.get('/:id/vinculos', async (req, res) => {
-  try {
-    // Busca os vínculos e faz o JOIN com Usinas e Status
-    const { data, error } = await supabase
-      .from('Vinculos')
-      .select(`
-        VinculoID,
-        StatusID,
-        Usinas ( NomeProprietario ),
-        Status ( Descricao )
-      `)
-      .eq('ConsumidorID', req.params.id);
-
-    if (error) {
-      console.error("Erro ao buscar vínculos:", error);
-      throw error;
-    }
-    res.json(data);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// --- 4. CRIAR NOVO CONSUMIDOR ---
 router.post('/', async (req, res) => {
   try {
+    // ATUALIZADO: Recebendo TipoDesconto e Observacao
+    const { Nome, MediaConsumo, PercentualDesconto, TipoDesconto, TempoContratoAnos, InicioContrato, VencimentoContrato, Vendedor, Observacao } = req.body;
+    
     const { data, error } = await supabase
       .from('Consumidores')
-      .insert([req.body])
-      .select()
-      .single();
+      .insert([{ 
+        Nome, MediaConsumo, PercentualDesconto, TipoDesconto, TempoContratoAnos, InicioContrato, VencimentoContrato, Vendedor, Observacao 
+      }])
+      .select().single();
 
     if (error) throw error;
     res.status(201).json(data);
@@ -76,15 +35,13 @@ router.post('/', async (req, res) => {
   }
 });
 
-// --- 5. ATUALIZAR CONSUMIDOR ---
 router.put('/:id', async (req, res) => {
   try {
     const { data, error } = await supabase
       .from('Consumidores')
-      .update(req.body)
+      .update(req.body) // O update já pega tudo que vier no corpo
       .eq('ConsumidorID', req.params.id)
-      .select()
-      .single();
+      .select().single();
 
     if (error) throw error;
     res.json(data);
@@ -93,19 +50,10 @@ router.put('/:id', async (req, res) => {
   }
 });
 
-// --- 6. EXCLUIR CONSUMIDOR ---
 router.delete('/:id', async (req, res) => {
-  try {
-    const { error } = await supabase
-      .from('Consumidores')
-      .delete()
-      .eq('ConsumidorID', req.params.id);
-
-    if (error) throw error;
-    res.status(204).send();
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
+  const { error } = await supabase.from('Consumidores').delete().eq('ConsumidorID', req.params.id);
+  if (error) return res.status(500).json({ error: error.message });
+  res.status(204).send();
 });
 
 export default router;

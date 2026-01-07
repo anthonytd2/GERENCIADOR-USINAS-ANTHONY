@@ -104,4 +104,25 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
+// ... (Mantenha os imports e as rotas GET iguais) ...
+
+// CRIAR (Atualize apenas este bloco ou o arquivo todo se preferir)
+router.post('/', async (req, res) => {
+  try {
+    // Agora aceita Observacao no req.body
+    const { data, error } = await supabase
+      .from('Usinas')
+      .insert([req.body]) // req.body já traz a Observacao se o front mandar
+      .select()
+      .single();
+
+    if (error) throw error;
+    res.status(201).json(data);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ... (Restante do arquivo igual) ...
+
 export default router;

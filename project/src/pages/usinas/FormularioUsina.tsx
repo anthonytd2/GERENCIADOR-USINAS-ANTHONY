@@ -16,7 +16,8 @@ export default function FormularioUsina() {
     GeracaoEstimada: '',
     InicioContrato: '',
     VencimentoContrato: '',
-    TipoPagamento: ''
+    TipoPagamento: '',
+    Observacao: '' // Novo campo
   });
 
   useEffect(() => {
@@ -30,7 +31,8 @@ export default function FormularioUsina() {
           GeracaoEstimada: data.GeracaoEstimada,
           InicioContrato: data.InicioContrato,
           VencimentoContrato: data.VencimentoContrato,
-          TipoPagamento: data.TipoPagamento
+          TipoPagamento: data.TipoPagamento,
+          Observacao: data.Observacao || '' // Garante que não quebre se vier nulo
         });
       });
     }
@@ -60,7 +62,7 @@ export default function FormularioUsina() {
 
   return (
     <div>
-      {/* CABEÇALHO IGUAL AO DO CONSUMIDOR */}
+      {/* CABEÇALHO */}
       <div className="mb-8 flex items-center justify-between">
         <div className="flex items-center gap-4">
           <Link to="/usinas" className="p-2 hover:bg-gray-100 rounded-full transition-colors">
@@ -73,98 +75,111 @@ export default function FormularioUsina() {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          
-          <div className="col-span-2">
-            <label className="block text-sm font-medium text-gray-700 mb-2">Nome do Proprietário</label>
-            <input
-              type="text"
-              required
-              value={formData.NomeProprietario}
-              onChange={e => setFormData({ ...formData, NomeProprietario: e.target.value })}
-              className="w-full"
-              placeholder="Ex: Usina Solar Norte"
-            />
-          </div>
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            
+            <div className="col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-2">Nome do Proprietário *</label>
+              <input
+                type="text"
+                required
+                value={formData.NomeProprietario}
+                onChange={e => setFormData({ ...formData, NomeProprietario: e.target.value })}
+                className="w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="Ex: Usina Solar Norte"
+              />
+            </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Potência (kWp)</label>
-            <input
-              type="number"
-              value={formData.Potencia}
-              onChange={e => setFormData({ ...formData, Potencia: e.target.value })}
-              className="w-full"
-              placeholder="0"
-            />
-          </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Potência (kWp)</label>
+              <input
+                type="number"
+                value={formData.Potencia}
+                onChange={e => setFormData({ ...formData, Potencia: e.target.value })}
+                className="w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="0"
+              />
+            </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Tipo (ex: GD1, GD2)</label>
-            <input
-              type="text"
-              value={formData.Tipo}
-              onChange={e => setFormData({ ...formData, Tipo: e.target.value })}
-              className="w-full"
-            />
-          </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Tipo (ex: GD1, GD2)</label>
+              <input
+                type="text"
+                value={formData.Tipo}
+                onChange={e => setFormData({ ...formData, Tipo: e.target.value })}
+                className="w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Valor kW Bruto (R$)</label>
-            <input
-              type="number"
-              step="0.01"
-              value={formData.ValorKWBruto}
-              onChange={e => setFormData({ ...formData, ValorKWBruto: e.target.value })}
-              className="w-full"
-              placeholder="0.00"
-            />
-          </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Valor kW Bruto (R$)</label>
+              <input
+                type="number"
+                step="0.01"
+                value={formData.ValorKWBruto}
+                onChange={e => setFormData({ ...formData, ValorKWBruto: e.target.value })}
+                className="w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="0.00"
+              />
+            </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Geração Estimada (kWh)</label>
-            <input
-              type="number"
-              value={formData.GeracaoEstimada}
-              onChange={e => setFormData({ ...formData, GeracaoEstimada: e.target.value })}
-              className="w-full"
-              placeholder="0"
-            />
-          </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Geração Estimada (kWh)</label>
+              <input
+                type="number"
+                value={formData.GeracaoEstimada}
+                onChange={e => setFormData({ ...formData, GeracaoEstimada: e.target.value })}
+                className="w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="0"
+              />
+            </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Início do Contrato</label>
-            <input
-              type="date"
-              value={formData.InicioContrato}
-              onChange={e => setFormData({ ...formData, InicioContrato: e.target.value })}
-              className="w-full"
-            />
-          </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Início do Contrato</label>
+              <input
+                type="date"
+                value={formData.InicioContrato}
+                onChange={e => setFormData({ ...formData, InicioContrato: e.target.value })}
+                className="w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Vencimento do Contrato</label>
-            <input
-              type="date"
-              value={formData.VencimentoContrato}
-              onChange={e => setFormData({ ...formData, VencimentoContrato: e.target.value })}
-              className="w-full"
-            />
-          </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Vencimento do Contrato</label>
+              <input
+                type="date"
+                value={formData.VencimentoContrato}
+                onChange={e => setFormData({ ...formData, VencimentoContrato: e.target.value })}
+                className="w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
 
-          <div className="col-span-2">
-            <label className="block text-sm font-medium text-gray-700 mb-2">Tipo Pagamento</label>
-            <input
-              type="text"
-              value={formData.TipoPagamento}
-              onChange={e => setFormData({ ...formData, TipoPagamento: e.target.value })}
-              className="w-full"
-              placeholder="Ex: Consumo, Injetado"
-            />
+            <div className="col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-2">Tipo Pagamento (ex: Consumo, Injetado)</label>
+              <input
+                type="text"
+                value={formData.TipoPagamento}
+                onChange={e => setFormData({ ...formData, TipoPagamento: e.target.value })}
+                className="w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+
+            {/* CAMPO DE OBSERVAÇÃO */}
+            <div className="col-span-2 border-t border-gray-100 pt-6 mt-2">
+              <label className="block text-sm font-medium text-gray-700 mb-2">Observações / Detalhes Técnicos</label>
+              <textarea
+                rows={4}
+                value={formData.Observacao}
+                onChange={e => setFormData({ ...formData, Observacao: e.target.value })}
+                className="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                placeholder="Insira detalhes sobre inversores, localização, acesso, etc."
+              />
+            </div>
           </div>
         </div>
 
-        {/* BOTÃO DE SALVAR PADRONIZADO */}
-        <div className="flex justify-end pt-6 border-t border-gray-100">
+        {/* BOTÃO DE SALVAR */}
+        <div className="flex justify-end pt-2">
           <button
             type="submit"
             className="flex items-center gap-2 px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium shadow-lg shadow-blue-900/20 transition-all hover:-translate-y-1"

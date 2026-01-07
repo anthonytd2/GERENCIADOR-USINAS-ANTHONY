@@ -12,11 +12,12 @@ export default function FormularioConsumidor() {
     Nome: '',
     MediaConsumo: '',
     PercentualDesconto: '',
-    // ValorKW: removido
+    TipoDesconto: 'porcentagem', // Novo Campo (padrão %)
     TempoContratoAnos: '',
     InicioContrato: '',
     VencimentoContrato: '',
-    Vendedor: ''
+    Vendedor: '',
+    Observacao: '' // Novo Campo
   });
 
   useEffect(() => {
@@ -26,10 +27,12 @@ export default function FormularioConsumidor() {
           Nome: data.Nome,
           MediaConsumo: data.MediaConsumo,
           PercentualDesconto: data.PercentualDesconto,
+          TipoDesconto: data.TipoDesconto || 'porcentagem',
           TempoContratoAnos: data.TempoContratoAnos,
           InicioContrato: data.InicioContrato,
           VencimentoContrato: data.VencimentoContrato,
-          Vendedor: data.Vendedor
+          Vendedor: data.Vendedor,
+          Observacao: data.Observacao || ''
         });
       });
     }
@@ -43,7 +46,6 @@ export default function FormularioConsumidor() {
         MediaConsumo: Number(formData.MediaConsumo),
         PercentualDesconto: Number(formData.PercentualDesconto),
         TempoContratoAnos: Number(formData.TempoContratoAnos),
-        // ValorKW não é enviado
       };
 
       if (isEditing) {
@@ -72,98 +74,97 @@ export default function FormularioConsumidor() {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Nome */}
-          <div className="col-span-2">
-            <label className="block text-sm font-medium text-gray-700 mb-1">Nome Completo</label>
-            <input
-              type="text"
-              required
-              value={formData.Nome}
-              onChange={e => setFormData({ ...formData, Nome: e.target.value })}
-              className="w-full"
-              placeholder="Ex: João da Silva"
-            />
-          </div>
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+          <h3 className="text-lg font-semibold mb-4 text-gray-800">Dados Principais</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Nome Completo</label>
+              <input type="text" required value={formData.Nome}
+                onChange={e => setFormData({ ...formData, Nome: e.target.value })}
+                className="w-full" placeholder="Ex: João da Silva" />
+            </div>
 
-          {/* Média Consumo */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Média de Consumo (kWh)</label>
-            <input
-              type="number"
-              required
-              value={formData.MediaConsumo}
-              onChange={e => setFormData({ ...formData, MediaConsumo: e.target.value })}
-              className="w-full"
-              placeholder="0"
-            />
-          </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Média de Consumo (kWh)</label>
+              <input type="number" required value={formData.MediaConsumo}
+                onChange={e => setFormData({ ...formData, MediaConsumo: e.target.value })}
+                className="w-full" placeholder="0" />
+            </div>
 
-          {/* Percentual Desconto */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Percentual de Desconto (%)</label>
-            <input
-              type="number"
-              step="0.01"
-              required
-              value={formData.PercentualDesconto}
-              onChange={e => setFormData({ ...formData, PercentualDesconto: e.target.value })}
-              className="w-full"
-              placeholder="Ex: 15"
-            />
-          </div>
+            {/* SELEÇÃO DO TIPO DE COBRANÇA */}
+            <div className="bg-blue-50 p-4 rounded-lg border border-blue-100 col-span-2 md:col-span-1">
+              <label className="block text-sm font-bold text-blue-900 mb-2">Forma de Cobrança</label>
+              <div className="flex gap-4 mb-3">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input type="radio" name="tipoDesconto" value="porcentagem"
+                    checked={formData.TipoDesconto === 'porcentagem'}
+                    onChange={() => setFormData({ ...formData, TipoDesconto: 'porcentagem' })}
+                    className="text-blue-600 focus:ring-blue-500" />
+                  <span className="text-sm font-medium">Porcentagem (%)</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input type="radio" name="tipoDesconto" value="valor_fixo"
+                    checked={formData.TipoDesconto === 'valor_fixo'}
+                    onChange={() => setFormData({ ...formData, TipoDesconto: 'valor_fixo' })}
+                    className="text-blue-600 focus:ring-blue-500" />
+                  <span className="text-sm font-medium">Valor Fixo (R$)</span>
+                </label>
+              </div>
 
-          {/* Tempo Contrato */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Tempo de Contrato (Anos)</label>
-            <input
-              type="number"
-              value={formData.TempoContratoAnos}
-              onChange={e => setFormData({ ...formData, TempoContratoAnos: e.target.value })}
-              className="w-full"
-            />
-          </div>
+              <label className="block text-sm font-medium text-blue-800 mb-1">
+                {formData.TipoDesconto === 'porcentagem' ? 'Percentual de Desconto (%)' : 'Valor Cobrado por kWh (R$)'}
+              </label>
+              <input type="number" step="0.01" required value={formData.PercentualDesconto}
+                onChange={e => setFormData({ ...formData, PercentualDesconto: e.target.value })}
+                className="w-full border-blue-300 focus:border-blue-500 focus:ring-blue-500"
+                placeholder={formData.TipoDesconto === 'porcentagem' ? "Ex: 15" : "Ex: 0.85"} />
+            </div>
 
-          {/* Vendedor */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Vendedor Responsável</label>
-            <input
-              type="text"
-              value={formData.Vendedor}
-              onChange={e => setFormData({ ...formData, Vendedor: e.target.value })}
-              className="w-full"
-            />
-          </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Tempo Contrato (Anos)</label>
+              <input type="number" value={formData.TempoContratoAnos}
+                onChange={e => setFormData({ ...formData, TempoContratoAnos: e.target.value })}
+                className="w-full" />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Vendedor</label>
+              <input type="text" value={formData.Vendedor}
+                onChange={e => setFormData({ ...formData, Vendedor: e.target.value })}
+                className="w-full" />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Início Contrato</label>
+              <input type="date" value={formData.InicioContrato}
+                onChange={e => setFormData({ ...formData, InicioContrato: e.target.value })}
+                className="w-full" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Vencimento Contrato</label>
+              <input type="date" value={formData.VencimentoContrato}
+                onChange={e => setFormData({ ...formData, VencimentoContrato: e.target.value })}
+                className="w-full" />
+            </div>
 
-          {/* Datas */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Início do Contrato</label>
-            <input
-              type="date"
-              value={formData.InicioContrato}
-              onChange={e => setFormData({ ...formData, InicioContrato: e.target.value })}
-              className="w-full"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Vencimento do Contrato</label>
-            <input
-              type="date"
-              value={formData.VencimentoContrato}
-              onChange={e => setFormData({ ...formData, VencimentoContrato: e.target.value })}
-              className="w-full"
-            />
+            {/* CAMPO DE OBSERVAÇÃO */}
+            <div className="col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Observações Gerais</label>
+              <textarea 
+                rows={4}
+                value={formData.Observacao}
+                onChange={e => setFormData({ ...formData, Observacao: e.target.value })}
+                className="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                placeholder="Digite aqui qualquer detalhe adicional..."
+              />
+            </div>
           </div>
         </div>
 
-        <div className="flex justify-end pt-6 border-t border-gray-100">
-          <button
-            type="submit"
-            className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium shadow-lg shadow-blue-900/20 transition-all hover:-translate-y-1"
-          >
-            <Save className="w-5 h-5" />
-            Salvar Consumidor
+        <div className="flex justify-end pt-4">
+          <button type="submit"
+            className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium shadow-lg shadow-blue-900/20 transition-all hover:-translate-y-1">
+            <Save className="w-5 h-5" /> Salvar Consumidor
           </button>
         </div>
       </form>

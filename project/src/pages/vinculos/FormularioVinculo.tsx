@@ -11,7 +11,8 @@ export default function FormularioVinculo() {
   const [formData, setFormData] = useState({
     ConsumidorID: '',
     UsinaID: '',
-    StatusID: ''
+    StatusID: '',
+    Observacao: '' // Novo campo
   });
 
   const [listas, setListas] = useState({
@@ -21,6 +22,7 @@ export default function FormularioVinculo() {
   });
 
   useEffect(() => {
+    // Carrega as listas para os Dropdowns
     Promise.all([
       api.consumidores.list(),
       api.usinas.list(),
@@ -29,12 +31,14 @@ export default function FormularioVinculo() {
       setListas({ consumidores, usinas, status });
     });
 
+    // Se for edição, carrega os dados do vínculo
     if (isEditing) {
       api.vinculos.get(Number(id)).then((data) => {
         setFormData({
           ConsumidorID: data.ConsumidorID,
           UsinaID: data.UsinaID,
-          StatusID: data.StatusID
+          StatusID: data.StatusID,
+          Observacao: data.Observacao || '' // Garante string vazia se nulo
         });
       });
     }
@@ -46,7 +50,8 @@ export default function FormularioVinculo() {
       const dataToSend = {
         ConsumidorID: Number(formData.ConsumidorID),
         UsinaID: Number(formData.UsinaID),
-        StatusID: Number(formData.StatusID)
+        StatusID: Number(formData.StatusID),
+        Observacao: formData.Observacao
       };
 
       if (isEditing) {
@@ -63,7 +68,7 @@ export default function FormularioVinculo() {
 
   return (
     <div>
-      {/* CABEÇALHO PADRONIZADO */}
+      {/* CABEÇALHO */}
       <div className="mb-8 flex items-center justify-between">
         <div className="flex items-center gap-4">
           <Link to="/vinculos" className="p-2 hover:bg-gray-100 rounded-full transition-colors">
@@ -76,62 +81,76 @@ export default function FormularioVinculo() {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-8">
-        <div className="grid grid-cols-1 gap-8 max-w-2xl">
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Consumidor *</label>
-            <select
-              required
-              value={formData.ConsumidorID}
-              onChange={e => setFormData({ ...formData, ConsumidorID: e.target.value })}
-              className="w-full"
-            >
-              <option value="">Selecione um consumidor</option>
-              {listas.consumidores.map((c: any) => (
-                <option key={c.ConsumidorID} value={c.ConsumidorID}>
-                  {c.Nome}
-                </option>
-              ))}
-            </select>
-          </div>
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 max-w-3xl">
+          <div className="grid grid-cols-1 gap-8">
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Consumidor *</label>
+              <select
+                required
+                value={formData.ConsumidorID}
+                onChange={e => setFormData({ ...formData, ConsumidorID: e.target.value })}
+                className="w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500 p-2.5"
+              >
+                <option value="">Selecione um consumidor</option>
+                {listas.consumidores.map((c: any) => (
+                  <option key={c.ConsumidorID} value={c.ConsumidorID}>
+                    {c.Nome}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Usina *</label>
-            <select
-              required
-              value={formData.UsinaID}
-              onChange={e => setFormData({ ...formData, UsinaID: e.target.value })}
-              className="w-full"
-            >
-              <option value="">Selecione uma usina</option>
-              {listas.usinas.map((u: any) => (
-                <option key={u.UsinaID} value={u.UsinaID}>
-                  {u.NomeProprietario} ({u.Tipo})
-                </option>
-              ))}
-            </select>
-          </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Usina *</label>
+              <select
+                required
+                value={formData.UsinaID}
+                onChange={e => setFormData({ ...formData, UsinaID: e.target.value })}
+                className="w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500 p-2.5"
+              >
+                <option value="">Selecione uma usina</option>
+                {listas.usinas.map((u: any) => (
+                  <option key={u.UsinaID} value={u.UsinaID}>
+                    {u.NomeProprietario} ({u.Tipo})
+                  </option>
+                ))}
+              </select>
+            </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Status *</label>
-            <select
-              required
-              value={formData.StatusID}
-              onChange={e => setFormData({ ...formData, StatusID: e.target.value })}
-              className="w-full"
-            >
-              <option value="">Selecione um status</option>
-              {listas.status.map((s: any) => (
-                <option key={s.StatusID} value={s.StatusID}>
-                  {s.Descricao}
-                </option>
-              ))}
-            </select>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Status *</label>
+              <select
+                required
+                value={formData.StatusID}
+                onChange={e => setFormData({ ...formData, StatusID: e.target.value })}
+                className="w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500 p-2.5"
+              >
+                <option value="">Selecione um status</option>
+                {listas.status.map((s: any) => (
+                  <option key={s.StatusID} value={s.StatusID}>
+                    {s.Descricao}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* CAMPO DE OBSERVAÇÃO */}
+            <div className="border-t border-gray-100 pt-6">
+              <label className="block text-sm font-medium text-gray-700 mb-2">Observações do Contrato</label>
+              <textarea
+                rows={4}
+                value={formData.Observacao}
+                onChange={e => setFormData({ ...formData, Observacao: e.target.value })}
+                className="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                placeholder="Ex: Condições especiais de negociação, avisos importantes..."
+              />
+            </div>
           </div>
         </div>
 
-        {/* BOTÃO DE SALVAR PADRONIZADO */}
-        <div className="flex justify-start pt-6 border-t border-gray-100">
+        {/* BOTÃO DE SALVAR */}
+        <div className="flex justify-start pt-2 max-w-3xl">
           <button
             type="submit"
             className="flex items-center gap-2 px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium shadow-lg shadow-blue-900/20 transition-all hover:-translate-y-1"

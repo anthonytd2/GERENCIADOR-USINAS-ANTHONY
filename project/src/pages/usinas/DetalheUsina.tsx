@@ -1,145 +1,156 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { api } from '../../lib/api';
-import { ArrowLeft, Edit, Trash2 } from 'lucide-react';
-
-interface Usina {
-  UsinaID: number;
-  NomeProprietario: string;
-  Potencia: number | null;
-  Tipo: string | null;
-  ValorKWBruto: string | null;
-  GeracaoEstimada: number | null;
-  InicioContrato: string | null;
-  VencimentoContrato: string | null;
-  TipoPagamento: string | null;
-}
-
-interface Vinculo {
-  VinculoID: number;
-  Consumidores: { Nome: string };
-  Status: { Descricao: string };
-}
+import { ArrowLeft, Edit, Trash2, Zap, Link as LinkIcon, CheckCircle, XCircle } from 'lucide-react';
 
 export default function DetalheUsina() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [usina, setUsina] = useState<Usina | null>(null);
-  const [vinculos, setVinculos] = useState<Vinculo[]>([]);
+  const [usina, setUsina] = useState<any>(null);
+  const [vinculos, setVinculos] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!id) return;
-
-    Promise.all([
-      api.usinas.get(Number(id)),
-      api.usinas.vinculos(Number(id))
-    ]).then(([us, vinc]) => {
-      setUsina(us);
-      setVinculos(vinc);
-    }).finally(() => setLoading(false));
+    if (id) {
+      // Carrega os dados da Usina e seus Vínculos
+      Promise.all([
+        api.usinas.get(Number(id)),
+        api.usinas.vinculos(Number(id)) // Agora essa função existe!
+      ]).then(([usinaData, vinculosData]) => {
+        setUsina(usinaData);
+        setVinculos(vinculosData);
+      }).finally(() => setLoading(false));
+    }
   }, [id]);
 
   const handleDelete = async () => {
-    if (!id || !confirm('Tem certeza que deseja excluir esta usina?')) return;
-
+    if (!confirm('Excluir esta usina?')) return;
     await api.usinas.delete(Number(id));
     navigate('/usinas');
   };
 
-  if (loading) {
-    return <div className="text-center py-8">Carregando...</div>;
-  }
+  if (loading) return <div className="p-8 text-center text-gray-500">Carregando usina...</div>;
+  if (!usina) return <div className="p-8 text-center">Não encontrada</div>;
 
-  if (!usina) {
-    return <div className="text-center py-8">Usina não encontrada</div>;
-  }
+  const isLocada = vinculos.length > 0;
 
   return (
     <div>
-      <div className="mb-6">
-        <Link
-          to="/usinas"
-          className="inline-flex items-center space-x-2 text-gray-600 hover:text-gray-900 transition-colors"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          <span>Voltar</span>
+      <div className="mb-8">
+        <Link to="/usinas" className="inline-flex items-center gap-2 text-gray-500 hover:text-gray-900 mb-4 transition-colors">
+          <ArrowLeft className="w-5 h-5" /> Voltar
         </Link>
-      </div>
-
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
-        <div className="flex justify-between items-start mb-4">
-          <h2 className="text-2xl font-bold text-gray-900">{usina.NomeProprietario}</h2>
-          <div className="flex space-x-2">
-            <Link
-              to={`/usinas/${id}/editar`}
-              className="inline-flex items-center space-x-2 px-3 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
-            >
-              <Edit className="w-4 h-4" />
-              <span>Editar</span>
+        
+        <div className="flex justify-between items-start">
+          <div>
+            <h1 className="text-4xl font-bold text-gray-900 mb-2">{usina.NomeProprietario}</h1>
+            <div className="flex items-center gap-3">
+              {isLocada ? (
+                <span className="px-3 py-1 bg-green-100 text-green-700 font-bold rounded-full text-sm border border-green-200 flex items-center gap-1">
+                  <CheckCircle className="w-4 h-4" /> LOCADA
+                </span>
+              ) : (
+                <span className="px-3 py-1 bg-red-100 text-red-700 font-bold rounded-full text-sm border border-red-200 flex items-center gap-1">
+                  <XCircle className="w-4 h-4" /> DISPONÍVEL
+                </span>
+              )}
+              <span className="text-gray-500">ID: #{usina.UsinaID}</span>
+            </div>
+          </div>
+          
+          <div className="flex gap-3">
+            <Link to={`/usinas/${id}/editar`} className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium shadow-sm flex items-center gap-2">
+              <Edit className="w-4 h-4" /> Editar
             </Link>
-            <button
-              onClick={handleDelete}
-              className="inline-flex items-center space-x-2 px-3 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors"
-            >
-              <Trash2 className="w-4 h-4" />
-              <span>Excluir</span>
+            <button onClick={handleDelete} className="px-4 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 font-medium flex items-center gap-2">
+              <Trash2 className="w-4 h-4" /> Excluir
             </button>
           </div>
         </div>
-
-        <div className="grid grid-cols-2 gap-4 mt-6">
-          <div>
-            <p className="text-sm text-gray-500">Potência (kWp)</p>
-            <p className="text-base font-medium text-gray-900">{usina.Potencia ?? '-'}</p>
-          </div>
-          <div>
-            <p className="text-sm text-gray-500">Tipo</p>
-            <p className="text-base font-medium text-gray-900">{usina.Tipo ?? '-'}</p>
-          </div>
-          <div>
-            <p className="text-sm text-gray-500">Valor kW Bruto (R$)</p>
-            <p className="text-base font-medium text-gray-900">{usina.ValorKWBruto ?? '-'}</p>
-          </div>
-          <div>
-            <p className="text-sm text-gray-500">Geração Estimada (kWh)</p>
-            <p className="text-base font-medium text-gray-900">{usina.GeracaoEstimada ?? '-'}</p>
-          </div>
-          <div>
-            <p className="text-sm text-gray-500">Início Contrato</p>
-            <p className="text-base font-medium text-gray-900">
-              {usina.InicioContrato ? new Date(usina.InicioContrato).toLocaleDateString('pt-BR') : '-'}
-            </p>
-          </div>
-          <div>
-            <p className="text-sm text-gray-500">Vencimento Contrato</p>
-            <p className="text-base font-medium text-gray-900">
-              {usina.VencimentoContrato ? new Date(usina.VencimentoContrato).toLocaleDateString('pt-BR') : '-'}
-            </p>
-          </div>
-          <div className="col-span-2">
-            <p className="text-sm text-gray-500">Tipo Pagamento</p>
-            <p className="text-base font-medium text-gray-900">{usina.TipoPagamento ?? '-'}</p>
-          </div>
-        </div>
       </div>
 
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-        <h3 className="text-xl font-bold text-gray-900 mb-4">Consumidores Associados</h3>
-        {vinculos.length === 0 ? (
-          <p className="text-gray-500">Nenhum consumidor associado</p>
-        ) : (
-          <div className="space-y-3">
-            {vinculos.map((vinculo) => (
-              <div key={vinculo.VinculoID} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                <div>
-                  <p className="font-medium text-gray-900">{vinculo.Consumidores.Nome}</p>
-                  <p className="text-sm text-gray-500">{vinculo.Status.Descricao}</p>
-                </div>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {/* Card Principal */}
+        <div className="md:col-span-2 space-y-6">
+          <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-200">
+            <h3 className="text-lg font-bold text-gray-900 mb-6 flex items-center gap-2">
+              <Zap className="w-5 h-5 text-blue-600" /> Dados Técnicos
+            </h3>
+            
+            <div className="grid grid-cols-2 gap-8">
+              <div>
+                <p className="text-sm text-gray-500 mb-1">Potência Instalada</p>
+                <p className="text-3xl font-bold text-gray-900">{usina.Potencia} <span className="text-sm text-gray-400 font-normal">kWp</span></p>
               </div>
-            ))}
+              <div>
+                <p className="text-sm text-gray-500 mb-1">Geração Estimada</p>
+                <p className="text-3xl font-bold text-gray-900">{usina.GeracaoEstimada} <span className="text-sm text-gray-400 font-normal">kWh</span></p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-500 mb-1">Tipo da Usina</p>
+                <p className="font-medium text-lg text-gray-900">{usina.Tipo || '-'}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-500 mb-1">Custo kW (Bruto)</p>
+                <p className="font-medium text-lg text-gray-900">R$ {usina.ValorKWBruto}</p>
+              </div>
+            </div>
+
+            {usina.Observacao && (
+              <div className="mt-8 p-4 bg-gray-50 rounded-lg border border-gray-100">
+                <p className="text-sm font-bold text-gray-700 mb-2">Observações:</p>
+                <p className="text-gray-600 whitespace-pre-line">{usina.Observacao}</p>
+              </div>
+            )}
           </div>
-        )}
+
+          {/* Lista de Consumidores Vinculados */}
+          <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-200">
+            <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+              <LinkIcon className="w-5 h-5 text-gray-600" /> Consumidores Vinculados
+            </h3>
+
+            {vinculos.length === 0 ? (
+              <p className="text-gray-500">Nenhum consumidor vinculado a esta usina.</p>
+            ) : (
+              <div className="space-y-3">
+                {vinculos.map((v) => (
+                  <div key={v.VinculoID} className="flex justify-between items-center p-4 bg-gray-50 rounded-lg border border-gray-100">
+                    <div>
+                      <Link to={`/vinculos/${v.VinculoID}`} className="font-bold text-blue-600 hover:underline">
+                        {v.Consumidores?.Nome}
+                      </Link>
+                      <p className="text-sm text-gray-500">Status: {v.Status?.Descricao}</p>
+                    </div>
+                    <Link to={`/vinculos/${v.VinculoID}`} className="px-3 py-1 bg-white border border-gray-300 text-sm font-medium rounded hover:bg-gray-50">
+                      Ver Contrato
+                    </Link>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Card Detalhes Contrato */}
+        <div className="bg-slate-50 p-8 rounded-2xl border border-slate-100 h-fit">
+          <h3 className="text-lg font-bold text-gray-900 mb-6">Contrato Proprietário</h3>
+          
+          <div className="space-y-4">
+            <div>
+              <p className="text-sm text-gray-500">Tipo de Pagamento</p>
+              <p className="font-medium text-gray-900">{usina.TipoPagamento || '-'}</p>
+            </div>
+            <div className="pt-4 border-t border-gray-200">
+              <p className="text-sm text-gray-500 mb-1">Início</p>
+              <p className="font-medium text-gray-900">{usina.InicioContrato || '-'}</p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-500 mb-1">Vencimento</p>
+              <p className="font-medium text-gray-900">{usina.VencimentoContrato || '-'}</p>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

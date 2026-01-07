@@ -26,6 +26,10 @@ export const api = {
   usinas: {
     list: () => fetch(`${API_BASE}/usinas`).then(r => r.json()),
     get: (id: number) => fetch(`${API_BASE}/usinas/${id}`).then(r => r.json()),
+    
+    // --- A LINHA QUE FALTAVA (CORREÇÃO) ---
+    vinculos: (id: number) => fetch(`${API_BASE}/usinas/${id}/vinculos`).then(r => r.json()),
+    
     create: (data: any) => fetch(`${API_BASE}/usinas`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -39,7 +43,7 @@ export const api = {
     delete: (id: number) => fetch(`${API_BASE}/usinas/${id}`, { method: 'DELETE' })
   },
 
-  // --- MÓDULO DE STATUS (Pequeno auxiliar) ---
+  // --- MÓDULO DE STATUS ---
   status: {
     list: () => fetch(`${API_BASE}/status`).then(r => r.json())
   },
@@ -60,22 +64,16 @@ export const api = {
     }).then(r => r.json()),
     delete: (id: number) => fetch(`${API_BASE}/vinculos/${id}`, { method: 'DELETE' })
   }, 
-  // <--- OLHA A VÍRGULA AQUI! Ela separa o bloco de cima do bloco novo.
 
-  // --- NOVO MÓDULO: FECHAMENTOS (FINANCEIRO) ---
+  // --- MÓDULO: FECHAMENTOS (FINANCEIRO) ---
   fechamentos: {
-    // Busca a lista de fechamentos de um vínculo específico
     list: (vinculoId: number) => fetch(`${API_BASE}/fechamentos/${vinculoId}`).then(r => r.json()),
-    
-    // Cria um novo lançamento financeiro
     create: (data: any) => fetch(`${API_BASE}/fechamentos`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data)
     }).then(r => r.json()),
-    
-    // Deleta um lançamento errado
     delete: (id: number) => fetch(`${API_BASE}/fechamentos/${id}`, { method: 'DELETE' })
   }
 
-}; // Fim do objeto "api"
+};

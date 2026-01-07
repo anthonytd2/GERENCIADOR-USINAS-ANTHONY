@@ -1,19 +1,21 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../../lib/api';
-import { Plus, Edit, Trash2, Search } from 'lucide-react';
+import { Plus, Edit, Trash2, User, Search, Percent, DollarSign } from 'lucide-react';
 
 interface Consumidor {
   ConsumidorID: number;
   Nome: string;
   MediaConsumo: number;
   PercentualDesconto: number;
-  Vendedor: string;
+  TipoDesconto?: string; // Campo novo que diz se é 'porcentagem' ou 'valor_fixo'
+  Vendedor?: string;
 }
 
 export default function ListaConsumidores() {
   const [consumidores, setConsumidores] = useState<Consumidor[]>([]);
   const [loading, setLoading] = useState(true);
+  const [busca, setBusca] = useState('');
 
   const loadConsumidores = () => {
     api.consumidores.list()
@@ -31,7 +33,12 @@ export default function ListaConsumidores() {
     loadConsumidores();
   };
 
-  if (loading) return <div className="text-center py-10 text-lg text-gray-500">Carregando dados...</div>;
+  // Filtro de busca
+  const consumidoresFiltrados = consumidores.filter(c => 
+    c.Nome.toLowerCase().includes(busca.toLowerCase())
+  );
+
+  if (loading) return <div className="text-center py-10 text-gray-500">Carregando consumidores...</div>;
 
   return (
     <div>
@@ -49,8 +56,22 @@ export default function ListaConsumidores() {
         </Link>
       </div>
 
+      {/* Barra de Busca */}
+      <div className="mb-6 relative">
+        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+          <Search className="h-5 w-5 text-gray-400" />
+        </div>
+        <input
+          type="text"
+          placeholder="Buscar por nome..."
+          className="pl-10 w-full md:w-1/3 rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500"
+          value={busca}
+          onChange={(e) => setBusca(e.target.value)}
+        />
+      </div>
+
       <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-        {consumidores.length === 0 ? (
+        {consumidoresFiltrados.length === 0 ? (
           <div className="p-10 text-center text-gray-500">
             Nenhum consumidor encontrado.
           </div>
@@ -59,29 +80,41 @@ export default function ListaConsumidores() {
             <table className="min-w-full divide-y divide-gray-100">
               <thead className="bg-slate-50">
                 <tr>
-                  <th className="px-6 text-left">Nome</th>
-                  <th className="px-6 text-left">Consumo Médio</th>
-                  <th className="px-6 text-left">Desconto</th>
-                  <th className="px-6 text-left">Vendedor</th>
-                  <th className="px-6 text-right">Ações</th>
+                  <th className="px-6 text-left py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Nome</th>
+                  <th className="px-6 text-left py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Média Consumo</th>
+                  <th className="px-6 text-left py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Cobrança</th>
+                  <th className="px-6 text-left py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Vendedor</th>
+                  <th className="px-6 text-right py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Ações</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {consumidores.map((c) => (
+                {consumidoresFiltrados.map((c) => (
                   <tr key={c.ConsumidorID} className="hover:bg-slate-50 transition-colors">
-                    <td className="px-6">
-                      <Link to={`/consumidores/${c.ConsumidorID}`} className="font-semibold text-blue-600 hover:text-blue-800 hover:underline">
+                    <td className="px-6 py-4">
+                      <Link to={`/consumidores/${c.ConsumidorID}/editar`} className="font-semibold text-blue-600 hover:text-blue-800 hover:underline flex items-center gap-2">
+                        <User className="w-4 h-4 text-gray-400" />
                         {c.Nome}
                       </Link>
                     </td>
-                    <td className="px-6 text-gray-600">{c.MediaConsumo} kWh</td>
-                    <td className="px-6">
-                      <span className="px-3 py-1 rounded-full bg-green-100 text-green-700 font-bold text-sm">
-                        {c.PercentualDesconto}%
-                      </span>
+                    <td className="px-6 py-4 text-gray-600">{c.MediaConsumo} kWh</td>
+                    
+                    {/* AQUI ESTÁ A CORREÇÃO VISUAL */}
+                    <td className="px-6 py-4">
+                      {c.TipoDesconto === 'valor_fixo' ? (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-sm font-medium bg-green-100 text-green-800">
+                          <DollarSign className="w-3 h-3" />
+                          R$ {Number(c.PercentualDesconto).toFixed(2)} / kWh
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
+                          <Percent className="w-3 h-3" />
+                          {c.PercentualDesconto}% Desc.
+                        </span>
+                      )}
                     </td>
-                    <td className="px-6 text-gray-600">{c.Vendedor || '-'}</td>
-                    <td className="px-6 text-right">
+
+                    <td className="px-6 py-4 text-gray-500">{c.Vendedor || '-'}</td>
+                    <td className="px-6 py-4 text-right">
                       <div className="flex justify-end gap-2">
                         <Link to={`/consumidores/${c.ConsumidorID}/editar`} className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg transition-colors">
                           <Edit className="w-5 h-5" />

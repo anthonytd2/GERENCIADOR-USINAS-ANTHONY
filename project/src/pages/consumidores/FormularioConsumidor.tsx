@@ -12,12 +12,12 @@ export default function FormularioConsumidor() {
     Nome: '',
     MediaConsumo: '',
     PercentualDesconto: '',
-    TipoDesconto: 'porcentagem', // Novo Campo (padrão %)
+    TipoDesconto: 'porcentagem',
     TempoContratoAnos: '',
     InicioContrato: '',
     VencimentoContrato: '',
     Vendedor: '',
-    Observacao: '' // Novo Campo
+    Observacao: ''
   });
 
   useEffect(() => {
@@ -81,17 +81,17 @@ export default function FormularioConsumidor() {
               <label className="block text-sm font-medium text-gray-700 mb-1">Nome Completo</label>
               <input type="text" required value={formData.Nome}
                 onChange={e => setFormData({ ...formData, Nome: e.target.value })}
-                className="w-full" placeholder="Ex: João da Silva" />
+                className="w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500" placeholder="Ex: João da Silva" />
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Média de Consumo (kWh)</label>
               <input type="number" required value={formData.MediaConsumo}
                 onChange={e => setFormData({ ...formData, MediaConsumo: e.target.value })}
-                className="w-full" placeholder="0" />
+                className="w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500" placeholder="0" />
             </div>
 
-            {/* SELEÇÃO DO TIPO DE COBRANÇA */}
+            {/* SELEÇÃO DO TIPO DE COBRANÇA COM VISUAL INTELIGENTE */}
             <div className="bg-blue-50 p-4 rounded-lg border border-blue-100 col-span-2 md:col-span-1">
               <label className="block text-sm font-bold text-blue-900 mb-2">Forma de Cobrança</label>
               <div className="flex gap-4 mb-3">
@@ -112,42 +112,62 @@ export default function FormularioConsumidor() {
               </div>
 
               <label className="block text-sm font-medium text-blue-800 mb-1">
-                {formData.TipoDesconto === 'porcentagem' ? 'Percentual de Desconto (%)' : 'Valor Cobrado por kWh (R$)'}
+                {formData.TipoDesconto === 'porcentagem' ? 'Definir Desconto' : 'Definir Valor do kWh'}
               </label>
-              <input type="number" step="0.01" required value={formData.PercentualDesconto}
-                onChange={e => setFormData({ ...formData, PercentualDesconto: e.target.value })}
-                className="w-full border-blue-300 focus:border-blue-500 focus:ring-blue-500"
-                placeholder={formData.TipoDesconto === 'porcentagem' ? "Ex: 15" : "Ex: 0.85"} />
+              
+              <div className="relative">
+                {/* Símbolo R$ na esquerda se for Valor Fixo */}
+                {formData.TipoDesconto === 'valor_fixo' && (
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <span className="text-gray-500 sm:text-sm font-bold">R$</span>
+                  </div>
+                )}
+                
+                <input 
+                  type="number" step="0.01" required value={formData.PercentualDesconto}
+                  onChange={e => setFormData({ ...formData, PercentualDesconto: e.target.value })}
+                  className={`w-full rounded-lg border-blue-300 focus:border-blue-500 focus:ring-blue-500 ${
+                    formData.TipoDesconto === 'valor_fixo' ? 'pl-10' : 'pl-3'
+                  }`}
+                  placeholder={formData.TipoDesconto === 'porcentagem' ? "Ex: 15" : "Ex: 0.85"} 
+                />
+
+                {/* Símbolo % na direita se for Porcentagem */}
+                {formData.TipoDesconto === 'porcentagem' && (
+                  <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                    <span className="text-gray-500 sm:text-sm font-bold">%</span>
+                  </div>
+                )}
+              </div>
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Tempo Contrato (Anos)</label>
               <input type="number" value={formData.TempoContratoAnos}
                 onChange={e => setFormData({ ...formData, TempoContratoAnos: e.target.value })}
-                className="w-full" />
+                className="w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500" />
             </div>
             
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Vendedor</label>
               <input type="text" value={formData.Vendedor}
                 onChange={e => setFormData({ ...formData, Vendedor: e.target.value })}
-                className="w-full" />
+                className="w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500" />
             </div>
             
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Início Contrato</label>
               <input type="date" value={formData.InicioContrato}
                 onChange={e => setFormData({ ...formData, InicioContrato: e.target.value })}
-                className="w-full" />
+                className="w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500" />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Vencimento Contrato</label>
               <input type="date" value={formData.VencimentoContrato}
                 onChange={e => setFormData({ ...formData, VencimentoContrato: e.target.value })}
-                className="w-full" />
+                className="w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500" />
             </div>
 
-            {/* CAMPO DE OBSERVAÇÃO */}
             <div className="col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-1">Observações Gerais</label>
               <textarea 

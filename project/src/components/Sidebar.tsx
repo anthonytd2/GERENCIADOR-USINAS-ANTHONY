@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Users, Zap, Link as LinkIcon, LogOut, Sun } from 'lucide-react';
+import { LayoutDashboard, Users, Zap, Link as LinkIcon, LogOut, Sun, FileText } from 'lucide-react';
 
 export default function Sidebar() {
   const location = useLocation();
@@ -11,7 +11,6 @@ export default function Sidebar() {
   };
 
   return (
-    // h-full garante que o azul vá até o fim da tela
     <div className="w-64 bg-[#0B1E3F] h-full flex flex-col shadow-2xl z-20 flex-shrink-0"> 
       
       {/* LOGO */}
@@ -52,6 +51,12 @@ export default function Sidebar() {
         <Link to="/vinculos" className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-medium tracking-wide ${isActive('/vinculos')}`}>
           <LinkIcon className="w-5 h-5" />
           Vínculos
+        </Link>
+
+        {/* --- NOVO BOTÃO DE RECIBOS --- */}
+        <Link to="/recibos" className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-medium tracking-wide ${isActive('/recibos')}`}>
+          <FileText className="w-5 h-5" />
+          Emitir Recibos
         </Link>
       </nav>
 

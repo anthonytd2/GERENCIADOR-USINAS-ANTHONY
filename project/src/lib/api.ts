@@ -65,6 +65,22 @@ export const api = {
     delete: (id: number) => fetch(`${API_BASE}/vinculos/${id}`, { method: 'DELETE' })
   }, 
 
+// ADICIONE ESTE BLOCO NOVO:
+  entidades: {
+    list: () => fetch(`${API_URL}/entidades`).then(res => res.json()),
+    create: (data: any) => fetch(`${API_URL}/entidades`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    }).then(res => res.json()),
+    update: (id: number, data: any) => fetch(`${API_URL}/entidades/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    }).then(res => res.json()),
+    delete: (id: number) => fetch(`${API_URL}/entidades/${id}`, { method: 'DELETE' }),
+  },
+
   // --- MÓDULO: FECHAMENTOS (FINANCEIRO) ---
   fechamentos: {
     list: (vinculoId: number) => fetch(`${API_BASE}/fechamentos/${vinculoId}`).then(r => r.json()),
@@ -75,5 +91,7 @@ export const api = {
     }).then(r => r.json()),
     delete: (id: number) => fetch(`${API_BASE}/fechamentos/${id}`, { method: 'DELETE' })
   }
+
+  
 
 };

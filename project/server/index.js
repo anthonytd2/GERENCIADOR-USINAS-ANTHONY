@@ -7,7 +7,7 @@ import consumidoresRoutes from './routes/consumidores.js';
 import usinasRoutes from './routes/usinas.js';
 import vinculosRoutes from './routes/vinculos.js';
 import statusRoutes from './routes/status.js';
-
+import entidadesRouter from './routes/entidades.js'; // <--- ADICIONE ISSO
 const app = express();
 
 // 1. Configura quem pode acessar (CORS)
@@ -22,7 +22,7 @@ app.use('/api/usinas', usinasRoutes);
 app.use('/api/vinculos', vinculosRoutes);
 app.use('/api/status', statusRoutes);
 app.use('/api/fechamentos', fechamentosRoutes);
-
+app.use('/api/entidades', entidadesRouter); // <--- ADICIONE ISSO
 // O Render escolhe a porta dele, ou usa a 3001 se for local
 const PORT = process.env.PORT || 3001; 
 app.listen(PORT, () => {

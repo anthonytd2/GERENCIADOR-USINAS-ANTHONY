@@ -1,7 +1,7 @@
+import fechamentosRoutes from './routes/fechamentos.js';
 import 'dotenv/config'; // Lê o arquivo .env
 import express from 'express';
 import cors from 'cors';
-
 // Importação das rotas
 import consumidoresRoutes from './routes/consumidores.js';
 import usinasRoutes from './routes/usinas.js';
@@ -21,6 +21,7 @@ app.use('/api/consumidores', consumidoresRoutes);
 app.use('/api/usinas', usinasRoutes);
 app.use('/api/vinculos', vinculosRoutes);
 app.use('/api/status', statusRoutes);
+app.use('/api/fechamentos', fechamentosRoutes);
 
 // O Render escolhe a porta dele, ou usa a 3001 se for local
 const PORT = process.env.PORT || 3001; 

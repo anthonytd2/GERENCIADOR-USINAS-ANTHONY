@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../../lib/api';
-import { Plus, Edit, Trash2, Zap, CheckCircle, Lock } from 'lucide-react';
+import { Plus, Edit, Trash2, Zap, CheckCircle, XCircle } from 'lucide-react';
 
 interface Usina {
   UsinaID: number;
@@ -10,8 +10,9 @@ interface Usina {
   Tipo: string;
   ValorKWBruto: number;
   GeracaoEstimada: number;
-  // O backend agora retorna essa lista de vinculos
+  // Aceita tanto Maiúsculo quanto Minúsculo para evitar erros
   Vinculos?: { VinculoID: number }[];
+  vinculos?: { VinculoID: number }[];
 }
 
 export default function ListaUsinas() {
@@ -66,14 +67,15 @@ export default function ListaUsinas() {
                   <th className="px-6 text-left">Potência</th>
                   <th className="px-6 text-left">Tipo</th>
                   <th className="px-6 text-left">Geração Est.</th>
-                  <th className="px-6 text-center">Status</th> {/* Nova Coluna */}
+                  <th className="px-6 text-center">Status</th>
                   <th className="px-6 text-right">Ações</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {usinas.map((u) => {
-                  // Lógica do Status: Se tem vínculos na lista, está locada
-                  const isLocada = u.Vinculos && u.Vinculos.length > 0;
+                  // LÓGICA BLINDADA: Verifica se existe lista de vínculos (Maiúsculo ou Minúsculo)
+                  const listaVinculos = u.Vinculos || u.vinculos || [];
+                  const isLocada = listaVinculos.length > 0;
 
                   return (
                     <tr key={u.UsinaID} className="hover:bg-slate-50 transition-colors">
@@ -91,15 +93,15 @@ export default function ListaUsinas() {
                       </td>
                       <td className="px-6 text-gray-600">{u.GeracaoEstimada} kWh</td>
                       
-                      {/* COLUNA DE STATUS COM CORES */}
+                      {/* LÓGICA DE CORES INVERTIDA */}
                       <td className="px-6 text-center">
                         {isLocada ? (
-                          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-100 text-blue-700 font-bold text-xs uppercase tracking-wide border border-blue-200">
-                            <Lock className="w-3 h-3" /> Locada
+                          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-green-100 text-green-700 font-bold text-xs uppercase tracking-wide border border-green-200">
+                            <CheckCircle className="w-3 h-3" /> Locada
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-green-100 text-green-700 font-bold text-xs uppercase tracking-wide border border-green-200">
-                            <CheckCircle className="w-3 h-3" /> Disponível
+                          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-100 text-red-700 font-bold text-xs uppercase tracking-wide border border-red-200">
+                            <XCircle className="w-3 h-3" /> Disponível
                           </span>
                         )}
                       </td>

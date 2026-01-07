@@ -1,24 +1,20 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* TRUQUE PARA DIMINUIR O SITE INTEIRO (MODO COMPACTO) */
 :root {
-  font-size: 13px; /* O padrão é 16px. Baixando para 13px tudo diminui proporcionalmente. */
+  font-family: 'Inter', sans-serif; /* Fonte mais bonita e moderna */
+  font-size: 14px; /* Tamanho ideal (nem gigante, nem minúsculo) */
 }
 
-/* Ajuste fino para monitores pequenos */
 body {
   @apply bg-slate-50 text-slate-900;
-  zoom: 0.9; /* Reduz mais um pouco (90% do tamanho original) */
+  /* Removi o 'zoom' que estava quebrando o layout */
 }
 
-/* Deixa as tabelas mais "apertadinhas" para caber mais dados */
+/* Tabelas mais elegantes */
 td, th {
-  @apply py-2 px-3 !important; /* Força menos espaço entre as linhas */
-}
-
-/* Deixa os botões laterais mais compactos */
-.sidebar-link {
-  @apply py-2 px-3 text-sm !important;
+  @apply py-3 px-4 !important;
 }

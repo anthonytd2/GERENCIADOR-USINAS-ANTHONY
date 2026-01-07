@@ -18,13 +18,21 @@ router.get('/:id', async (req, res) => {
 
 router.post('/', async (req, res) => {
   try {
-    // ATUALIZADO: Recebendo TipoDesconto e Observacao
-    const { Nome, MediaConsumo, PercentualDesconto, TipoDesconto, TempoContratoAnos, InicioContrato, VencimentoContrato, Vendedor, Observacao } = req.body;
+    // ATUALIZADO: Incluindo Documento e Endereço completo
+    const { 
+      Nome, MediaConsumo, PercentualDesconto, TipoDesconto, 
+      TempoContratoAnos, InicioContrato, VencimentoContrato, 
+      Vendedor, Observacao,
+      Documento, Endereco, Bairro, Cidade, UF, CEP 
+    } = req.body;
     
     const { data, error } = await supabase
       .from('Consumidores')
       .insert([{ 
-        Nome, MediaConsumo, PercentualDesconto, TipoDesconto, TempoContratoAnos, InicioContrato, VencimentoContrato, Vendedor, Observacao 
+        Nome, MediaConsumo, PercentualDesconto, TipoDesconto, 
+        TempoContratoAnos, InicioContrato, VencimentoContrato, 
+        Vendedor, Observacao,
+        Documento, Endereco, Bairro, Cidade, UF, CEP 
       }])
       .select().single();
 
@@ -37,9 +45,10 @@ router.post('/', async (req, res) => {
 
 router.put('/:id', async (req, res) => {
   try {
+    // O update é inteligente: ele pega tudo que vier no corpo da requisição (req.body)
     const { data, error } = await supabase
       .from('Consumidores')
-      .update(req.body) // O update já pega tudo que vier no corpo
+      .update(req.body) 
       .eq('ConsumidorID', req.params.id)
       .select().single();
 

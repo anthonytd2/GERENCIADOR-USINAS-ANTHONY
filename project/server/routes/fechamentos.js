@@ -3,22 +3,23 @@ import { supabase } from '../db.js';
 
 const router = express.Router();
 
-// 1. LISTAR (Busca os relatórios daquele vínculo)
+// LISTAR
 router.get('/:vinculoId', async (req, res) => {
   const { data, error } = await supabase
     .from('Fechamentos')
     .select('*')
     .eq('VinculoID', req.params.vinculoId)
-    .order('MesReferencia', { ascending: false }); // Meses mais novos primeiro
+    .order('MesReferencia', { ascending: false });
 
   if (error) return res.status(500).json({ error: error.message });
   res.json(data);
 });
 
-// 2. CRIAR (Salva o que você digitou)
+// CRIAR
 router.post('/', async (req, res) => {
   try {
-    const { VinculoID, MesReferencia, EnergiaCompensada, ValorRecebido, ValorPago, Spread } = req.body;
+    // ATUALIZADO: Agora aceita ArquivoURL
+    const { VinculoID, MesReferencia, EnergiaCompensada, ValorRecebido, ValorPago, Spread, ArquivoURL } = req.body;
 
     const { data, error } = await supabase
       .from('Fechamentos')
@@ -28,7 +29,8 @@ router.post('/', async (req, res) => {
         EnergiaCompensada,
         ValorRecebido,
         ValorPago,
-        Spread
+        Spread,
+        ArquivoURL // Novo campo
       }])
       .select()
       .single();
@@ -40,13 +42,9 @@ router.post('/', async (req, res) => {
   }
 });
 
-// 3. EXCLUIR (Caso digite errado)
+// EXCLUIR
 router.delete('/:id', async (req, res) => {
-  const { error } = await supabase
-    .from('Fechamentos')
-    .delete()
-    .eq('FechamentoID', req.params.id);
-
+  const { error } = await supabase.from('Fechamentos').delete().eq('FechamentoID', req.params.id);
   if (error) return res.status(500).json({ error: error.message });
   res.status(204).send();
 });

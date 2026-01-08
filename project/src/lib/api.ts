@@ -27,7 +27,7 @@ export const api = {
     list: () => fetch(`${API_BASE}/usinas`).then(r => r.json()),
     get: (id: number) => fetch(`${API_BASE}/usinas/${id}`).then(r => r.json()),
     
-    // --- A LINHA QUE FALTAVA (CORREÇÃO) ---
+    // Rota de vinculos da usina
     vinculos: (id: number) => fetch(`${API_BASE}/usinas/${id}/vinculos`).then(r => r.json()),
     
     create: (data: any) => fetch(`${API_BASE}/usinas`, {
@@ -65,20 +65,21 @@ export const api = {
     delete: (id: number) => fetch(`${API_BASE}/vinculos/${id}`, { method: 'DELETE' })
   }, 
 
-// ADICIONE ESTE BLOCO NOVO:
+  // --- MÓDULO: ENTIDADES (CORRIGIDO) ---
+  // AQUI ESTAVA O ERRO: Trocamos API_URL por API_BASE
   entidades: {
-    list: () => fetch(`${API_URL}/entidades`).then(res => res.json()),
-    create: (data: any) => fetch(`${API_URL}/entidades`, {
+    list: () => fetch(`${API_BASE}/entidades`).then(res => res.json()),
+    create: (data: any) => fetch(`${API_BASE}/entidades`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     }).then(res => res.json()),
-    update: (id: number, data: any) => fetch(`${API_URL}/entidades/${id}`, {
+    update: (id: number, data: any) => fetch(`${API_BASE}/entidades/${id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     }).then(res => res.json()),
-    delete: (id: number) => fetch(`${API_URL}/entidades/${id}`, { method: 'DELETE' }),
+    delete: (id: number) => fetch(`${API_BASE}/entidades/${id}`, { method: 'DELETE' }),
   },
 
   // --- MÓDULO: FECHAMENTOS (FINANCEIRO) ---
@@ -91,7 +92,4 @@ export const api = {
     }).then(r => r.json()),
     delete: (id: number) => fetch(`${API_BASE}/fechamentos/${id}`, { method: 'DELETE' })
   }
-
-  
-
 };

@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useReactToPrint } from 'react-to-print';
-import { Printer, FileText, ArrowLeft, Plus, Save, Trash2, Building2, User, Search } from 'lucide-react';
+import { Printer, FileText, ArrowLeft, Save, Trash2, Search } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { api } from '../../lib/api';
 
-// --- TEMPLATE DO RECIBO (VISUAL IGUAL PDF) ---
+// --- TEMPLATE DO RECIBO (VISUAL BLOCO PADRÃO) ---
 const ReciboTemplate = React.forwardRef((props: any, ref: any) => {
   const { numero, valor, pagador, emitente, referente, data, formatarMoeda, formatarData } = props;
 
@@ -13,93 +13,83 @@ const ReciboTemplate = React.forwardRef((props: any, ref: any) => {
   const ufData = emitente.uf ? emitente.uf.toUpperCase() : 'PR';
 
   return (
-    <div ref={ref} className="p-10 font-serif text-black bg-white" style={{ width: '210mm', minHeight: '148mm' }}>
-      <div className="border-4 border-double border-slate-800 p-8 h-full flex flex-col justify-between relative">
+    <div ref={ref} className="p-10 font-sans text-black bg-white" style={{ width: '210mm', minHeight: '148mm' }}>
+      <div className="border-2 border-slate-900 p-8 h-full flex flex-col justify-between relative">
         
-        {/* CABEÇALHO DO RECIBO (DADOS DO EMITENTE + TITULO) */}
-        <div className="border-b-2 border-slate-800 pb-6 mb-6">
-          <div className="flex justify-between items-start">
-            
-            {/* LADO ESQUERDO: DADOS DA EMPRESA (EMITENTE) */}
-            <div className="w-2/3 pr-4">
-              <h2 className="text-2xl font-bold text-slate-900 uppercase">{emitente.nome || 'NOME DA SUA EMPRESA'}</h2>
-              <div className="text-sm text-slate-700 uppercase mt-1 leading-snug">
-                <p>CNPJ/CPF: {emitente.documento || '00.000.000/0000-00'}</p>
-                <p>{emitente.endereco || 'ENDEREÇO DA EMPRESA'}</p>
-                <p>{emitente.cidade} - {emitente.uf}</p>
-              </div>
-            </div>
-
-            {/* LADO DIREITO: NÚMERO E VALOR */}
-            <div className="text-right w-1/3">
-              <div className="mb-2">
-                <h1 className="text-3xl font-bold tracking-widest text-slate-900">RECIBO</h1>
-                <div className="flex items-center justify-end gap-2 mt-1">
-                  <span className="text-lg font-bold">Nº</span>
-                  <span className="text-xl font-bold text-red-600 border-b-2 border-slate-400 min-w-[60px] text-center inline-block">
-                    {numero}
-                  </span>
-                </div>
-              </div>
-              <div className="bg-slate-100 border border-slate-300 px-3 py-2 rounded inline-block mt-2 shadow-sm">
-                <span className="text-xs font-bold text-slate-500 mr-2 block text-left">VALOR</span>
-                <span className="text-2xl font-bold text-slate-900">{formatarMoeda(valor)}</span>
-              </div>
-            </div>
+        {/* CABEÇALHO LINHA ÚNICA ALINHADA */}
+        <div className="flex justify-between items-end mb-8 border-b-2 border-slate-900 pb-4">
+          <div className="flex items-center gap-2">
+            <h1 className="text-3xl font-bold text-slate-900 tracking-wide">RECIBO</h1>
+            <span className="text-3xl font-bold text-red-600 ml-2">Nº {numero}</span>
+          </div>
+          
+          <div className="bg-slate-100 border border-slate-400 px-6 py-2 rounded shadow-sm">
+            <span className="text-xs font-bold text-slate-600 block mb-1">VALOR</span>
+            <span className="text-3xl font-bold text-slate-900">{formatarMoeda(valor)}</span>
           </div>
         </div>
 
-        {/* CORPO DO RECIBO */}
-        <div className="space-y-6 text-lg leading-relaxed uppercase">
+        {/* CORPO DO RECIBO - TEXTO CORRIDO E UNIFORME */}
+        <div className="space-y-6 text-xl leading-relaxed uppercase font-medium text-slate-800">
           
           {/* QUEM PAGA */}
-          <div>
-            <span className="font-bold mr-2">RECEBI(EMOS) DE:</span>
-            <span className="border-b border-dotted border-slate-400 font-medium px-2 block sm:inline-block w-full sm:w-auto">
-              {pagador.nome || '__________________________________________________'}
-            </span>
+          <div className="flex flex-col">
+            <div className="flex items-baseline w-full">
+              <span className="font-bold mr-2 whitespace-nowrap">RECEBI(EMOS) DE:</span>
+              <span className="border-b border-slate-400 px-2 flex-grow text-slate-900 font-bold">
+                {pagador.nome || ''}
+              </span>
+            </div>
           </div>
           
-          <div className="flex gap-4 flex-wrap">
-             <div className="flex-1">
-                <span className="font-bold mr-2">CPF/CNPJ:</span>
-                <span className="border-b border-dotted border-slate-400 font-medium px-2 inline-block min-w-[200px]">
-                  {pagador.documento || '____________________'}
-                </span>
-             </div>
-          </div>
-
-          <div>
-            <span className="font-bold mr-2">ENDEREÇO:</span>
-            <span className="border-b border-dotted border-slate-400 font-medium px-2 w-full inline-block">
-              {pagador.endereco || '__________________________________________________________________'}
+          <div className="flex items-baseline w-full">
+            <span className="font-bold mr-2 whitespace-nowrap">CPF/CNPJ:</span>
+            <span className="border-b border-slate-400 px-2 flex-grow text-slate-900">
+              {pagador.documento || ''}
             </span>
           </div>
 
-          {/* VALOR E REFERENTE */}
-          <div className="bg-slate-50 p-4 border border-slate-200 rounded italic mt-4 mb-4 shadow-sm">
-            <span className="font-bold not-italic mr-2">A IMPORTÂNCIA DE:</span>
+          <div className="flex items-baseline w-full">
+            <span className="font-bold mr-2 whitespace-nowrap">ENDEREÇO:</span>
+            <span className="border-b border-slate-400 px-2 flex-grow text-slate-900">
+              {pagador.endereco || ''}
+            </span>
+          </div>
+
+          {/* IMPORTÂNCIA */}
+          <div className="bg-slate-50 p-4 border border-slate-200 rounded my-4">
+            <span className="font-bold mr-2">A IMPORTÂNCIA DE:</span>
             <span className="font-bold text-xl">({formatarMoeda(valor)})</span>
           </div>
           
-          <div>
-            <span className="font-bold mr-2">REFERENTE A:</span>
-            <span className="border-b border-dotted border-slate-400 font-medium px-2 w-full inline-block">
+          <div className="flex items-baseline w-full">
+            <span className="font-bold mr-2 whitespace-nowrap">REFERENTE A:</span>
+            <span className="border-b border-slate-400 px-2 flex-grow text-slate-900">
               {referente}
             </span>
           </div>
+
+          {/* EMITENTE NO CORPO (Conforme pedido) */}
+          <div className="flex items-baseline w-full pt-2">
+            <span className="font-bold mr-2 whitespace-nowrap text-sm text-slate-600">EMITENTE:</span>
+            <span className="px-2 flex-grow text-slate-700 text-lg border-b border-dotted border-slate-300">
+              {emitente.nome} - {emitente.documento}
+            </span>
+          </div>
+
         </div>
 
         {/* RODAPÉ (DATA E ASSINATURA) */}
         <div className="mt-12 flex flex-col items-center">
-          <p className="text-right w-full mb-12 text-lg uppercase">
-            {cidadeData}, <span className="font-bold">{formatarData(data)}</span>.
+          <p className="text-right w-full mb-16 text-xl uppercase font-bold text-slate-800">
+            {cidadeData}/{ufData}, {formatarData(data)}.
           </p>
-          <div className="text-center w-2/3">
-            <div className="border-b border-slate-800 mb-2"></div>
+          
+          <div className="text-center w-3/4">
+            <div className="border-b-2 border-slate-900 mb-2"></div>
             {/* ASSINATURA */}
-            <p className="font-bold text-lg uppercase">{emitente.nome || 'ASSINATURA DO EMITENTE'}</p>
-            <p className="text-sm text-slate-600 uppercase">CNPJ/CPF: {emitente.documento}</p>
+            <p className="font-bold text-xl uppercase text-slate-900">{emitente.nome || 'ASSINATURA'}</p>
+            <p className="text-md text-slate-600 uppercase">CNPJ/CPF: {emitente.documento}</p>
           </div>
         </div>
       </div>
@@ -128,10 +118,10 @@ export default function GerenciadorRecibos() {
   const [emitenteNome, setEmitenteNome] = useState('');
   const [emitenteDoc, setEmitenteDoc] = useState('');
   const [emitenteEnd, setEmitenteEnd] = useState('');
-  const [emitenteCidade, setEmitenteCidade] = useState(''); // Sem padrão fixo na edição
+  const [emitenteCidade, setEmitenteCidade] = useState(''); 
   const [emitenteUf, setEmitenteUf] = useState('');
 
-  // --- CADASTRO DE NOVA EMPRESA (Sem Padrão Fixo) ---
+  // --- CADASTRO DE NOVA EMPRESA ---
   const [novaEmpresa, setNovaEmpresa] = useState({ 
     nome: '', documento: '', endereco: '', cidade: '', uf: '' 
   });
@@ -152,7 +142,6 @@ export default function GerenciadorRecibos() {
   }
 
   // --- FUNÇÕES DE SELEÇÃO ---
-  
   const selecionarPagador = (id: string) => {
     const emp = empresas.find(e => e.id.toString() === id);
     if (emp) {

@@ -1,22 +1,92 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useReactToPrint } from 'react-to-print';
-import { Printer, FileText, ArrowLeft, Save, Trash2, Search } from 'lucide-react';
+import { Printer, FileText, ArrowLeft, Save, Trash2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { api } from '../../lib/api';
 
-// --- TEMPLATE DO RECIBO (VISUAL BLOCO PADRÃO) ---
+// --- FUNÇÃO DE CONVERTER NÚMERO PARA EXTENSO ---
+function valorPorExtenso(v: number): string {
+  if (v === 0) return 'ZERO REAIS';
+
+  const unidades = ['', 'UM', 'DOIS', 'TRÊS', 'QUATRO', 'CINCO', 'SEIS', 'SETE', 'OITO', 'NOVE'];
+  const dezenas = ['', '', 'VINTE', 'TRINTA', 'QUARENTA', 'CINQUENTA', 'SESSENTA', 'SETENTA', 'OITENTA', 'NOVENTA'];
+  const dezenasEspeciais = ['DEZ', 'ONZE', 'DOZE', 'TREZE', 'QUATORZE', 'QUINZE', 'DEZESSEIS', 'DEZESSETE', 'DEZOITO', 'DEZENOVE'];
+  const centenas = ['', 'CENTO', 'DUZENTOS', 'TREZENTOS', 'QUATROCENTOS', 'QUINHENTOS', 'SEISCENTOS', 'SETECENTOS', 'OITOCENTOS', 'NOVECENTOS'];
+
+  const convertGroup = (n: number): string => {
+    if (n === 100) return 'CEM';
+    let str = '';
+    const c = Math.floor(n / 100);
+    const d = Math.floor((n % 100) / 10);
+    const u = n % 10;
+
+    if (c > 0) str += centenas[c];
+
+    if (d === 1) {
+      if (str) str += ' E ';
+      str += dezenasEspeciais[u];
+    } else {
+      if (d > 0) {
+        if (str) str += ' E ';
+        str += dezenas[d];
+      }
+      if (u > 0) {
+        if (str) str += ' E ';
+        str += unidades[u];
+      }
+    }
+    return str;
+  };
+
+  const inteiro = Math.floor(v);
+  const centavos = Math.round((v - inteiro) * 100);
+  let extenso = '';
+
+  // Tratamento de Milhares/Milhões simples (até 999 milhões)
+  if (inteiro > 0) {
+    const milhoes = Math.floor(inteiro / 1000000);
+    const milhares = Math.floor((inteiro % 1000000) / 1000);
+    const resto = inteiro % 1000;
+
+    if (milhoes > 0) {
+      extenso += convertGroup(milhoes) + (milhoes === 1 ? ' MILHÃO' : ' MILHÕES');
+      if (milhares > 0 || resto > 0) extenso += ' E ';
+    }
+
+    if (milhares > 0) {
+      // Ajuste para "UM MIL" ficar apenas "MIL" se preferir, mas "UM MIL" é correto em doc.
+      extenso += convertGroup(milhares) + ' MIL'; 
+      if (resto > 0) extenso += (resto < 100 || resto % 100 === 0) ? ' E ' : ', ';
+    }
+
+    if (resto > 0) {
+      extenso += convertGroup(resto);
+    }
+    
+    extenso += inteiro === 1 ? ' REAL' : ' REAIS';
+  }
+
+  if (centavos > 0) {
+    if (extenso) extenso += ' E ';
+    extenso += convertGroup(centavos) + (centavos === 1 ? ' CENTAVO' : ' CENTAVOS');
+  }
+
+  return extenso;
+}
+
+// --- TEMPLATE DO RECIBO ---
 const ReciboTemplate = React.forwardRef((props: any, ref: any) => {
   const { numero, valor, pagador, emitente, referente, data, formatarMoeda, formatarData } = props;
 
-  // Usa a cidade/UF do emitente para a data, ou vazio se não tiver
   const cidadeData = emitente.cidade ? emitente.cidade.toUpperCase() : 'NOVA AURORA';
   const ufData = emitente.uf ? emitente.uf.toUpperCase() : 'PR';
+  const valorExtenso = valor ? valorPorExtenso(parseFloat(valor)) : '';
 
   return (
     <div ref={ref} className="p-10 font-sans text-black bg-white" style={{ width: '210mm', minHeight: '148mm' }}>
       <div className="border-2 border-slate-900 p-8 h-full flex flex-col justify-between relative">
         
-        {/* CABEÇALHO LINHA ÚNICA ALINHADA */}
+        {/* CABEÇALHO */}
         <div className="flex justify-between items-end mb-8 border-b-2 border-slate-900 pb-4">
           <div className="flex items-center gap-2">
             <h1 className="text-3xl font-bold text-slate-900 tracking-wide">RECIBO</h1>
@@ -29,7 +99,7 @@ const ReciboTemplate = React.forwardRef((props: any, ref: any) => {
           </div>
         </div>
 
-        {/* CORPO DO RECIBO - TEXTO CORRIDO E UNIFORME */}
+        {/* CORPO */}
         <div className="space-y-6 text-xl leading-relaxed uppercase font-medium text-slate-800">
           
           {/* QUEM PAGA */}
@@ -56,10 +126,12 @@ const ReciboTemplate = React.forwardRef((props: any, ref: any) => {
             </span>
           </div>
 
-          {/* IMPORTÂNCIA */}
+          {/* VALOR POR EXTENSO (A IMPORTÂNCIA DE) */}
           <div className="bg-slate-50 p-4 border border-slate-200 rounded my-4">
-            <span className="font-bold mr-2">A IMPORTÂNCIA DE:</span>
-            <span className="font-bold text-xl">({formatarMoeda(valor)})</span>
+            <span className="font-bold mr-2 text-sm text-slate-500 block">A IMPORTÂNCIA DE:</span>
+            <span className="font-bold text-lg leading-tight block mt-1">
+              ({valorExtenso || 'ZERO REAIS'})
+            </span>
           </div>
           
           <div className="flex items-baseline w-full">
@@ -69,7 +141,7 @@ const ReciboTemplate = React.forwardRef((props: any, ref: any) => {
             </span>
           </div>
 
-          {/* EMITENTE NO CORPO (Conforme pedido) */}
+          {/* EMITENTE NO CORPO */}
           <div className="flex items-baseline w-full pt-2">
             <span className="font-bold mr-2 whitespace-nowrap text-sm text-slate-600">EMITENTE:</span>
             <span className="px-2 flex-grow text-slate-700 text-lg border-b border-dotted border-slate-300">
@@ -79,7 +151,7 @@ const ReciboTemplate = React.forwardRef((props: any, ref: any) => {
 
         </div>
 
-        {/* RODAPÉ (DATA E ASSINATURA) */}
+        {/* RODAPÉ */}
         <div className="mt-12 flex flex-col items-center">
           <p className="text-right w-full mb-16 text-xl uppercase font-bold text-slate-800">
             {cidadeData}/{ufData}, {formatarData(data)}.
@@ -87,7 +159,6 @@ const ReciboTemplate = React.forwardRef((props: any, ref: any) => {
           
           <div className="text-center w-3/4">
             <div className="border-b-2 border-slate-900 mb-2"></div>
-            {/* ASSINATURA */}
             <p className="font-bold text-xl uppercase text-slate-900">{emitente.nome || 'ASSINATURA'}</p>
             <p className="text-md text-slate-600 uppercase">CNPJ/CPF: {emitente.documento}</p>
           </div>
@@ -99,29 +170,25 @@ const ReciboTemplate = React.forwardRef((props: any, ref: any) => {
 
 export default function GerenciadorRecibos() {
   const [activeTab, setActiveTab] = useState('emitir'); 
-
-  // --- DADOS DO BANCO ---
   const [empresas, setEmpresas] = useState<any[]>([]);
   
-  // --- CAMPOS DO RECIBO ---
+  // Dados do Recibo
   const [numero, setNumero] = useState('1');
   const [valor, setValor] = useState('');
   const [referente, setReferente] = useState('LOCAÇÃO DE USINA SOLAR'); 
   const [data, setData] = useState(new Date().toISOString().split('T')[0]);
 
-  // PAGADOR (Quem Paga)
+  // Pagador e Emitente
   const [pagadorNome, setPagadorNome] = useState('');
   const [pagadorDoc, setPagadorDoc] = useState('');
   const [pagadorEnd, setPagadorEnd] = useState('');
-
-  // EMITENTE (Quem Recebe)
   const [emitenteNome, setEmitenteNome] = useState('');
   const [emitenteDoc, setEmitenteDoc] = useState('');
   const [emitenteEnd, setEmitenteEnd] = useState('');
   const [emitenteCidade, setEmitenteCidade] = useState(''); 
   const [emitenteUf, setEmitenteUf] = useState('');
 
-  // --- CADASTRO DE NOVA EMPRESA ---
+  // Cadastro
   const [novaEmpresa, setNovaEmpresa] = useState({ 
     nome: '', documento: '', endereco: '', cidade: '', uf: '' 
   });
@@ -141,7 +208,6 @@ export default function GerenciadorRecibos() {
     }
   }
 
-  // --- FUNÇÕES DE SELEÇÃO ---
   const selecionarPagador = (id: string) => {
     const emp = empresas.find(e => e.id.toString() === id);
     if (emp) {
@@ -167,7 +233,6 @@ export default function GerenciadorRecibos() {
   const salvarNovaEmpresa = async () => {
     if (!novaEmpresa.nome) return alert("Preencha o nome.");
     try {
-      // Força salvar em Maiúsculo
       const empresaParaSalvar = {
         ...novaEmpresa,
         nome: novaEmpresa.nome.toUpperCase(),
@@ -175,7 +240,6 @@ export default function GerenciadorRecibos() {
         cidade: novaEmpresa.cidade.toUpperCase(),
         uf: novaEmpresa.uf.toUpperCase()
       };
-      
       await api.entidades.create(empresaParaSalvar);
       alert("Empresa salva!");
       setNovaEmpresa({ nome: '', documento: '', endereco: '', cidade: '', uf: '' });
@@ -202,7 +266,6 @@ export default function GerenciadorRecibos() {
     return `${dia}/${mes}/${ano}`;
   };
 
-  // Funções para input em Uppercase
   const handleInputUppercase = (setter: any) => (e: any) => {
     setter(e.target.value.toUpperCase());
   };
@@ -236,7 +299,6 @@ export default function GerenciadorRecibos() {
           </h1>
         </div>
         
-        {/* ABAS */}
         <div className="flex bg-white rounded-lg p-1 shadow-sm border">
           <button 
             onClick={() => setActiveTab('emitir')}
@@ -253,23 +315,16 @@ export default function GerenciadorRecibos() {
         </div>
       </div>
 
-      {/* --- ABA 1: EMISSÃO --- */}
       {activeTab === 'emitir' && (
         <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8">
-          
-          {/* LADO ESQUERDO: SELEÇÃO E DADOS */}
           <div className="space-y-6">
-            
-            {/* BOX 1: QUEM VAI PAGAR */}
             <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 relative">
               <div className="absolute top-0 left-0 w-1 h-full bg-red-500 rounded-l-xl"></div>
-              <h2 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
-                1. Quem Paga (Pagador)
-              </h2>
+              <h2 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">1. Quem Paga (Pagador)</h2>
               <div className="bg-slate-50 p-3 rounded mb-4 border border-slate-200">
-                <label className="text-xs font-bold text-slate-500 uppercase mb-1 block">Buscar da Lista de Empresas</label>
+                <label className="text-xs font-bold text-slate-500 uppercase mb-1 block">Buscar da Lista</label>
                 <select onChange={(e) => selecionarPagador(e.target.value)} className="w-full p-2 border rounded bg-white uppercase text-sm">
-                  <option value="">Selecione quem está pagando...</option>
+                  <option value="">Selecione...</option>
                   {empresas.map(e => <option key={e.id} value={e.id}>{e.nome}</option>)}
                 </select>
               </div>
@@ -280,16 +335,13 @@ export default function GerenciadorRecibos() {
               </div>
             </div>
 
-            {/* BOX 2: QUEM RECEBE */}
             <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 relative">
               <div className="absolute top-0 left-0 w-1 h-full bg-blue-600 rounded-l-xl"></div>
-              <h2 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
-                2. Quem Recebe (Emitente)
-              </h2>
+              <h2 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">2. Quem Recebe (Emitente)</h2>
               <div className="bg-slate-50 p-3 rounded mb-4 border border-slate-200">
-                <label className="text-xs font-bold text-slate-500 uppercase mb-1 block">Buscar da Lista de Empresas</label>
+                <label className="text-xs font-bold text-slate-500 uppercase mb-1 block">Buscar da Lista</label>
                 <select onChange={(e) => selecionarEmitente(e.target.value)} className="w-full p-2 border rounded bg-white uppercase text-sm">
-                  <option value="">Selecione quem está emitindo...</option>
+                  <option value="">Selecione...</option>
                   {empresas.map(e => <option key={e.id} value={e.id}>{e.nome}</option>)}
                 </select>
               </div>
@@ -301,14 +353,11 @@ export default function GerenciadorRecibos() {
                 </div>
               </div>
             </div>
-
           </div>
 
-          {/* LADO DIREITO: VALORES E IMPRESSÃO */}
           <div className="space-y-6">
             <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 h-full flex flex-col">
               <h2 className="text-lg font-bold text-slate-800 mb-6 border-b pb-2">3. Detalhes do Recibo</h2>
-              
               <div className="grid grid-cols-2 gap-4 mb-4">
                 <div>
                   <label className="block text-sm font-medium text-slate-600 mb-1">Valor (R$)</label>
@@ -320,17 +369,14 @@ export default function GerenciadorRecibos() {
                   <input type="text" value={numero} onChange={e => setNumero(e.target.value)} className="w-full p-3 border rounded" />
                 </div>
               </div>
-
               <div className="mb-4">
                 <label className="block text-sm font-medium text-slate-600 mb-1">Referente a</label>
                 <input type="text" value={referente} onChange={handleInputUppercase(setReferente)} className="w-full p-3 border rounded uppercase" />
               </div>
-
               <div className="mb-8">
                 <label className="block text-sm font-medium text-slate-600 mb-1">Data de Emissão</label>
                 <input type="date" value={data} onChange={e => setData(e.target.value)} className="w-full p-3 border rounded" />
               </div>
-
               <div className="mt-auto">
                 <button onClick={handlePrint} className="w-full flex items-center justify-center gap-3 bg-slate-900 hover:bg-slate-800 text-white py-4 rounded-xl font-bold text-xl shadow-lg transition-transform hover:scale-[1.02]">
                   <Printer className="w-6 h-6" /> IMPRIMIR RECIBO
@@ -341,23 +387,22 @@ export default function GerenciadorRecibos() {
         </div>
       )}
 
-      {/* --- ABA 2: CADASTRO --- */}
       {activeTab === 'empresas' && (
         <div className="max-w-4xl mx-auto">
           <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 mb-6">
-            <h2 className="text-lg font-bold text-slate-800 mb-4 border-b pb-2">Cadastrar Empresa / Entidade</h2>
+            <h2 className="text-lg font-bold text-slate-800 mb-4 border-b pb-2">Cadastrar Empresa</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm text-slate-600 mb-1">Nome</label>
-                <input value={novaEmpresa.nome} onChange={handleInputUppercase((val:string) => setNovaEmpresa({...novaEmpresa, nome: val}))} className="w-full p-2 border rounded uppercase" placeholder="EX: SOLAR LOCAÇÕES" />
+                <input value={novaEmpresa.nome} onChange={handleInputUppercase((val:string) => setNovaEmpresa({...novaEmpresa, nome: val}))} className="w-full p-2 border rounded uppercase" />
               </div>
               <div>
                 <label className="block text-sm text-slate-600 mb-1">CNPJ / CPF</label>
-                <input value={novaEmpresa.documento} onChange={e => setNovaEmpresa({...novaEmpresa, documento: e.target.value})} className="w-full p-2 border rounded uppercase" placeholder="00.000.000/0000-00" />
+                <input value={novaEmpresa.documento} onChange={e => setNovaEmpresa({...novaEmpresa, documento: e.target.value})} className="w-full p-2 border rounded uppercase" />
               </div>
               <div className="md:col-span-2">
-                <label className="block text-sm text-slate-600 mb-1">Endereço Completo</label>
-                <input value={novaEmpresa.endereco} onChange={handleInputUppercase((val:string) => setNovaEmpresa({...novaEmpresa, endereco: val}))} className="w-full p-2 border rounded uppercase" placeholder="RUA, NÚMERO, BAIRRO" />
+                <label className="block text-sm text-slate-600 mb-1">Endereço</label>
+                <input value={novaEmpresa.endereco} onChange={handleInputUppercase((val:string) => setNovaEmpresa({...novaEmpresa, endereco: val}))} className="w-full p-2 border rounded uppercase" />
               </div>
               <div>
                 <label className="block text-sm text-slate-600 mb-1">Cidade</label>
@@ -370,7 +415,7 @@ export default function GerenciadorRecibos() {
             </div>
             <div className="mt-4 flex justify-end">
               <button onClick={salvarNovaEmpresa} className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 font-medium flex items-center gap-2">
-                <Save className="w-4 h-4" /> SALVAR EMPRESA
+                <Save className="w-4 h-4" /> SALVAR
               </button>
             </div>
           </div>

@@ -6,10 +6,10 @@ const router = express.Router();
 // LISTAR TODAS (COM STATUS DE VÍNCULO)
 router.get('/', async (req, res) => {
   try {
-    // AQUI ESTÁ A MÁGICA: Trazemos os dados da Usina E os Vínculos dela
+    // CORRIGIDO: Tabelas em minúsculo (usinas e vinculos)
     const { data, error } = await supabase
-      .from('Usinas')
-      .select('*, Vinculos(VinculoID)') 
+      .from('usinas') 
+      .select('*, vinculos(VinculoID)') 
       .order('NomeProprietario');
 
     if (error) throw error;
@@ -22,10 +22,11 @@ router.get('/', async (req, res) => {
 // BUSCAR UMA (DETALHES)
 router.get('/:id', async (req, res) => {
   try {
+    // CORRIGIDO: usinas
     const { data, error } = await supabase
-      .from('Usinas')
+      .from('usinas')
       .select('*')
-      .eq('UsinaID', req.params.id)
+      .eq('UsinaID', req.params.id) // ATENÇÃO: Verifique se a coluna chama 'UsinaID' ou 'id' no banco
       .single();
 
     if (error) throw error;
@@ -39,13 +40,14 @@ router.get('/:id', async (req, res) => {
 // BUSCAR VÍNCULOS DESTA USINA
 router.get('/:id/vinculos', async (req, res) => {
   try {
+    // CORRIGIDO: vinculos, consumidores e status em minúsculo
     const { data, error } = await supabase
-      .from('Vinculos')
+      .from('vinculos')
       .select(`
         VinculoID,
         StatusID,
-        Consumidores ( Nome ),
-        Status ( Descricao )
+        consumidores ( Nome ),
+        status ( Descricao )
       `)
       .eq('UsinaID', req.params.id);
 
@@ -59,8 +61,9 @@ router.get('/:id/vinculos', async (req, res) => {
 // CRIAR
 router.post('/', async (req, res) => {
   try {
+    // CORRIGIDO: usinas
     const { data, error } = await supabase
-      .from('Usinas')
+      .from('usinas')
       .insert([req.body])
       .select()
       .single();
@@ -75,8 +78,9 @@ router.post('/', async (req, res) => {
 // ATUALIZAR
 router.put('/:id', async (req, res) => {
   try {
+    // CORRIGIDO: usinas
     const { data, error } = await supabase
-      .from('Usinas')
+      .from('usinas')
       .update(req.body)
       .eq('UsinaID', req.params.id)
       .select()
@@ -92,8 +96,9 @@ router.put('/:id', async (req, res) => {
 // EXCLUIR
 router.delete('/:id', async (req, res) => {
   try {
+    // CORRIGIDO: usinas
     const { error } = await supabase
-      .from('Usinas')
+      .from('usinas')
       .delete()
       .eq('UsinaID', req.params.id);
 
@@ -103,26 +108,5 @@ router.delete('/:id', async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
-
-// ... (Mantenha os imports e as rotas GET iguais) ...
-
-// CRIAR (Atualize apenas este bloco ou o arquivo todo se preferir)
-router.post('/', async (req, res) => {
-  try {
-    // Agora aceita Observacao no req.body
-    const { data, error } = await supabase
-      .from('Usinas')
-      .insert([req.body]) // req.body já traz a Observacao se o front mandar
-      .select()
-      .single();
-
-    if (error) throw error;
-    res.status(201).json(data);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// ... (Restante do arquivo igual) ...
 
 export default router;

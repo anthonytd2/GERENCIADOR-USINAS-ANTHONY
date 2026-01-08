@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useReactToPrint } from 'react-to-print';
-import { Printer, FileText, ArrowLeft, Plus, Save, Trash2, Building2, User, RefreshCw } from 'lucide-react';
+import { Printer, FileText, ArrowLeft, Plus, Save, Trash2, Building2, User, Search } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { api } from '../../lib/api';
 
@@ -8,62 +8,83 @@ import { api } from '../../lib/api';
 const ReciboTemplate = React.forwardRef((props: any, ref: any) => {
   const { numero, valor, pagador, emitente, referente, data, formatarMoeda, formatarData } = props;
 
-  // Usa a cidade/UF do emitente para a data, ou padrão se não tiver
-  const cidadeData = emitente.cidade ? emitente.cidade : 'NOVA AURORA';
-  const ufData = emitente.uf ? emitente.uf : 'PR';
+  // Usa a cidade/UF do emitente para a data, ou vazio se não tiver
+  const cidadeData = emitente.cidade ? emitente.cidade.toUpperCase() : 'NOVA AURORA';
+  const ufData = emitente.uf ? emitente.uf.toUpperCase() : 'PR';
 
   return (
     <div ref={ref} className="p-10 font-serif text-black bg-white" style={{ width: '210mm', minHeight: '148mm' }}>
       <div className="border-4 border-double border-slate-800 p-8 h-full flex flex-col justify-between relative">
         
-        {/* CABEÇALHO */}
-        <div className="flex justify-between items-start mb-8 border-b-2 border-slate-800 pb-4">
-          <h1 className="text-4xl font-bold tracking-widest text-slate-900">RECIBO</h1>
-          <div className="text-right">
-            <div className="flex items-center justify-end gap-2 mb-2">
-              <span className="text-xl font-bold">Nº</span>
-              <span className="text-2xl font-bold text-red-600 border-b-2 border-slate-400 min-w-[60px] text-center inline-block">
-                {numero}
-              </span>
+        {/* CABEÇALHO DO RECIBO (DADOS DO EMITENTE + TITULO) */}
+        <div className="border-b-2 border-slate-800 pb-6 mb-6">
+          <div className="flex justify-between items-start">
+            
+            {/* LADO ESQUERDO: DADOS DA EMPRESA (EMITENTE) */}
+            <div className="w-2/3 pr-4">
+              <h2 className="text-2xl font-bold text-slate-900 uppercase">{emitente.nome || 'NOME DA SUA EMPRESA'}</h2>
+              <div className="text-sm text-slate-700 uppercase mt-1 leading-snug">
+                <p>CNPJ/CPF: {emitente.documento || '00.000.000/0000-00'}</p>
+                <p>{emitente.endereco || 'ENDEREÇO DA EMPRESA'}</p>
+                <p>{emitente.cidade} - {emitente.uf}</p>
+              </div>
             </div>
-            <div className="bg-slate-100 border border-slate-300 px-4 py-2 rounded inline-block">
-              <span className="text-sm font-bold text-slate-500 mr-2">VALOR</span>
-              <span className="text-2xl font-bold text-slate-900">{formatarMoeda(valor)}</span>
+
+            {/* LADO DIREITO: NÚMERO E VALOR */}
+            <div className="text-right w-1/3">
+              <div className="mb-2">
+                <h1 className="text-3xl font-bold tracking-widest text-slate-900">RECIBO</h1>
+                <div className="flex items-center justify-end gap-2 mt-1">
+                  <span className="text-lg font-bold">Nº</span>
+                  <span className="text-xl font-bold text-red-600 border-b-2 border-slate-400 min-w-[60px] text-center inline-block">
+                    {numero}
+                  </span>
+                </div>
+              </div>
+              <div className="bg-slate-100 border border-slate-300 px-3 py-2 rounded inline-block mt-2 shadow-sm">
+                <span className="text-xs font-bold text-slate-500 mr-2 block text-left">VALOR</span>
+                <span className="text-2xl font-bold text-slate-900">{formatarMoeda(valor)}</span>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* CORPO */}
-        <div className="space-y-6 text-lg leading-relaxed">
+        {/* CORPO DO RECIBO */}
+        <div className="space-y-6 text-lg leading-relaxed uppercase">
           
           {/* QUEM PAGA */}
           <div>
             <span className="font-bold mr-2">RECEBI(EMOS) DE:</span>
-            <span className="border-b border-dotted border-slate-400 font-medium uppercase px-2">
+            <span className="border-b border-dotted border-slate-400 font-medium px-2 block sm:inline-block w-full sm:w-auto">
               {pagador.nome || '__________________________________________________'}
             </span>
           </div>
-          <div>
-            <span className="font-bold mr-2">CPF/CNPJ:</span>
-            <span className="border-b border-dotted border-slate-400 font-medium px-2">
-              {pagador.documento || '____________________'}
-            </span>
+          
+          <div className="flex gap-4 flex-wrap">
+             <div className="flex-1">
+                <span className="font-bold mr-2">CPF/CNPJ:</span>
+                <span className="border-b border-dotted border-slate-400 font-medium px-2 inline-block min-w-[200px]">
+                  {pagador.documento || '____________________'}
+                </span>
+             </div>
           </div>
+
           <div>
             <span className="font-bold mr-2">ENDEREÇO:</span>
-            <span className="border-b border-dotted border-slate-400 font-medium uppercase px-2 w-full inline-block">
+            <span className="border-b border-dotted border-slate-400 font-medium px-2 w-full inline-block">
               {pagador.endereco || '__________________________________________________________________'}
             </span>
           </div>
 
           {/* VALOR E REFERENTE */}
-          <div className="bg-slate-50 p-4 border border-slate-200 rounded italic mt-4 mb-4">
+          <div className="bg-slate-50 p-4 border border-slate-200 rounded italic mt-4 mb-4 shadow-sm">
             <span className="font-bold not-italic mr-2">A IMPORTÂNCIA DE:</span>
-            <span className="font-bold text-xl uppercase">({formatarMoeda(valor)})</span>
+            <span className="font-bold text-xl">({formatarMoeda(valor)})</span>
           </div>
+          
           <div>
             <span className="font-bold mr-2">REFERENTE A:</span>
-            <span className="border-b border-dotted border-slate-400 font-medium uppercase px-2 w-full inline-block">
+            <span className="border-b border-dotted border-slate-400 font-medium px-2 w-full inline-block">
               {referente}
             </span>
           </div>
@@ -71,15 +92,14 @@ const ReciboTemplate = React.forwardRef((props: any, ref: any) => {
 
         {/* RODAPÉ (DATA E ASSINATURA) */}
         <div className="mt-12 flex flex-col items-center">
-          <p className="text-right w-full mb-12 text-lg">
-            {cidadeData.toUpperCase()}/{ufData}, <span className="font-bold">{formatarData(data)}</span>.
+          <p className="text-right w-full mb-12 text-lg uppercase">
+            {cidadeData}, <span className="font-bold">{formatarData(data)}</span>.
           </p>
           <div className="text-center w-2/3">
             <div className="border-b border-slate-800 mb-2"></div>
-            {/* QUEM RECEBE (EMITENTE) */}
-            <p className="font-bold text-lg uppercase">{emitente.nome || 'NOME DO EMITENTE'}</p>
-            <p className="text-sm text-slate-600">CNPJ/CPF: {emitente.documento || '00.000.000/0000-00'}</p>
-            {emitente.endereco && <p className="text-xs text-slate-500 mt-1">{emitente.endereco}</p>}
+            {/* ASSINATURA */}
+            <p className="font-bold text-lg uppercase">{emitente.nome || 'ASSINATURA DO EMITENTE'}</p>
+            <p className="text-sm text-slate-600 uppercase">CNPJ/CPF: {emitente.documento}</p>
           </div>
         </div>
       </div>
@@ -96,24 +116,24 @@ export default function GerenciadorRecibos() {
   // --- CAMPOS DO RECIBO ---
   const [numero, setNumero] = useState('1');
   const [valor, setValor] = useState('');
-  const [referente, setReferente] = useState('LOCAÇÃO DE USINA SOLAR'); // Padrão solicitado
+  const [referente, setReferente] = useState('LOCAÇÃO DE USINA SOLAR'); 
   const [data, setData] = useState(new Date().toISOString().split('T')[0]);
 
-  // PAGADOR (Quem Paga) - Dados manuais ou preenchidos
+  // PAGADOR (Quem Paga)
   const [pagadorNome, setPagadorNome] = useState('');
   const [pagadorDoc, setPagadorDoc] = useState('');
   const [pagadorEnd, setPagadorEnd] = useState('');
 
-  // EMITENTE (Quem Recebe) - Dados manuais ou preenchidos
+  // EMITENTE (Quem Recebe)
   const [emitenteNome, setEmitenteNome] = useState('');
   const [emitenteDoc, setEmitenteDoc] = useState('');
   const [emitenteEnd, setEmitenteEnd] = useState('');
-  const [emitenteCidade, setEmitenteCidade] = useState('NOVA AURORA');
-  const [emitenteUf, setEmitenteUf] = useState('PR');
+  const [emitenteCidade, setEmitenteCidade] = useState(''); // Sem padrão fixo na edição
+  const [emitenteUf, setEmitenteUf] = useState('');
 
-  // --- CADASTRO DE NOVA EMPRESA ---
+  // --- CADASTRO DE NOVA EMPRESA (Sem Padrão Fixo) ---
   const [novaEmpresa, setNovaEmpresa] = useState({ 
-    nome: '', documento: '', endereco: '', cidade: 'NOVA AURORA', uf: 'PR' 
+    nome: '', documento: '', endereco: '', cidade: '', uf: '' 
   });
 
   const componentRef = useRef(null);
@@ -133,39 +153,46 @@ export default function GerenciadorRecibos() {
 
   // --- FUNÇÕES DE SELEÇÃO ---
   
-  // Selecionar quem paga (busca na lista de empresas)
   const selecionarPagador = (id: string) => {
     const emp = empresas.find(e => e.id.toString() === id);
     if (emp) {
-      setPagadorNome(emp.nome);
+      setPagadorNome(emp.nome.toUpperCase());
       setPagadorDoc(emp.documento || '');
-      setPagadorEnd(emp.endereco || '');
+      setPagadorEnd(emp.endereco ? emp.endereco.toUpperCase() : '');
     } else {
       setPagadorNome(''); setPagadorDoc(''); setPagadorEnd('');
     }
   };
 
-  // Selecionar quem recebe (busca na MESMA lista de empresas)
   const selecionarEmitente = (id: string) => {
     const emp = empresas.find(e => e.id.toString() === id);
     if (emp) {
-      setEmitenteNome(emp.nome);
+      setEmitenteNome(emp.nome.toUpperCase());
       setEmitenteDoc(emp.documento || '');
-      setEmitenteEnd(emp.endereco || '');
-      if(emp.cidade) setEmitenteCidade(emp.cidade);
-      if(emp.uf) setEmitenteUf(emp.uf);
+      setEmitenteEnd(emp.endereco ? emp.endereco.toUpperCase() : '');
+      if(emp.cidade) setEmitenteCidade(emp.cidade.toUpperCase());
+      if(emp.uf) setEmitenteUf(emp.uf.toUpperCase());
     }
   };
 
   const salvarNovaEmpresa = async () => {
     if (!novaEmpresa.nome) return alert("Preencha o nome.");
     try {
-      await api.entidades.create(novaEmpresa);
+      // Força salvar em Maiúsculo
+      const empresaParaSalvar = {
+        ...novaEmpresa,
+        nome: novaEmpresa.nome.toUpperCase(),
+        endereco: novaEmpresa.endereco.toUpperCase(),
+        cidade: novaEmpresa.cidade.toUpperCase(),
+        uf: novaEmpresa.uf.toUpperCase()
+      };
+      
+      await api.entidades.create(empresaParaSalvar);
       alert("Empresa salva!");
-      setNovaEmpresa({ nome: '', documento: '', endereco: '', cidade: 'NOVA AURORA', uf: 'PR' });
+      setNovaEmpresa({ nome: '', documento: '', endereco: '', cidade: '', uf: '' });
       carregarDados();
     } catch (e) {
-      alert("Erro ao salvar.");
+      alert("Erro ao salvar. Verifique se o servidor backend está rodando e a tabela foi criada.");
     }
   };
 
@@ -184,6 +211,11 @@ export default function GerenciadorRecibos() {
     if (!d) return '';
     const [ano, mes, dia] = d.split('-');
     return `${dia}/${mes}/${ano}`;
+  };
+
+  // Funções para input em Uppercase
+  const handleInputUppercase = (setter: any) => (e: any) => {
+    setter(e.target.value.toUpperCase());
   };
 
   return (
@@ -247,15 +279,15 @@ export default function GerenciadorRecibos() {
               </h2>
               <div className="bg-slate-50 p-3 rounded mb-4 border border-slate-200">
                 <label className="text-xs font-bold text-slate-500 uppercase mb-1 block">Buscar da Lista de Empresas</label>
-                <select onChange={(e) => selecionarPagador(e.target.value)} className="w-full p-2 border rounded bg-white">
+                <select onChange={(e) => selecionarPagador(e.target.value)} className="w-full p-2 border rounded bg-white uppercase text-sm">
                   <option value="">Selecione quem está pagando...</option>
                   {empresas.map(e => <option key={e.id} value={e.id}>{e.nome}</option>)}
                 </select>
               </div>
               <div className="space-y-3">
-                <input value={pagadorNome} onChange={e => setPagadorNome(e.target.value)} placeholder="Nome do Pagador" className="w-full p-2 border rounded" />
-                <input value={pagadorDoc} onChange={e => setPagadorDoc(e.target.value)} placeholder="CPF / CNPJ" className="w-full p-2 border rounded" />
-                <textarea rows={2} value={pagadorEnd} onChange={e => setPagadorEnd(e.target.value)} placeholder="Endereço Completo" className="w-full p-2 border rounded" />
+                <input value={pagadorNome} onChange={handleInputUppercase(setPagadorNome)} placeholder="NOME DO PAGADOR" className="w-full p-2 border rounded uppercase" />
+                <input value={pagadorDoc} onChange={e => setPagadorDoc(e.target.value)} placeholder="CPF / CNPJ" className="w-full p-2 border rounded uppercase" />
+                <textarea rows={2} value={pagadorEnd} onChange={handleInputUppercase(setPagadorEnd)} placeholder="ENDEREÇO COMPLETO" className="w-full p-2 border rounded uppercase" />
               </div>
             </div>
 
@@ -267,16 +299,16 @@ export default function GerenciadorRecibos() {
               </h2>
               <div className="bg-slate-50 p-3 rounded mb-4 border border-slate-200">
                 <label className="text-xs font-bold text-slate-500 uppercase mb-1 block">Buscar da Lista de Empresas</label>
-                <select onChange={(e) => selecionarEmitente(e.target.value)} className="w-full p-2 border rounded bg-white">
+                <select onChange={(e) => selecionarEmitente(e.target.value)} className="w-full p-2 border rounded bg-white uppercase text-sm">
                   <option value="">Selecione quem está emitindo...</option>
                   {empresas.map(e => <option key={e.id} value={e.id}>{e.nome}</option>)}
                 </select>
               </div>
               <div className="space-y-3">
-                <input value={emitenteNome} onChange={e => setEmitenteNome(e.target.value)} placeholder="Nome do Emitente" className="w-full p-2 border rounded bg-blue-50" />
+                <input value={emitenteNome} onChange={handleInputUppercase(setEmitenteNome)} placeholder="NOME DO EMITENTE" className="w-full p-2 border rounded bg-blue-50 uppercase" />
                 <div className="grid grid-cols-2 gap-2">
-                   <input value={emitenteDoc} onChange={e => setEmitenteDoc(e.target.value)} placeholder="CNPJ/CPF" className="w-full p-2 border rounded bg-blue-50" />
-                   <input value={emitenteCidade} onChange={e => setEmitenteCidade(e.target.value)} placeholder="Cidade" className="w-full p-2 border rounded" />
+                   <input value={emitenteDoc} onChange={e => setEmitenteDoc(e.target.value)} placeholder="CNPJ/CPF" className="w-full p-2 border rounded bg-blue-50 uppercase" />
+                   <input value={emitenteCidade} onChange={handleInputUppercase(setEmitenteCidade)} placeholder="CIDADE" className="w-full p-2 border rounded uppercase" />
                 </div>
               </div>
             </div>
@@ -302,7 +334,7 @@ export default function GerenciadorRecibos() {
 
               <div className="mb-4">
                 <label className="block text-sm font-medium text-slate-600 mb-1">Referente a</label>
-                <input type="text" value={referente} onChange={e => setReferente(e.target.value)} className="w-full p-3 border rounded" />
+                <input type="text" value={referente} onChange={handleInputUppercase(setReferente)} className="w-full p-3 border rounded uppercase" />
               </div>
 
               <div className="mb-8">
@@ -328,28 +360,28 @@ export default function GerenciadorRecibos() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm text-slate-600 mb-1">Nome</label>
-                <input value={novaEmpresa.nome} onChange={e => setNovaEmpresa({...novaEmpresa, nome: e.target.value})} className="w-full p-2 border rounded" placeholder="Ex: Solar Locações" />
+                <input value={novaEmpresa.nome} onChange={handleInputUppercase((val:string) => setNovaEmpresa({...novaEmpresa, nome: val}))} className="w-full p-2 border rounded uppercase" placeholder="EX: SOLAR LOCAÇÕES" />
               </div>
               <div>
                 <label className="block text-sm text-slate-600 mb-1">CNPJ / CPF</label>
-                <input value={novaEmpresa.documento} onChange={e => setNovaEmpresa({...novaEmpresa, documento: e.target.value})} className="w-full p-2 border rounded" placeholder="00.000.000/0000-00" />
+                <input value={novaEmpresa.documento} onChange={e => setNovaEmpresa({...novaEmpresa, documento: e.target.value})} className="w-full p-2 border rounded uppercase" placeholder="00.000.000/0000-00" />
               </div>
               <div className="md:col-span-2">
                 <label className="block text-sm text-slate-600 mb-1">Endereço Completo</label>
-                <input value={novaEmpresa.endereco} onChange={e => setNovaEmpresa({...novaEmpresa, endereco: e.target.value})} className="w-full p-2 border rounded" placeholder="Rua, Número, Bairro" />
+                <input value={novaEmpresa.endereco} onChange={handleInputUppercase((val:string) => setNovaEmpresa({...novaEmpresa, endereco: val}))} className="w-full p-2 border rounded uppercase" placeholder="RUA, NÚMERO, BAIRRO" />
               </div>
               <div>
                 <label className="block text-sm text-slate-600 mb-1">Cidade</label>
-                <input value={novaEmpresa.cidade} onChange={e => setNovaEmpresa({...novaEmpresa, cidade: e.target.value})} className="w-full p-2 border rounded" />
+                <input value={novaEmpresa.cidade} onChange={handleInputUppercase((val:string) => setNovaEmpresa({...novaEmpresa, cidade: val}))} className="w-full p-2 border rounded uppercase" />
               </div>
               <div>
                 <label className="block text-sm text-slate-600 mb-1">UF</label>
-                <input value={novaEmpresa.uf} onChange={e => setNovaEmpresa({...novaEmpresa, uf: e.target.value})} className="w-full p-2 border rounded" maxLength={2} />
+                <input value={novaEmpresa.uf} onChange={handleInputUppercase((val:string) => setNovaEmpresa({...novaEmpresa, uf: val}))} className="w-full p-2 border rounded uppercase" maxLength={2} />
               </div>
             </div>
             <div className="mt-4 flex justify-end">
               <button onClick={salvarNovaEmpresa} className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 font-medium flex items-center gap-2">
-                <Save className="w-4 h-4" /> Salvar Empresa
+                <Save className="w-4 h-4" /> SALVAR EMPRESA
               </button>
             </div>
           </div>
@@ -366,7 +398,7 @@ export default function GerenciadorRecibos() {
               </thead>
               <tbody>
                 {empresas.map((emp) => (
-                  <tr key={emp.id} className="border-b hover:bg-slate-50">
+                  <tr key={emp.id} className="border-b hover:bg-slate-50 uppercase">
                     <td className="p-4 font-medium text-slate-900">{emp.nome}</td>
                     <td className="p-4">{emp.documento}</td>
                     <td className="p-4">{emp.cidade}/{emp.uf}</td>

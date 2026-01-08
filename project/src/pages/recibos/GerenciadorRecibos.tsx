@@ -42,7 +42,6 @@ function valorPorExtenso(v: number): string {
   const centavos = Math.round((v - inteiro) * 100);
   let extenso = '';
 
-  // Tratamento de Milhares/Milhões simples (até 999 milhões)
   if (inteiro > 0) {
     const milhoes = Math.floor(inteiro / 1000000);
     const milhares = Math.floor((inteiro % 1000000) / 1000);
@@ -54,7 +53,6 @@ function valorPorExtenso(v: number): string {
     }
 
     if (milhares > 0) {
-      // Ajuste para "UM MIL" ficar apenas "MIL" se preferir, mas "UM MIL" é correto em doc.
       extenso += convertGroup(milhares) + ' MIL'; 
       if (resto > 0) extenso += (resto < 100 || resto % 100 === 0) ? ' E ' : ', ';
     }
@@ -84,83 +82,92 @@ const ReciboTemplate = React.forwardRef((props: any, ref: any) => {
 
   return (
     <div ref={ref} className="p-10 font-sans text-black bg-white" style={{ width: '210mm', minHeight: '148mm' }}>
-      <div className="border-2 border-slate-900 p-8 h-full flex flex-col justify-between relative">
+      <div className="border-4 border-black p-8 h-full flex flex-col justify-between relative">
         
         {/* CABEÇALHO */}
-        <div className="flex justify-between items-end mb-8 border-b-2 border-slate-900 pb-4">
+        <div className="flex justify-between items-end mb-8 border-b-4 border-black pb-4">
           <div className="flex items-center gap-2">
-            <h1 className="text-3xl font-bold text-slate-900 tracking-wide">RECIBO</h1>
-            <span className="text-3xl font-bold text-red-600 ml-2">Nº {numero}</span>
+            <h1 className="text-4xl font-extrabold text-black tracking-wide">RECIBO</h1>
+            <span className="text-4xl font-extrabold text-black ml-2">Nº {numero}</span>
           </div>
           
-          <div className="bg-slate-100 border border-slate-400 px-6 py-2 rounded shadow-sm">
-            <span className="text-xs font-bold text-slate-600 block mb-1">VALOR</span>
-            <span className="text-3xl font-bold text-slate-900">{formatarMoeda(valor)}</span>
+          <div className="bg-slate-100 border-2 border-black px-6 py-2 rounded shadow-sm">
+            <span className="text-xs font-extrabold text-black block mb-1">VALOR</span>
+            <span className="text-3xl font-extrabold text-black">{formatarMoeda(valor)}</span>
           </div>
         </div>
 
-        {/* CORPO */}
-        <div className="space-y-6 text-xl leading-relaxed uppercase font-medium text-slate-800">
+        {/* CORPO - TUDO NEGRITO (font-bold) */}
+        <div className="space-y-6 text-xl leading-relaxed uppercase font-bold text-black">
           
           {/* QUEM PAGA */}
           <div className="flex flex-col">
             <div className="flex items-baseline w-full">
-              <span className="font-bold mr-2 whitespace-nowrap">RECEBI(EMOS) DE:</span>
-              <span className="border-b border-slate-400 px-2 flex-grow text-slate-900 font-bold">
+              <span className="mr-2 whitespace-nowrap">RECEBI(EMOS) DE:</span>
+              <span className="border-b-2 border-black px-2 flex-grow">
                 {pagador.nome || ''}
               </span>
             </div>
           </div>
           
           <div className="flex items-baseline w-full">
-            <span className="font-bold mr-2 whitespace-nowrap">CPF/CNPJ:</span>
-            <span className="border-b border-slate-400 px-2 flex-grow text-slate-900">
+            <span className="mr-2 whitespace-nowrap">CPF/CNPJ:</span>
+            <span className="border-b-2 border-black px-2 flex-grow">
               {pagador.documento || ''}
             </span>
           </div>
 
           <div className="flex items-baseline w-full">
-            <span className="font-bold mr-2 whitespace-nowrap">ENDEREÇO:</span>
-            <span className="border-b border-slate-400 px-2 flex-grow text-slate-900">
+            <span className="mr-2 whitespace-nowrap">ENDEREÇO DO PAGADOR:</span>
+            <span className="border-b-2 border-black px-2 flex-grow">
               {pagador.endereco || ''}
             </span>
           </div>
 
-          {/* VALOR POR EXTENSO (A IMPORTÂNCIA DE) */}
-          <div className="bg-slate-50 p-4 border border-slate-200 rounded my-4">
-            <span className="font-bold mr-2 text-sm text-slate-500 block">A IMPORTÂNCIA DE:</span>
-            <span className="font-bold text-lg leading-tight block mt-1">
+          {/* VALOR POR EXTENSO */}
+          <div className="bg-slate-50 p-4 border-2 border-black rounded my-4">
+            <span className="text-sm block mb-1">A IMPORTÂNCIA DE:</span>
+            <span className="text-lg leading-tight block">
               ({valorExtenso || 'ZERO REAIS'})
             </span>
           </div>
           
           <div className="flex items-baseline w-full">
-            <span className="font-bold mr-2 whitespace-nowrap">REFERENTE A:</span>
-            <span className="border-b border-slate-400 px-2 flex-grow text-slate-900">
+            <span className="mr-2 whitespace-nowrap">REFERENTE A:</span>
+            <span className="border-b-2 border-black px-2 flex-grow">
               {referente}
             </span>
           </div>
 
-          {/* EMITENTE NO CORPO */}
-          <div className="flex items-baseline w-full pt-2">
-            <span className="font-bold mr-2 whitespace-nowrap text-sm text-slate-600">EMITENTE:</span>
-            <span className="px-2 flex-grow text-slate-700 text-lg border-b border-dotted border-slate-300">
-              {emitente.nome} - {emitente.documento}
-            </span>
+          {/* DADOS DO EMITENTE (INCLUINDO ENDEREÇO AGORA) */}
+          <div className="mt-6 pt-4 border-t-2 border-dotted border-black">
+            <div className="flex items-baseline w-full">
+              <span className="mr-2 whitespace-nowrap">EMITENTE:</span>
+              <span className="px-2 flex-grow border-b-2 border-black">
+                {emitente.nome} - CNPJ/CPF: {emitente.documento}
+              </span>
+            </div>
+            {/* LINHA NOVA: ENDEREÇO DO EMITENTE */}
+            <div className="flex items-baseline w-full mt-2">
+              <span className="mr-2 whitespace-nowrap">ENDEREÇO EMITENTE:</span>
+              <span className="px-2 flex-grow border-b-2 border-black">
+                {emitente.endereco} {emitente.cidade ? `- ${emitente.cidade}/${emitente.uf}` : ''}
+              </span>
+            </div>
           </div>
 
         </div>
 
         {/* RODAPÉ */}
         <div className="mt-12 flex flex-col items-center">
-          <p className="text-right w-full mb-16 text-xl uppercase font-bold text-slate-800">
+          <p className="text-right w-full mb-16 text-xl uppercase font-extrabold text-black">
             {cidadeData}/{ufData}, {formatarData(data)}.
           </p>
           
           <div className="text-center w-3/4">
-            <div className="border-b-2 border-slate-900 mb-2"></div>
-            <p className="font-bold text-xl uppercase text-slate-900">{emitente.nome || 'ASSINATURA'}</p>
-            <p className="text-md text-slate-600 uppercase">CNPJ/CPF: {emitente.documento}</p>
+            <div className="border-b-2 border-black mb-2"></div>
+            <p className="font-extrabold text-xl uppercase text-black">{emitente.nome || 'ASSINATURA'}</p>
+            <p className="text-md text-black uppercase font-bold">CNPJ/CPF: {emitente.documento}</p>
           </div>
         </div>
       </div>
@@ -323,15 +330,15 @@ export default function GerenciadorRecibos() {
               <h2 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">1. Quem Paga (Pagador)</h2>
               <div className="bg-slate-50 p-3 rounded mb-4 border border-slate-200">
                 <label className="text-xs font-bold text-slate-500 uppercase mb-1 block">Buscar da Lista</label>
-                <select onChange={(e) => selecionarPagador(e.target.value)} className="w-full p-2 border rounded bg-white uppercase text-sm">
+                <select onChange={(e) => selecionarPagador(e.target.value)} className="w-full p-2 border rounded bg-white uppercase text-sm font-bold">
                   <option value="">Selecione...</option>
                   {empresas.map(e => <option key={e.id} value={e.id}>{e.nome}</option>)}
                 </select>
               </div>
               <div className="space-y-3">
-                <input value={pagadorNome} onChange={handleInputUppercase(setPagadorNome)} placeholder="NOME DO PAGADOR" className="w-full p-2 border rounded uppercase" />
-                <input value={pagadorDoc} onChange={e => setPagadorDoc(e.target.value)} placeholder="CPF / CNPJ" className="w-full p-2 border rounded uppercase" />
-                <textarea rows={2} value={pagadorEnd} onChange={handleInputUppercase(setPagadorEnd)} placeholder="ENDEREÇO COMPLETO" className="w-full p-2 border rounded uppercase" />
+                <input value={pagadorNome} onChange={handleInputUppercase(setPagadorNome)} placeholder="NOME DO PAGADOR" className="w-full p-2 border rounded uppercase font-bold" />
+                <input value={pagadorDoc} onChange={e => setPagadorDoc(e.target.value)} placeholder="CPF / CNPJ" className="w-full p-2 border rounded uppercase font-bold" />
+                <textarea rows={2} value={pagadorEnd} onChange={handleInputUppercase(setPagadorEnd)} placeholder="ENDEREÇO COMPLETO" className="w-full p-2 border rounded uppercase font-bold" />
               </div>
             </div>
 
@@ -340,16 +347,16 @@ export default function GerenciadorRecibos() {
               <h2 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">2. Quem Recebe (Emitente)</h2>
               <div className="bg-slate-50 p-3 rounded mb-4 border border-slate-200">
                 <label className="text-xs font-bold text-slate-500 uppercase mb-1 block">Buscar da Lista</label>
-                <select onChange={(e) => selecionarEmitente(e.target.value)} className="w-full p-2 border rounded bg-white uppercase text-sm">
+                <select onChange={(e) => selecionarEmitente(e.target.value)} className="w-full p-2 border rounded bg-white uppercase text-sm font-bold">
                   <option value="">Selecione...</option>
                   {empresas.map(e => <option key={e.id} value={e.id}>{e.nome}</option>)}
                 </select>
               </div>
               <div className="space-y-3">
-                <input value={emitenteNome} onChange={handleInputUppercase(setEmitenteNome)} placeholder="NOME DO EMITENTE" className="w-full p-2 border rounded bg-blue-50 uppercase" />
+                <input value={emitenteNome} onChange={handleInputUppercase(setEmitenteNome)} placeholder="NOME DO EMITENTE" className="w-full p-2 border rounded bg-blue-50 uppercase font-bold" />
                 <div className="grid grid-cols-2 gap-2">
-                   <input value={emitenteDoc} onChange={e => setEmitenteDoc(e.target.value)} placeholder="CNPJ/CPF" className="w-full p-2 border rounded bg-blue-50 uppercase" />
-                   <input value={emitenteCidade} onChange={handleInputUppercase(setEmitenteCidade)} placeholder="CIDADE" className="w-full p-2 border rounded uppercase" />
+                   <input value={emitenteDoc} onChange={e => setEmitenteDoc(e.target.value)} placeholder="CNPJ/CPF" className="w-full p-2 border rounded bg-blue-50 uppercase font-bold" />
+                   <input value={emitenteCidade} onChange={handleInputUppercase(setEmitenteCidade)} placeholder="CIDADE" className="w-full p-2 border rounded uppercase font-bold" />
                 </div>
               </div>
             </div>
@@ -362,20 +369,20 @@ export default function GerenciadorRecibos() {
                 <div>
                   <label className="block text-sm font-medium text-slate-600 mb-1">Valor (R$)</label>
                   <input type="number" step="0.01" value={valor} onChange={e => setValor(e.target.value)} className="w-full p-3 border rounded text-lg font-bold" placeholder="0.00" />
-                  <p className="text-sm text-green-600 mt-1 font-medium">{formatarMoeda(valor)}</p>
+                  <p className="text-sm text-green-600 mt-1 font-bold">{formatarMoeda(valor)}</p>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-600 mb-1">Nº Recibo</label>
-                  <input type="text" value={numero} onChange={e => setNumero(e.target.value)} className="w-full p-3 border rounded" />
+                  <input type="text" value={numero} onChange={e => setNumero(e.target.value)} className="w-full p-3 border rounded font-bold" />
                 </div>
               </div>
               <div className="mb-4">
                 <label className="block text-sm font-medium text-slate-600 mb-1">Referente a</label>
-                <input type="text" value={referente} onChange={handleInputUppercase(setReferente)} className="w-full p-3 border rounded uppercase" />
+                <input type="text" value={referente} onChange={handleInputUppercase(setReferente)} className="w-full p-3 border rounded uppercase font-bold" />
               </div>
               <div className="mb-8">
                 <label className="block text-sm font-medium text-slate-600 mb-1">Data de Emissão</label>
-                <input type="date" value={data} onChange={e => setData(e.target.value)} className="w-full p-3 border rounded" />
+                <input type="date" value={data} onChange={e => setData(e.target.value)} className="w-full p-3 border rounded font-bold" />
               </div>
               <div className="mt-auto">
                 <button onClick={handlePrint} className="w-full flex items-center justify-center gap-3 bg-slate-900 hover:bg-slate-800 text-white py-4 rounded-xl font-bold text-xl shadow-lg transition-transform hover:scale-[1.02]">
@@ -433,7 +440,7 @@ export default function GerenciadorRecibos() {
               <tbody>
                 {empresas.map((emp) => (
                   <tr key={emp.id} className="border-b hover:bg-slate-50 uppercase">
-                    <td className="p-4 font-medium text-slate-900">{emp.nome}</td>
+                    <td className="p-4 font-bold text-slate-900">{emp.nome}</td>
                     <td className="p-4">{emp.documento}</td>
                     <td className="p-4">{emp.cidade}/{emp.uf}</td>
                     <td className="p-4 text-right">

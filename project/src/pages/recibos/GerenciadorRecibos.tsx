@@ -1,281 +1,249 @@
-import { useEffect, useState } from 'react';
-import { api } from '../../lib/api';
-import { jsPDF } from 'jspdf';
-import { Printer, Plus, Trash2, Building2, FileText, Save } from 'lucide-react';
+import React, { useState, useRef } from 'react';
+import { useReactToPrint } from 'react-to-print';
+import { Printer, FileText, ArrowLeft } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 export default function GerenciadorRecibos() {
-  const [activeTab, setActiveTab] = useState<'gerador' | 'cadastros'>('gerador');
-  const [entidades, setEntidades] = useState<any[]>([]);
+  // --- ESTADOS DO FORMULÁRIO ---
+  const [numero, setNumero] = useState('1');
+  const [valor, setValor] = useState('');
   
-  // ESTADOS DO GERADOR DE RECIBO
-  const [recibo, setRecibo] = useState({
-    PagadorID: '',
-    RecebedorID: '',
-    Valor: '',
-    Numero: '',
-    DataEmissao: new Date().toISOString().split('T')[0],
-    ReferenteA: 'LOCAÇÃO DE USINA SOLAR'
+  // DADOS DE QUEM PAGA (O CLIENTE)
+  const [pagadorNome, setPagadorNome] = useState('');
+  const [pagadorDoc, setPagadorDoc] = useState(''); // CPF ou CNPJ
+  const [endereco, setEndereco] = useState('');
+  
+  // DADOS DO SERVIÇO
+  const [referente, setReferente] = useState('LOCAÇÃO DE USINA SOLAR');
+  const [cidade, setCidade] = useState('NOVA AURORA');
+  const [data, setData] = useState(new Date().toISOString().split('T')[0]); // Hoje
+
+  // DADOS DO EMITENTE (VOCÊ / SUA EMPRESA) - Agora editáveis
+  const [emitenteNome, setEmitenteNome] = useState('SOLAR LOCAÇÕES LTDA');
+  const [emitenteDoc, setEmitenteDoc] = useState('52.577.862/0001-85');
+
+  // Ref para impressão
+  const componentRef = useRef(null);
+
+const handlePrint = useReactToPrint({
+    contentRef: componentRef, // <--- O jeito novo (se a versão for a mais atual)
+    documentTitle: `Recibo_${numero}`,
   });
 
-  // ESTADOS DO CADASTRO DE EMPRESA
-  const [novaEntidade, setNovaEntidade] = useState({
-    Nome: '', Documento: '', Endereco: '', Cidade: '', UF: ''
-  });
-
-  const loadEntidades = () => {
-    api.entidades.list().then(setEntidades);
+  // --- FORMATAÇÃO DE MOEDA (R$ 4.438,06) ---
+  const formatarMoeda = (valorInput: string) => {
+    if (!valorInput) return 'R$ 0,00';
+    const numero = parseFloat(valorInput);
+    if (isNaN(numero)) return 'R$ 0,00';
+    
+    return numero.toLocaleString('pt-BR', {
+      style: 'currency',
+      currency: 'BRL',
+    });
   };
 
-  useEffect(() => {
-    loadEntidades();
-  }, []);
-
-  // === FUNÇÃO DE IMPRESSÃO (IGUAL AO ANTERIOR, MAS FLEXÍVEL) ===
-  const handlePrint = () => {
-    const pagador = entidades.find(e => e.EntidadeID === Number(recibo.PagadorID));
-    const recebedor = entidades.find(e => e.EntidadeID === Number(recibo.RecebedorID));
-
-    if (!pagador || !recebedor || !recibo.Valor) {
-      alert("Selecione quem paga, quem recebe e o valor.");
-      return;
-    }
-
-    const doc = new jsPDF();
-    doc.setFont("helvetica");
-
-    // TÍTULO
-    doc.setFontSize(16);
-    doc.setFont("helvetica", "bold");
-    doc.text(`RECIBO Nº ${recibo.Numero}`, 105, 20, { align: "center" });
-
-    // VALOR
-    doc.setFontSize(14);
-    doc.rect(140, 30, 50, 10);
-    doc.text(`R$ ${Number(recibo.Valor).toFixed(2).replace('.', ',')}`, 165, 37, { align: "center" });
-
-    // CORPO
-    doc.setFontSize(12);
-    doc.setFont("helvetica", "normal");
-    let y = 60;
-
-    // RECEBI DE...
-    doc.text("RECEBI (EMOS) DE:", 20, y);
-    doc.setFont("helvetica", "bold");
-    doc.text(pagador.Nome.toUpperCase(), 65, y);
-    y += 7;
-
-    doc.setFont("helvetica", "normal");
-    if (pagador.Documento) {
-        doc.text(`CPF/CNPJ: ${pagador.Documento}`, 65, y);
-        y += 10;
-    } else { y += 3; }
-
-    doc.text("ENDEREÇO:", 20, y);
-    doc.text(`${pagador.Endereco || ''}, ${pagador.Cidade || ''}/${pagador.UF || ''}`, 65, y, { maxWidth: 130 });
-    y += 15;
-
-    doc.text("A IMPORTÂNCIA DE:", 20, y);
-    doc.setFont("helvetica", "bold");
-    doc.text(`R$ ${Number(recibo.Valor).toFixed(2).replace('.', ',')}`, 65, y);
-    y += 10;
-
-    doc.setFont("helvetica", "normal");
-    doc.text("REFERENTE A:", 20, y);
-    doc.text(recibo.ReferenteA.toUpperCase(), 65, y, { maxWidth: 130 });
-    y += 20;
-
-    // DATA E ASSINATURA
-    doc.setDrawColor(200);
-    doc.line(20, y, 190, y);
-    y += 10;
-    
-    const [ano, mes, dia] = recibo.DataEmissao.split('-');
-    doc.text(`${recebedor.Cidade || 'Local'}, ${dia}/${mes}/${ano}.`, 105, y, { align: "center" });
-    y += 30;
-
-    doc.line(60, y, 150, y);
-    y += 5;
-    
-    doc.setFont("helvetica", "bold");
-    doc.text(recebedor.Nome.toUpperCase(), 105, y, { align: "center" });
-    y += 5;
-    
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(10);
-    doc.text(`CPF/CNPJ: ${recebedor.Documento || ''}`, 105, y, { align: "center" });
-    
-    doc.save(`Recibo_${recibo.Numero}.pdf`);
-  };
-
-  const handleSaveEntidade = async (e: React.FormEvent) => {
-    e.preventDefault();
-    await api.entidades.create(novaEntidade);
-    setNovaEntidade({ Nome: '', Documento: '', Endereco: '', Cidade: '', UF: '' });
-    loadEntidades();
-    alert('Cadastro salvo!');
-  };
-
-  const handleDeleteEntidade = async (id: number) => {
-    if(!confirm("Excluir cadastro?")) return;
-    await api.entidades.delete(id);
-    loadEntidades();
+  // --- FORMATAÇÃO DE DATA (DD/MM/AAAA) ---
+  const formatarData = (dataInput: string) => {
+    if (!dataInput) return '';
+    const [ano, mes, dia] = dataInput.split('-');
+    return `${dia}/${mes}/${ano}`;
   };
 
   return (
-    <div>
-      <h1 className="text-2xl font-bold text-[#0B1E3F] mb-6">Emissor de Recibos</h1>
-
-      {/* ABAS */}
-      <div className="flex gap-4 mb-6 border-b border-gray-200">
-        <button 
-          onClick={() => setActiveTab('gerador')}
-          className={`pb-2 px-4 font-medium transition-colors ${activeTab === 'gerador' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
+    <div className="p-6 min-h-screen bg-slate-50">
+      {/* CABEÇALHO DA TELA */}
+      <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center gap-4">
+          <Link to="/" className="p-2 hover:bg-slate-200 rounded-full transition-colors">
+            <ArrowLeft className="w-6 h-6 text-slate-600" />
+          </Link>
+          <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
+            <FileText className="w-8 h-8 text-blue-600" />
+            Gerador de Recibos
+          </h1>
+        </div>
+        <button
+          onClick={handlePrint}
+          className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition-colors shadow-sm"
         >
-          <Printer className="w-4 h-4 inline mr-2" /> Gerar Recibo
-        </button>
-        <button 
-          onClick={() => setActiveTab('cadastros')}
-          className={`pb-2 px-4 font-medium transition-colors ${activeTab === 'cadastros' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
-        >
-          <Building2 className="w-4 h-4 inline mr-2" /> Cadastrar Empresas/Pessoas
+          <Printer className="w-5 h-5" />
+          Imprimir / Salvar PDF
         </button>
       </div>
 
-      {activeTab === 'gerador' ? (
-        <div className="bg-white p-8 rounded-xl shadow-sm border border-gray-200 max-w-3xl">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        
+        {/* --- LADO ESQUERDO: FORMULÁRIO DE PREENCHIMENTO --- */}
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 h-fit overflow-y-auto max-h-[85vh]">
+          <h2 className="text-lg font-semibold text-slate-700 mb-4 border-b pb-2">1. Dados do Recibo</h2>
+          
+          <div className="space-y-4 mb-6">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-600 mb-1">Nº do Recibo</label>
+                <input type="text" value={numero} onChange={e => setNumero(e.target.value)} className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 outline-none" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-600 mb-1">Valor (Numérico)</label>
+                <input 
+                  type="number" 
+                  step="0.01" 
+                  placeholder="Ex: 4438.06"
+                  value={valor} 
+                  onChange={e => setValor(e.target.value)} 
+                  className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 outline-none" 
+                />
+                <p className="text-xs text-blue-600 mt-1 font-semibold">
+                  {formatarMoeda(valor)}
+                </p>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-600 mb-1">Pagador (Nome)</label>
+              <input type="text" placeholder="Quem está pagando..." value={pagadorNome} onChange={e => setPagadorNome(e.target.value)} className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 outline-none" />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-600 mb-1">CPF / CNPJ do Pagador</label>
+              <input type="text" value={pagadorDoc} onChange={e => setPagadorDoc(e.target.value)} className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 outline-none" />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-600 mb-1">Endereço do Pagador</label>
+              <textarea rows={2} value={endereco} onChange={e => setEndereco(e.target.value)} className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 outline-none" />
+            </div>
             
-            <div className="col-span-2 md:col-span-1 bg-red-50 p-4 rounded-lg border border-red-100">
-              <label className="block text-sm font-bold text-red-800 mb-2">Quem Paga? (Recebemos de)</label>
-              <select 
-                className="w-full rounded-lg border-red-200 focus:ring-red-500"
-                value={recibo.PagadorID}
-                onChange={e => setRecibo({...recibo, PagadorID: e.target.value})}
-              >
-                <option value="">Selecione...</option>
-                {entidades.map(e => <option key={e.EntidadeID} value={e.EntidadeID}>{e.Nome}</option>)}
-              </select>
-            </div>
-
-            <div className="col-span-2 md:col-span-1 bg-blue-50 p-4 rounded-lg border border-blue-100">
-              <label className="block text-sm font-bold text-blue-800 mb-2">Quem Assina? (Emitente)</label>
-              <select 
-                className="w-full rounded-lg border-blue-200 focus:ring-blue-500"
-                value={recibo.RecebedorID}
-                onChange={e => setRecibo({...recibo, RecebedorID: e.target.value})}
-              >
-                <option value="">Selecione...</option>
-                {entidades.map(e => <option key={e.EntidadeID} value={e.EntidadeID}>{e.Nome}</option>)}
-              </select>
-            </div>
-
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Valor (R$)</label>
-              <input 
-                type="number" step="0.01" 
-                className="w-full rounded-lg border-gray-300 focus:ring-blue-500 text-lg font-bold text-gray-800"
-                value={recibo.Valor}
-                onChange={e => setRecibo({...recibo, Valor: e.target.value})}
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Número do Recibo</label>
-              <input 
-                type="text" 
-                className="w-full rounded-lg border-gray-300 focus:ring-blue-500"
-                value={recibo.Numero}
-                onChange={e => setRecibo({...recibo, Numero: e.target.value})}
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Data do Recibo</label>
-              <input 
-                type="date" 
-                className="w-full rounded-lg border-gray-300 focus:ring-blue-500"
-                value={recibo.DataEmissao}
-                onChange={e => setRecibo({...recibo, DataEmissao: e.target.value})}
-              />
-            </div>
-
-            <div className="col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Referente a</label>
-              <input 
-                type="text" 
-                className="w-full rounded-lg border-gray-300 focus:ring-blue-500"
-                value={recibo.ReferenteA}
-                onChange={e => setRecibo({...recibo, ReferenteA: e.target.value})}
-              />
+              <label className="block text-sm font-medium text-slate-600 mb-1">Referente a</label>
+              <input type="text" value={referente} onChange={e => setReferente(e.target.value)} className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 outline-none" />
             </div>
           </div>
 
-          <button 
-            onClick={handlePrint}
-            className="w-full flex items-center justify-center gap-2 bg-blue-600 text-white py-4 rounded-xl hover:bg-blue-700 font-bold text-lg shadow-lg shadow-blue-900/20 transition-transform active:scale-95"
-          >
-            <Printer className="w-6 h-6" /> Gerar PDF
-          </button>
+          <h2 className="text-lg font-semibold text-slate-700 mb-4 border-b pb-2 pt-2">2. Dados da Assinatura (Emitente)</h2>
+          
+          <div className="space-y-4">
+             <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-600 mb-1">Cidade</label>
+                <input type="text" value={cidade} onChange={e => setCidade(e.target.value)} className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 outline-none" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-600 mb-1">Data</label>
+                <input type="date" value={data} onChange={e => setData(e.target.value)} className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 outline-none" />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-600 mb-1">Nome de quem Assina (Empresa/Pessoa)</label>
+              <input type="text" value={emitenteNome} onChange={e => setEmitenteNome(e.target.value)} className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 outline-none bg-yellow-50" />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-600 mb-1">CPF/CNPJ de quem Assina</label>
+              <input type="text" value={emitenteDoc} onChange={e => setEmitenteDoc(e.target.value)} className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 outline-none bg-yellow-50" />
+            </div>
+          </div>
         </div>
-      ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* FORMULÁRIO DE CADASTRO */}
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 h-fit">
-            <h3 className="font-bold text-lg mb-4 flex items-center gap-2"><Plus className="w-5 h-5" /> Novo Cadastro</h3>
-            <form onSubmit={handleSaveEntidade} className="space-y-4">
-              <input type="text" placeholder="Nome / Razão Social" required className="w-full rounded-lg border-gray-300" 
-                value={novaEntidade.Nome} onChange={e => setNovaEntidade({...novaEntidade, Nome: e.target.value})} />
+
+        {/* --- LADO DIREITO: PRÉ-VISUALIZAÇÃO DO RECIBO --- */}
+        <div className="flex justify-center bg-slate-200 p-8 rounded-xl overflow-auto items-start">
+          
+          {/* ÁREA DE IMPRESSÃO (Folha A4 simulada ou tamanho Recibo) */}
+          <div 
+            ref={componentRef} 
+            className="bg-white p-10 shadow-2xl text-black font-serif print:shadow-none"
+            style={{ 
+              width: '210mm', // Largura A4 padrão
+              minHeight: '148mm', // Metade de um A4 (A5 horizontal)
+              border: '1px solid #ccc'
+            }}
+          >
+            {/* BORDA DECORATIVA DO RECIBO */}
+            <div className="border-4 border-double border-slate-800 p-8 h-full relative flex flex-col justify-between">
               
-              <input type="text" placeholder="CPF / CNPJ" className="w-full rounded-lg border-gray-300" 
-                value={novaEntidade.Documento} onChange={e => setNovaEntidade({...novaEntidade, Documento: e.target.value})} />
-              
-              <input type="text" placeholder="Endereço" className="w-full rounded-lg border-gray-300" 
-                value={novaEntidade.Endereco} onChange={e => setNovaEntidade({...novaEntidade, Endereco: e.target.value})} />
-              
-              <div className="grid grid-cols-3 gap-2">
-                <div className="col-span-2">
-                    <input type="text" placeholder="Cidade" className="w-full rounded-lg border-gray-300" 
-                        value={novaEntidade.Cidade} onChange={e => setNovaEntidade({...novaEntidade, Cidade: e.target.value})} />
-                </div>
+              {/* CABEÇALHO DO RECIBO */}
+              <div className="flex justify-between items-start mb-8 border-b-2 border-slate-800 pb-4">
                 <div>
-                    <input type="text" placeholder="UF" maxLength={2} className="w-full rounded-lg border-gray-300" 
-                        value={novaEntidade.UF} onChange={e => setNovaEntidade({...novaEntidade, UF: e.target.value.toUpperCase()})} />
+                  <h1 className="text-4xl font-bold tracking-widest text-slate-900">RECIBO</h1>
+                </div>
+                <div className="text-right">
+                  <div className="flex items-center gap-2 mb-2 justify-end">
+                    <span className="text-xl font-bold">Nº</span>
+                    <span className="text-2xl font-bold text-red-600 border-b-2 border-slate-400 min-w-[60px] text-center inline-block">
+                      {numero}
+                    </span>
+                  </div>
+                  <div className="bg-slate-100 border border-slate-300 px-4 py-2 rounded inline-block">
+                    <span className="text-sm font-bold text-slate-500 mr-2">VALOR</span>
+                    <span className="text-2xl font-bold text-slate-900">{formatarMoeda(valor)}</span>
+                  </div>
                 </div>
               </div>
 
-              <button type="submit" className="w-full bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 flex items-center justify-center gap-2">
-                <Save className="w-4 h-4" /> Salvar
-              </button>
-            </form>
+              {/* CORPO DO RECIBO */}
+              <div className="space-y-6 text-lg leading-relaxed">
+                
+                {/* LINHA 1: RECEBI DE */}
+                <div>
+                  <span className="font-bold mr-2">RECEBI(EMOS) DE:</span>
+                  <span className="border-b border-dotted border-slate-400 font-medium uppercase px-2">
+                    {pagadorNome || '__________________________________________________'}
+                  </span>
+                </div>
+
+                {/* LINHA 2: CPF/CNPJ */}
+                <div>
+                  <span className="font-bold mr-2">CPF/CNPJ nº:</span>
+                  <span className="border-b border-dotted border-slate-400 font-medium px-2">
+                    {pagadorDoc || '____________________'}
+                  </span>
+                </div>
+
+                 {/* LINHA 3: ENDEREÇO */}
+                 <div>
+                  <span className="font-bold mr-2">ENDEREÇO:</span>
+                  <span className="border-b border-dotted border-slate-400 font-medium uppercase px-2 w-full inline-block">
+                    {endereco || '__________________________________________________________________'}
+                  </span>
+                </div>
+
+                {/* LINHA 4: IMPORTÂNCIA */}
+                <div className="bg-slate-50 p-4 border border-slate-200 rounded italic mt-4 mb-4">
+                  <span className="font-bold not-italic mr-2">A IMPORTÂNCIA DE:</span>
+                  <span className="font-bold text-xl uppercase">
+                    ({formatarMoeda(valor)})
+                  </span>
+                </div>
+
+                {/* LINHA 5: REFERENTE A */}
+                <div>
+                  <span className="font-bold mr-2">REFERENTE A:</span>
+                  <span className="border-b border-dotted border-slate-400 font-medium uppercase px-2 w-full inline-block">
+                    {referente}
+                  </span>
+                </div>
+              </div>
+
+              {/* RODAPÉ: DATA E ASSINATURA */}
+              <div className="mt-12 flex flex-col items-center">
+                <p className="text-right w-full mb-12 text-lg">
+                  {cidade.toUpperCase()}, <span className="font-bold">{formatarData(data)}</span>.
+                </p>
+
+                <div className="text-center w-2/3">
+                  <div className="border-b border-slate-800 mb-2"></div>
+                  {/* AQUI ESTÁ A MUDANÇA: CAMPOS DINÂMICOS */}
+                  <p className="font-bold text-lg uppercase">{emitenteNome || 'NOME DO EMITENTE'}</p>
+                  <p className="text-sm text-slate-600">CNPJ/CPF: {emitenteDoc || '00.000.000/0000-00'}</p>
+                </div>
+              </div>
+
+            </div>
           </div>
 
-          {/* LISTA DE CADASTROS */}
-          <div className="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Nome</th>
-                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Documento</th>
-                  <th className="px-6 py-3 text-right"></th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                {entidades.map(ent => (
-                  <tr key={ent.EntidadeID} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 font-medium text-gray-900">{ent.Nome}</td>
-                    <td className="px-6 py-4 text-gray-500 text-sm">{ent.Documento}</td>
-                    <td className="px-6 py-4 text-right">
-                      <button onClick={() => handleDeleteEntidade(ent.EntidadeID)} className="text-red-400 hover:text-red-600">
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
         </div>
-      )}
+      </div>
     </div>
   );
 }

@@ -3,14 +3,15 @@ import { Link } from 'react-router-dom';
 import { api } from '../../lib/api';
 import { Plus, Edit, Trash2 } from 'lucide-react';
 
+// CORREÇÃO: Interface com propriedades em minúsculo (como vêm do banco)
 interface Vinculo {
   VinculoID: number;
   ConsumidorID: number;
   UsinaID: number;
   StatusID: number;
-  Consumidores: { Nome: string };
-  Usinas: { NomeProprietario: string };
-  Status: { Descricao: string };
+  consumidores: { Nome: string };      // minúsculo
+  usinas: { NomeProprietario: string }; // minúsculo
+  status: { Descricao: string };        // minúsculo
 }
 
 export default function ListaVinculos() {
@@ -20,6 +21,7 @@ export default function ListaVinculos() {
   const loadVinculos = () => {
     api.vinculos.list()
       .then(setVinculos)
+      .catch(err => console.error("Erro ao carregar:", err)) // Log de erro ajuda no debug
       .finally(() => setLoading(false));
   };
 
@@ -29,9 +31,13 @@ export default function ListaVinculos() {
 
   const handleDelete = async (id: number) => {
     if (!confirm('Tem certeza que deseja excluir este vínculo?')) return;
-
-    await api.vinculos.delete(id);
-    loadVinculos();
+    try {
+        await api.vinculos.delete(id);
+        loadVinculos();
+    } catch (error) {
+        console.error("Erro ao deletar:", error);
+        alert("Erro ao deletar vínculo");
+    }
   };
 
   if (loading) {
@@ -79,24 +85,26 @@ export default function ListaVinculos() {
                 {vinculos.map((vinculo) => (
                   <tr key={vinculo.VinculoID} className="hover:bg-gray-50 transition-colors">
                     <td className="px-6 py-4 whitespace-nowrap">
-                      {/* AQUI ESTÁ A MUDANÇA: O Link envolve o nome */}
                       <div className="text-sm font-medium">
+                        {/* CORREÇÃO: Acesso minúsculo (vinculo.consumidores) */}
                         <Link 
                           to={`/vinculos/${vinculo.VinculoID}`} 
                           className="text-blue-600 hover:text-blue-900 hover:underline"
                         >
-                          {vinculo.Consumidores.Nome}
+                          {vinculo.consumidores?.Nome || 'N/A'}
                         </Link>
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-900">
-                        {vinculo.Usinas.NomeProprietario}
+                        {/* CORREÇÃO: Acesso minúsculo (vinculo.usinas) */}
+                        {vinculo.usinas?.NomeProprietario || 'N/A'}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
-                        {vinculo.Status.Descricao}
+                        {/* CORREÇÃO: Acesso minúsculo (vinculo.status) */}
+                        {vinculo.status?.Descricao || 'N/A'}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">

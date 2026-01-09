@@ -6,7 +6,7 @@ const router = express.Router();
 // LISTAR TODOS
 router.get('/', async (req, res) => {
   try {
-    // CORREÇÃO: Tabela 'vinculos' e relacionamentos em minúsculo (consumidores, usinas, status)
+    // CORREÇÃO: Tudo em minúsculo aqui (tabela e relacionamentos)
     const { data, error } = await supabase
       .from('vinculos')
       .select(`
@@ -27,10 +27,10 @@ router.get('/', async (req, res) => {
   }
 });
 
-// --- NOVO: BUSCAR UM VÍNCULO (DETALHES) ---
+// BUSCAR UM
 router.get('/:id', async (req, res) => {
   try {
-    // CORREÇÃO: Tabela e relacionamentos em minúsculo
+    // CORREÇÃO: Tudo em minúsculo
     const { data, error } = await supabase
       .from('vinculos')
       .select(`
@@ -53,55 +53,30 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// CRIAR
+// Demais rotas (POST, PUT, DELETE)...
+// Certifique-se de usar .from('vinculos') em todas elas.
 router.post('/', async (req, res) => {
   try {
-    // CORREÇÃO: 'vinculos'
-    const { data, error } = await supabase
-      .from('vinculos')
-      .insert([req.body])
-      .select()
-      .single();
-
+    const { data, error } = await supabase.from('vinculos').insert([req.body]).select().single();
     if (error) throw error;
     res.status(201).json(data);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
+  } catch (error) { res.status(500).json({ error: error.message }); }
 });
 
-// ATUALIZAR
 router.put('/:id', async (req, res) => {
   try {
-    // CORREÇÃO: 'vinculos'
-    const { data, error } = await supabase
-      .from('vinculos')
-      .update(req.body)
-      .eq('VinculoID', req.params.id)
-      .select()
-      .single();
-
+    const { data, error } = await supabase.from('vinculos').update(req.body).eq('VinculoID', req.params.id).select().single();
     if (error) throw error;
     res.json(data);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
+  } catch (error) { res.status(500).json({ error: error.message }); }
 });
 
-// EXCLUIR
 router.delete('/:id', async (req, res) => {
   try {
-    // CORREÇÃO: 'vinculos'
-    const { error } = await supabase
-      .from('vinculos')
-      .delete()
-      .eq('VinculoID', req.params.id);
-
+    const { error } = await supabase.from('vinculos').delete().eq('VinculoID', req.params.id);
     if (error) throw error;
     res.status(204).send();
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
+  } catch (error) { res.status(500).json({ error: error.message }); }
 });
 
 export default router;

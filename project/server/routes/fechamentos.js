@@ -5,16 +5,17 @@ const router = express.Router();
 
 // LISTAR
 router.get('/:vinculoId', async (req, res) => {
-  // CORREÇÃO: Tabela 'fechamentos' em minúsculo
+  // CORREÇÃO: Tabela 'fechamentos' e coluna 'vinculoid' em minúsculo
   const { data, error } = await supabase
-    .from('fechamentos') 
+    .from('fechamentos')
     .select('*')
-    // Atenção: A coluna no banco provavelmente é 'vinculoid' (minúsculo)
-    .eq('vinculoid', req.params.vinculoId) 
+    .eq('vinculoid', req.params.vinculoId)
     .order('mesreferencia', { ascending: false });
 
   if (error) return res.status(500).json({ error: error.message });
-  res.json(data);
+  
+  // Garante que retorna um array vazio se não houver dados, evitando erro no map
+  res.json(data || []);
 });
 
 // CRIAR
@@ -22,7 +23,7 @@ router.post('/', async (req, res) => {
   try {
     const { VinculoID, MesReferencia, EnergiaCompensada, ValorRecebido, ValorPago, Spread, ArquivoURL } = req.body;
 
-    // CORREÇÃO: Mapeando os dados para colunas em minúsculo
+    // CORREÇÃO: Tabela e colunas em minúsculo
     const { data, error } = await supabase
       .from('fechamentos')
       .insert([{
@@ -46,12 +47,8 @@ router.post('/', async (req, res) => {
 
 // EXCLUIR
 router.delete('/:id', async (req, res) => {
-  // CORREÇÃO: Tabela e ID em minúsculo
-  const { error } = await supabase
-    .from('fechamentos')
-    .delete()
-    .eq('fechamentoid', req.params.id);
-    
+  // CORREÇÃO: 'fechamentos' e 'fechamentoid'
+  const { error } = await supabase.from('fechamentos').delete().eq('fechamentoid', req.params.id);
   if (error) return res.status(500).json({ error: error.message });
   res.status(204).send();
 });

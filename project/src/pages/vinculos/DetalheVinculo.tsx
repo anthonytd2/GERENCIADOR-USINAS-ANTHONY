@@ -12,6 +12,7 @@ export default function DetalheVinculo() {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
 
+  // Estados do Formulário e Upload
   const [uploading, setUploading] = useState(false);
   const [form, setForm] = useState({
     MesReferencia: '',
@@ -27,11 +28,17 @@ export default function DetalheVinculo() {
       try {
         const v = await api.vinculos.get(Number(id));
         setVinculo(v);
-        // O erro 500 acontecia aqui, agora deve funcionar
+        
         const r = await api.fechamentos.list(Number(id));
-        setRelatorios(r || []);
+        // Proteção: se r for um erro ou undefined, define como array vazio
+        if (Array.isArray(r)) {
+          setRelatorios(r);
+        } else {
+          console.error("Erro ao carregar relatórios:", r);
+          setRelatorios([]);
+        }
       } catch (error) {
-        console.error("Erro ao carregar dados:", error);
+        console.error("Erro fatal:", error);
       } finally {
         setLoading(false);
       }
@@ -82,7 +89,6 @@ export default function DetalheVinculo() {
       setForm({ MesReferencia: '', EnergiaCompensada: '', ValorRecebido: '', ValorPago: '', Spread: '', ArquivoURL: '' });
       loadData();
     } catch (error) {
-      console.error(error);
       alert('Erro ao salvar relatório');
     }
   };
@@ -119,12 +125,12 @@ export default function DetalheVinculo() {
       </div>
 
       <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 mb-8">
-        {/* CORREÇÃO: Acesso usando minúsculo (consumidores, usinas) */}
+        {/* CORREÇÃO: Acesso minúsculo e com verificação opcional (?) */}
         <h1 className="text-2xl font-bold text-[#0B1E3F]">
-          {vinculo.consumidores?.Nome || vinculo.consumidores?.nome || 'Consumidor'}
+           {vinculo.consumidores?.Nome || vinculo.consumidores?.nome || 'Consumidor'}
         </h1>
         <p className="text-gray-500">
-          Usina: {vinculo.usinas?.NomeProprietario || vinculo.usinas?.nomeproprietario || 'N/A'}
+           Usina: {vinculo.usinas?.NomeProprietario || vinculo.usinas?.nomeproprietario || 'N/A'}
         </p>
       </div>
 
@@ -151,9 +157,10 @@ export default function DetalheVinculo() {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
-            {relatorios.map((rel) => (
+            {/* CORREÇÃO: Verificação de segurança no relatorios.map */}
+            {Array.isArray(relatorios) && relatorios.map((rel) => (
               <tr key={rel.fechamentoid || rel.FechamentoID} className="hover:bg-gray-50">
-                {/* CORREÇÃO: Acesso usando chaves minúsculas retornadas pelo banco */}
+                {/* CORREÇÃO: Acessa propriedades em minúsculo (retorno do banco) ou Maiúsculo (caso antigo) */}
                 <td className="px-6 py-4 font-medium">{rel.mesreferencia || rel.MesReferencia}</td>
                 <td className="px-6 py-4">{rel.energiacompensada || rel.EnergiaCompensada} kWh</td>
                 <td className="px-6 py-4 text-blue-700">R$ {rel.valorrecebido || rel.ValorRecebido}</td>
@@ -177,6 +184,9 @@ export default function DetalheVinculo() {
                 </td>
               </tr>
             ))}
+            {(!relatorios || relatorios.length === 0) && (
+                <tr><td colSpan={7} className="p-4 text-center text-gray-500">Nenhum lançamento encontrado.</td></tr>
+            )}
           </tbody>
         </table>
       </div>

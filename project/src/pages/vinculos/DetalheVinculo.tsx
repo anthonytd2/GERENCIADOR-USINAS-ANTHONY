@@ -11,7 +11,7 @@ export default function DetalheVinculo() {
   const [relatorios, setRelatorios] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   
-  // States do Modal e Uploads (Mantidos)
+  // States do Modal e Uploads
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [uploadingPlanilha, setUploadingPlanilha] = useState(false);
@@ -31,7 +31,6 @@ export default function DetalheVinculo() {
 
   useEffect(() => { loadData(); }, [id]);
 
-  // (Funções handleCalcSpread, handleUpload, handleSave... Mantidas iguais)
   const handleCalcSpread = (recebido: string, pago: string) => {
     const r = parseFloat(recebido) || 0;
     const p = parseFloat(pago) || 0;
@@ -94,24 +93,24 @@ export default function DetalheVinculo() {
 
       <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 mb-8">
         <div>
-            {/* CORREÇÃO: Tenta ler 'consumidores' (minúsculo) OU 'Consumidores' (maiúsculo) */}
+            {/* CORREÇÃO: Lê 'consumidores.nome' (minúsculo) OU 'Consumidores.Nome' (maiúsculo) */}
             <h1 className="text-2xl font-bold text-[#0B1E3F]">
-              {vinculo.consumidores?.Nome || vinculo.consumidores?.nome || vinculo.Consumidores?.Nome || 'Consumidor'}
+              {vinculo.consumidores?.nome || vinculo.consumidores?.Nome || vinculo.Consumidores?.Nome || 'Consumidor não identificado'}
             </h1>
             
-            {/* CORREÇÃO: Tenta ler 'usinas' (minúsculo) OU 'Usinas' (maiúsculo) */}
+            {/* CORREÇÃO: Lê 'usinas.nomeproprietario' */}
             <p className="text-lg text-gray-600 mt-1">
               Usina: <span className="font-semibold">
-                {vinculo.usinas?.NomeProprietario || vinculo.usinas?.nomeproprietario || vinculo.Usinas?.NomeProprietario || 'N/A'}
+                {vinculo.usinas?.nomeproprietario || vinculo.usinas?.NomeProprietario || vinculo.Usinas?.NomeProprietario || 'N/A'}
               </span>
             </p>
             
             <div className="mt-2 inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-50 text-blue-700">
-                {vinculo.status?.Descricao || vinculo.status?.descricao || 'Sem Status'}
+                {vinculo.status?.descricao || vinculo.status?.Descricao || 'Sem Status'}
             </div>
         </div>
 
-        {/* EXIBIÇÃO DA OBSERVAÇÃO */}
+        {/* OBSERVAÇÃO */}
         {(vinculo.observacao || vinculo.Observacao) && (
             <div className="mt-6 pt-6 border-t border-gray-100">
                 <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide flex items-center gap-2 mb-2">
@@ -168,7 +167,7 @@ export default function DetalheVinculo() {
         </table>
       </div>
       
-      {/* Modal de Edição (Código igual ao anterior, já incluído) */}
+      {/* Modal de Edição */}
       {showModal && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
           <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-6 max-h-[90vh] overflow-y-auto">

@@ -51,7 +51,6 @@ export default function FormularioVinculo() {
         }
       } catch (err) {
         console.error("Erro ao carregar:", err);
-        alert("Erro ao carregar dados. Tente recarregar a página.");
       } finally {
         setLoading(false);
       }

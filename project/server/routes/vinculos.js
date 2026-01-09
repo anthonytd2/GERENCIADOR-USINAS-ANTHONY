@@ -6,18 +6,16 @@ const router = express.Router();
 // LISTAR TODOS
 router.get('/', async (req, res) => {
   try {
+    // CORREÇÃO: Tabelas e colunas em minúsculo (padrão Supabase)
     const { data, error } = await supabase
       .from('vinculos')
       .select(`
-        VinculoID,
-        ConsumidorID,
-        UsinaID,
-        StatusID,
-        consumidores (Nome),
-        usinas (NomeProprietario),
-        status (Descricao)
+        *,
+        consumidores (nome),
+        usinas (nomeproprietario),
+        status (descricao)
       `)
-      .order('VinculoID');
+      .order('vinculoid');
 
     if (error) throw error;
     res.json(data);
@@ -29,20 +27,16 @@ router.get('/', async (req, res) => {
 // BUSCAR UM (DETALHES + EDIÇÃO)
 router.get('/:id', async (req, res) => {
   try {
-    // CORREÇÃO: Adicionado 'observacao' e garantido o JOIN correto
+    // CORREÇÃO: Adicionado 'observacao' e JOINs corretos em minúsculo
     const { data, error } = await supabase
       .from('vinculos')
       .select(`
-        VinculoID,
-        ConsumidorID,
-        UsinaID,
-        StatusID,
-        observacao,
-        consumidores (Nome, MediaConsumo),
-        usinas (NomeProprietario, GeracaoEstimada),
-        status (Descricao)
+        *,
+        consumidores (nome, mediaconsumo),
+        usinas (nomeproprietario, geracaoestimada),
+        status (descricao)
       `)
-      .eq('VinculoID', req.params.id)
+      .eq('vinculoid', req.params.id)
       .single();
 
     if (error) throw error;
@@ -65,7 +59,7 @@ router.post('/', async (req, res) => {
 // ATUALIZAR
 router.put('/:id', async (req, res) => {
   try {
-    const { data, error } = await supabase.from('vinculos').update(req.body).eq('VinculoID', req.params.id).select().single();
+    const { data, error } = await supabase.from('vinculos').update(req.body).eq('vinculoid', req.params.id).select().single();
     if (error) throw error;
     res.json(data);
   } catch (error) { res.status(500).json({ error: error.message }); }
@@ -74,7 +68,7 @@ router.put('/:id', async (req, res) => {
 // EXCLUIR
 router.delete('/:id', async (req, res) => {
   try {
-    const { error } = await supabase.from('vinculos').delete().eq('VinculoID', req.params.id);
+    const { error } = await supabase.from('vinculos').delete().eq('vinculoid', req.params.id);
     if (error) throw error;
     res.status(204).send();
   } catch (error) { res.status(500).json({ error: error.message }); }

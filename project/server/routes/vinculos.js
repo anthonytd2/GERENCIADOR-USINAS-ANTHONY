@@ -6,7 +6,6 @@ const router = express.Router();
 // LISTAR TODOS
 router.get('/', async (req, res) => {
   try {
-    // CORREÇÃO: Tudo em minúsculo aqui (tabela e relacionamentos)
     const { data, error } = await supabase
       .from('vinculos')
       .select(`
@@ -27,10 +26,10 @@ router.get('/', async (req, res) => {
   }
 });
 
-// BUSCAR UM
+// BUSCAR UM (DETALHES) - CORRIGIDO
 router.get('/:id', async (req, res) => {
   try {
-    // CORREÇÃO: Tudo em minúsculo
+    // ADICIONEI 'observacao' NA LISTA ABAIXO
     const { data, error } = await supabase
       .from('vinculos')
       .select(`
@@ -38,6 +37,7 @@ router.get('/:id', async (req, res) => {
         ConsumidorID,
         UsinaID,
         StatusID,
+        observacao, 
         consumidores(Nome, MediaConsumo), 
         usinas(NomeProprietario, GeracaoEstimada), 
         status(Descricao)
@@ -53,8 +53,7 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// Demais rotas (POST, PUT, DELETE)...
-// Certifique-se de usar .from('vinculos') em todas elas.
+// ROTAS DE CRIAR/EDITAR/EXCLUIR (Mantenha igual ou use o padrão abaixo)
 router.post('/', async (req, res) => {
   try {
     const { data, error } = await supabase.from('vinculos').insert([req.body]).select().single();

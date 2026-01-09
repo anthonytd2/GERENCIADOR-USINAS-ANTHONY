@@ -6,7 +6,7 @@ const router = express.Router();
 // LISTAR TODOS
 router.get('/', async (req, res) => {
   try {
-    // CORREÇÃO: Usando 'vinculos', 'consumidores', 'usinas', 'status' (minúsculo)
+    // CORREÇÃO: Tudo em minúsculo para bater com o Postgres
     const { data, error } = await supabase
       .from('vinculos')
       .select(`
@@ -15,7 +15,7 @@ router.get('/', async (req, res) => {
         usinas (nomeproprietario),
         status (descricao)
       `)
-      .order('vinculoid');
+      .order('vinculoid'); // Ordena pelo ID
 
     if (error) throw error;
     res.json(data);
@@ -35,7 +35,7 @@ router.get('/:id', async (req, res) => {
         usinas (nomeproprietario, geracaoestimada),
         status (descricao)
       `)
-      .eq('vinculoid', req.params.id)
+      .eq('vinculoid', req.params.id) // ID em minúsculo
       .single();
 
     if (error) throw error;
@@ -49,6 +49,8 @@ router.get('/:id', async (req, res) => {
 // CRIAR
 router.post('/', async (req, res) => {
   try {
+    // Supabase ignora maiúsculas/minúsculas no insert se o objeto bater com as colunas, 
+    // mas é ideal enviar minúsculo ou deixar o JS converter.
     const { data, error } = await supabase.from('vinculos').insert([req.body]).select().single();
     if (error) throw error;
     res.status(201).json(data);
@@ -58,7 +60,13 @@ router.post('/', async (req, res) => {
 // ATUALIZAR
 router.put('/:id', async (req, res) => {
   try {
-    const { data, error } = await supabase.from('vinculos').update(req.body).eq('vinculoid', req.params.id).select().single();
+    const { data, error } = await supabase
+      .from('vinculos')
+      .update(req.body)
+      .eq('vinculoid', req.params.id)
+      .select()
+      .single();
+      
     if (error) throw error;
     res.json(data);
   } catch (error) { res.status(500).json({ error: error.message }); }
@@ -67,7 +75,11 @@ router.put('/:id', async (req, res) => {
 // EXCLUIR
 router.delete('/:id', async (req, res) => {
   try {
-    const { error } = await supabase.from('vinculos').delete().eq('vinculoid', req.params.id);
+    const { error } = await supabase
+      .from('vinculos')
+      .delete()
+      .eq('vinculoid', req.params.id);
+      
     if (error) throw error;
     res.status(204).send();
   } catch (error) { res.status(500).json({ error: error.message }); }

@@ -12,36 +12,55 @@ export default function FormularioVinculo() {
     ConsumidorID: '',
     UsinaID: '',
     StatusID: '',
-    Observacao: '' // Novo campo
+    Observacao: ''
   });
 
-  const [listas, setListas] = useState({
+  // CORREÇÃO: Tipagem explicita para evitar "linha vermelha"
+  const [listas, setListas] = useState<{
+    consumidores: any[],
+    usinas: any[],
+    status: any[]
+  }>({
     consumidores: [],
     usinas: [],
     status: []
   });
 
-  useEffect(() => {
-    // Carrega as listas para os Dropdowns
-    Promise.all([
-      api.consumidores.list(),
-      api.usinas.list(),
-      api.status.list()
-    ]).then(([consumidores, usinas, status]) => {
-      setListas({ consumidores, usinas, status });
-    });
+  const [loading, setLoading] = useState(true);
 
-    // Se for edição, carrega os dados do vínculo
-    if (isEditing) {
-      api.vinculos.get(Number(id)).then((data) => {
-        setFormData({
-          ConsumidorID: data.ConsumidorID,
-          UsinaID: data.UsinaID,
-          StatusID: data.StatusID,
-          Observacao: data.Observacao || '' // Garante string vazia se nulo
+  useEffect(() => {
+    const carregarListas = async () => {
+      try {
+        // Proteção com .catch para evitar tela branca se uma falhar
+        const [c, u, s] = await Promise.all([
+          api.consumidores.list().catch(() => []),
+          api.usinas.list().catch(() => []),
+          api.status.list().catch(() => [])
+        ]);
+        
+        // Garante que são arrays antes de salvar
+        setListas({
+          consumidores: Array.isArray(c) ? c : [],
+          usinas: Array.isArray(u) ? u : [],
+          status: Array.isArray(s) ? s : []
         });
-      });
-    }
+
+        if (isEditing) {
+          const vinculo = await api.vinculos.get(Number(id));
+          setFormData({
+            ConsumidorID: vinculo.ConsumidorID || vinculo.consumidorid || '',
+            UsinaID: vinculo.UsinaID || vinculo.usinaid || '',
+            StatusID: vinculo.StatusID || vinculo.statusid || '',
+            Observacao: vinculo.Observacao || vinculo.observacao || ''
+          });
+        }
+      } catch (err) {
+        console.error("Erro ao carregar:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    carregarListas();
   }, [id, isEditing]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -61,14 +80,15 @@ export default function FormularioVinculo() {
       }
       navigate('/vinculos');
     } catch (error) {
-      console.error('Erro ao salvar:', error);
-      alert('Erro ao salvar vínculo');
+      console.error(error);
+      alert('Erro ao salvar vínculo. Verifique os dados.');
     }
   };
 
+  if (loading) return <div className="p-8">Carregando formulário...</div>;
+
   return (
     <div>
-      {/* CABEÇALHO */}
       <div className="mb-8 flex items-center justify-between">
         <div className="flex items-center gap-4">
           <Link to="/vinculos" className="p-2 hover:bg-gray-100 rounded-full transition-colors">
@@ -94,8 +114,8 @@ export default function FormularioVinculo() {
               >
                 <option value="">Selecione um consumidor</option>
                 {listas.consumidores.map((c: any) => (
-                  <option key={c.ConsumidorID} value={c.ConsumidorID}>
-                    {c.Nome}
+                  <option key={c.ConsumidorID || c.consumidorid} value={c.ConsumidorID || c.consumidorid}>
+                    {c.Nome || c.nome}
                   </option>
                 ))}
               </select>
@@ -111,8 +131,8 @@ export default function FormularioVinculo() {
               >
                 <option value="">Selecione uma usina</option>
                 {listas.usinas.map((u: any) => (
-                  <option key={u.UsinaID} value={u.UsinaID}>
-                    {u.NomeProprietario} ({u.Tipo})
+                  <option key={u.UsinaID || u.usinaid} value={u.UsinaID || u.usinaid}>
+                    {u.NomeProprietario || u.nomeproprietario}
                   </option>
                 ))}
               </select>
@@ -128,35 +148,32 @@ export default function FormularioVinculo() {
               >
                 <option value="">Selecione um status</option>
                 {listas.status.map((s: any) => (
-                  <option key={s.StatusID} value={s.StatusID}>
-                    {s.Descricao}
+                  <option key={s.StatusID || s.statusid} value={s.StatusID || s.statusid}>
+                    {s.Descricao || s.descricao}
                   </option>
                 ))}
               </select>
             </div>
 
-            {/* CAMPO DE OBSERVAÇÃO */}
             <div className="border-t border-gray-100 pt-6">
-              <label className="block text-sm font-medium text-gray-700 mb-2">Observações do Contrato</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Observações</label>
               <textarea
                 rows={4}
                 value={formData.Observacao}
                 onChange={e => setFormData({ ...formData, Observacao: e.target.value })}
                 className="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                placeholder="Ex: Condições especiais de negociação, avisos importantes..."
               />
             </div>
           </div>
         </div>
 
-        {/* BOTÃO DE SALVAR */}
         <div className="flex justify-start pt-2 max-w-3xl">
           <button
             type="submit"
-            className="flex items-center gap-2 px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium shadow-lg shadow-blue-900/20 transition-all hover:-translate-y-1"
+            className="flex items-center gap-2 px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium shadow-lg shadow-blue-900/20"
           >
             <Save className="w-5 h-5" />
-            Salvar Vínculo
+            Salvar
           </button>
         </div>
       </form>

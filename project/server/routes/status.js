@@ -5,10 +5,11 @@ const router = express.Router();
 
 router.get('/', async (req, res) => {
   try {
+    // CORREÇÃO: Tabela 'status' em minúsculo
     const { data, error } = await supabase
-      .from('Status')
-      .select('StatusID, Descricao')
-      .order('Descricao');
+      .from('status')
+      .select('*')
+      .order('descricao');
 
     if (error) throw error;
     res.json(data);

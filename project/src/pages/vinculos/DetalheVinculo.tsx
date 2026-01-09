@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { api } from '../../lib/api';
 import { supabaseClient } from '../../lib/supabaseClient'; 
-import { ArrowLeft, Edit, Trash2, DollarSign, Calendar, Plus, Save, X, FileSpreadsheet, Paperclip, CheckCircle, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Edit, Trash2, DollarSign, Calendar, Plus, Save, X, FileSpreadsheet, Paperclip, CheckCircle, FileText } from 'lucide-react';
 
 export default function DetalheVinculo() {
   const { id } = useParams();
@@ -10,37 +10,34 @@ export default function DetalheVinculo() {
   const [vinculo, setVinculo] = useState<any>(null);
   const [relatorios, setRelatorios] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [errorMsg, setErrorMsg] = useState('');
+  
+  // Modal
   const [showModal, setShowModal] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
 
-  const [uploading, setUploading] = useState(false);
+  // Upload
+  const [uploadingPlanilha, setUploadingPlanilha] = useState(false);
+  const [uploadingRecibo, setUploadingRecibo] = useState(false);
+
   const [form, setForm] = useState({
     MesReferencia: '',
     EnergiaCompensada: '',
     ValorRecebido: '',
     ValorPago: '',
     Spread: '',
-    ArquivoURL: '' 
+    ArquivoURL: '', // Planilha
+    ReciboURL: ''   // Recibo
   });
 
   const loadData = async () => {
     if (id) {
       try {
-        setErrorMsg('');
         const v = await api.vinculos.get(Number(id));
         setVinculo(v);
-        
         const r = await api.fechamentos.list(Number(id));
-        if (Array.isArray(r)) {
-          setRelatorios(r);
-        } else {
-          // Se não for array, é erro do backend
-          console.error("Resposta inválida:", r);
-          setRelatorios([]);
-        }
-      } catch (error) {
-        console.error("Erro fatal:", error);
-        setErrorMsg('Não foi possível carregar o histórico. Verifique se a tabela "fechamentos" foi criada no Supabase.');
+        setRelatorios(Array.isArray(r) ? r : []);
+      } catch (err) {
+        console.error(err);
       } finally {
         setLoading(false);
       }
@@ -55,48 +52,68 @@ export default function DetalheVinculo() {
     setForm(prev => ({ ...prev, ValorRecebido: recebido, ValorPago: pago, Spread: (r - p).toFixed(2) }));
   };
 
-  const handleFileUpload = async (e: any) => {
+  const handleUpload = async (e: any, type: 'planilha' | 'recibo') => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (type === 'planilha') setUploadingPlanilha(true);
+    else setUploadingRecibo(true);
+
     try {
-      const file = e.target.files[0];
-      if (!file) return;
-
-      setUploading(true);
-      const fileName = `recibo_${id}_${Date.now()}_${file.name}`;
-      
-      const { error } = await supabaseClient.storage
-        .from('comprovantes')
-        .upload(fileName, file);
-
+      const fileName = `${type}_${id}_${Date.now()}_${file.name}`;
+      const { error } = await supabaseClient.storage.from('comprovantes').upload(fileName, file);
       if (error) throw error;
-
-      const { data: publicUrlData } = supabaseClient.storage
-        .from('comprovantes')
-        .getPublicUrl(fileName);
-
-      setForm(prev => ({ ...prev, ArquivoURL: publicUrlData.publicUrl }));
-      alert("Recibo anexado com sucesso!");
+      
+      const { data } = supabaseClient.storage.from('comprovantes').getPublicUrl(fileName);
+      
+      if (type === 'planilha') setForm(prev => ({ ...prev, ArquivoURL: data.publicUrl }));
+      else setForm(prev => ({ ...prev, ReciboURL: data.publicUrl }));
+      
     } catch (error) {
-      console.error(error);
-      alert("Erro ao enviar arquivo. Verifique se o bucket 'comprovantes' existe no Supabase (Storage).");
+      alert('Erro no upload');
     } finally {
-      setUploading(false);
+      setUploadingPlanilha(false);
+      setUploadingRecibo(false);
     }
   };
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await api.fechamentos.create({ VinculoID: Number(id), ...form });
-      setShowModal(false);
-      setForm({ MesReferencia: '', EnergiaCompensada: '', ValorRecebido: '', ValorPago: '', Spread: '', ArquivoURL: '' });
+      if (editingId) {
+        await api.fechamentos.update(editingId, form);
+      } else {
+        await api.fechamentos.create({ VinculoID: Number(id), ...form });
+      }
+      closeModal();
       loadData();
     } catch (error) {
-      alert('Erro ao salvar. Verifique o console do servidor.');
+      alert('Erro ao salvar');
     }
   };
 
+  const handleEditRelatorio = (rel: any) => {
+    setEditingId(rel.fechamentoid || rel.FechamentoID);
+    setForm({
+      MesReferencia: rel.mesreferencia || rel.MesReferencia,
+      EnergiaCompensada: rel.energiacompensada || rel.EnergiaCompensada,
+      ValorRecebido: rel.valorrecebido || rel.ValorRecebido,
+      ValorPago: rel.valorpago || rel.ValorPago,
+      Spread: rel.spread || rel.Spread,
+      ArquivoURL: rel.arquivourl || rel.ArquivoURL || '',
+      ReciboURL: rel.recibourl || rel.ReciboURL || ''
+    });
+    setShowModal(true);
+  };
+
+  const closeModal = () => {
+    setShowModal(false);
+    setEditingId(null);
+    setForm({ MesReferencia: '', EnergiaCompensada: '', ValorRecebido: '', ValorPago: '', Spread: '', ArquivoURL: '', ReciboURL: '' });
+  };
+
   const handleDeleteRelatorio = async (relatorioId: number) => {
-    if (!confirm('Excluir este registro?')) return;
+    if (!confirm('Excluir?')) return;
     await api.fechamentos.delete(relatorioId);
     loadData();
   };
@@ -107,8 +124,8 @@ export default function DetalheVinculo() {
     navigate('/vinculos');
   };
 
-  if (loading) return <div className="p-8 text-center">Carregando...</div>;
-  if (!vinculo) return <div className="p-8 text-center">Não encontrado</div>;
+  if (loading) return <div>Carregando...</div>;
+  if (!vinculo) return <div>Não encontrado</div>;
 
   return (
     <div>
@@ -117,12 +134,8 @@ export default function DetalheVinculo() {
           <ArrowLeft className="w-4 h-4" /> Voltar
         </Link>
         <div className="flex gap-2">
-          <Link to={`/vinculos/${id}/editar`} className="px-3 py-2 bg-gray-100 rounded hover:bg-gray-200">
-            <Edit className="w-4 h-4" />
-          </Link>
-          <button onClick={handleDeleteVinculo} className="px-3 py-2 bg-red-50 text-red-600 rounded hover:bg-red-100">
-            <Trash2 className="w-4 h-4" />
-          </button>
+          <Link to={`/vinculos/${id}/editar`} className="px-3 py-2 bg-gray-100 rounded hover:bg-gray-200"><Edit className="w-4 h-4" /></Link>
+          <button onClick={handleDeleteVinculo} className="px-3 py-2 bg-red-50 text-red-600 rounded hover:bg-red-100"><Trash2 className="w-4 h-4" /></button>
         </div>
       </div>
 
@@ -137,19 +150,12 @@ export default function DetalheVinculo() {
 
       <div className="flex justify-between items-end mb-4">
         <h2 className="text-xl font-bold text-[#0B1E3F] flex items-center gap-2">
-          <DollarSign className="w-6 h-6 text-blue-600" /> Histórico Financeiro
+          <DollarSign className="w-6 h-6 text-blue-600" /> Histórico
         </h2>
         <button onClick={() => setShowModal(true)} className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center gap-2">
           <Plus className="w-4 h-4" /> Novo Lançamento
         </button>
       </div>
-
-      {errorMsg && (
-        <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-lg mb-4 flex items-center gap-2">
-          <AlertCircle className="w-5 h-5" />
-          {errorMsg}
-        </div>
-      )}
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         <table className="min-w-full divide-y divide-gray-200">
@@ -160,12 +166,12 @@ export default function DetalheVinculo() {
               <th className="px-6 py-3 text-left text-xs font-bold text-blue-600 uppercase">Recebido</th>
               <th className="px-6 py-3 text-left text-xs font-bold text-red-600 uppercase">Pago</th>
               <th className="px-6 py-3 text-left text-xs font-bold text-green-600 uppercase">Lucro</th>
-              <th className="px-6 py-3 text-right text-xs font-bold text-gray-500 uppercase">Recibo</th>
+              <th className="px-6 py-3 text-center text-xs font-bold text-gray-500 uppercase">Anexos</th>
               <th className="px-6 py-3"></th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
-            {Array.isArray(relatorios) && relatorios.map((rel) => (
+            {relatorios.map((rel) => (
               <tr key={rel.fechamentoid || rel.FechamentoID} className="hover:bg-gray-50">
                 <td className="px-6 py-4 font-medium">{rel.mesreferencia || rel.MesReferencia}</td>
                 <td className="px-6 py-4">{rel.energiacompensada || rel.EnergiaCompensada} kWh</td>
@@ -173,38 +179,41 @@ export default function DetalheVinculo() {
                 <td className="px-6 py-4 text-red-700">R$ {rel.valorpago || rel.ValorPago}</td>
                 <td className="px-6 py-4 text-green-700 font-bold">R$ {rel.spread || rel.Spread}</td>
                 
-                <td className="px-6 py-4 text-right">
-                  {(rel.arquivourl || rel.ArquivoURL) ? (
-                    <a href={rel.arquivourl || rel.ArquivoURL} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-blue-600 hover:underline text-sm font-medium">
-                      <FileSpreadsheet className="w-4 h-4" /> Baixar Recibo
+                <td className="px-6 py-4 text-center space-x-2">
+                  {(rel.arquivourl || rel.ArquivoURL) && (
+                    <a href={rel.arquivourl || rel.ArquivoURL} target="_blank" className="inline-flex text-blue-600 hover:text-blue-800" title="Planilha">
+                      <FileSpreadsheet className="w-5 h-5" />
                     </a>
-                  ) : (
-                    <span className="text-gray-300">-</span>
+                  )}
+                  {(rel.recibourl || rel.ReciboURL) && (
+                    <a href={rel.recibourl || rel.ReciboURL} target="_blank" className="inline-flex text-green-600 hover:text-green-800" title="Recibo">
+                      <FileText className="w-5 h-5" />
+                    </a>
                   )}
                 </td>
 
-                <td className="px-6 py-4 text-right">
+                <td className="px-6 py-4 text-right flex justify-end gap-2">
+                  <button onClick={() => handleEditRelatorio(rel)} className="text-blue-400 hover:text-blue-600">
+                    <Edit className="w-4 h-4" />
+                  </button>
                   <button onClick={() => handleDeleteRelatorio(rel.fechamentoid || rel.FechamentoID)} className="text-gray-400 hover:text-red-500">
                     <Trash2 className="w-4 h-4" />
                   </button>
                 </td>
               </tr>
             ))}
-            {(!relatorios || relatorios.length === 0) && !errorMsg && (
-                <tr><td colSpan={7} className="p-8 text-center text-gray-500">Nenhum lançamento encontrado. Clique em "Novo Lançamento".</td></tr>
-            )}
           </tbody>
         </table>
       </div>
 
       {showModal && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-6">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-6 max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-xl font-bold flex items-center gap-2 text-[#0B1E3F]">
-                <Calendar className="w-5 h-5 text-blue-600" /> Novo Lançamento
+                {editingId ? 'Editar Lançamento' : 'Novo Lançamento'}
               </h3>
-              <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-gray-600"><X className="w-6 h-6" /></button>
+              <button onClick={closeModal} className="text-gray-400 hover:text-gray-600"><X className="w-6 h-6" /></button>
             </div>
             
             <form onSubmit={handleSave} className="space-y-5">
@@ -234,22 +243,35 @@ export default function DetalheVinculo() {
                 </div>
               </div>
 
+              {/* UPLOAD 1: MEMÓRIA DE CÁLCULO */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Anexar Recibo / Memória de Cálculo</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Memória de Cálculo (Excel/PDF)</label>
                 <div className="flex items-center gap-3">
                   <label className="flex-1 cursor-pointer bg-white border border-gray-300 text-gray-600 rounded-lg px-4 py-2 hover:bg-gray-50 flex items-center justify-center gap-2 transition-colors">
                     <Paperclip className="w-4 h-4" />
-                    <span className="text-sm truncate">{uploading ? 'Enviando...' : (form.ArquivoURL ? 'Recibo Anexado!' : 'Escolher Arquivo (PDF/Img)')}</span>
-                    <input type="file" className="hidden" onChange={handleFileUpload} disabled={uploading} accept=".pdf,.png,.jpg,.jpeg,.xls,.xlsx" />
+                    <span className="text-sm truncate">{uploadingPlanilha ? 'Enviando...' : (form.ArquivoURL ? 'Arquivo Salvo' : 'Escolher Planilha')}</span>
+                    <input type="file" className="hidden" onChange={(e) => handleUpload(e, 'planilha')} disabled={uploadingPlanilha} accept=".pdf,.xls,.xlsx,.csv" />
                   </label>
                   {form.ArquivoURL && <CheckCircle className="w-6 h-6 text-green-500" />}
                 </div>
-                {form.ArquivoURL && <p className="text-xs text-green-600 mt-1">Arquivo pronto para salvar.</p>}
+              </div>
+
+              {/* UPLOAD 2: RECIBO */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Comprovante/Recibo (IMG/PDF)</label>
+                <div className="flex items-center gap-3">
+                  <label className="flex-1 cursor-pointer bg-white border border-gray-300 text-gray-600 rounded-lg px-4 py-2 hover:bg-gray-50 flex items-center justify-center gap-2 transition-colors">
+                    <FileText className="w-4 h-4" />
+                    <span className="text-sm truncate">{uploadingRecibo ? 'Enviando...' : (form.ReciboURL ? 'Arquivo Salvo' : 'Escolher Recibo')}</span>
+                    <input type="file" className="hidden" onChange={(e) => handleUpload(e, 'recibo')} disabled={uploadingRecibo} accept=".pdf,.png,.jpg,.jpeg" />
+                  </label>
+                  {form.ReciboURL && <CheckCircle className="w-6 h-6 text-green-500" />}
+                </div>
               </div>
 
               <div className="flex justify-end gap-3 pt-2">
-                <button type="button" onClick={() => setShowModal(false)} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg">Cancelar</button>
-                <button type="submit" disabled={uploading} className="flex items-center gap-2 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium disabled:opacity-50">
+                <button type="button" onClick={closeModal} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg">Cancelar</button>
+                <button type="submit" className="flex items-center gap-2 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium">
                   <Save className="w-4 h-4" /> Salvar
                 </button>
               </div>

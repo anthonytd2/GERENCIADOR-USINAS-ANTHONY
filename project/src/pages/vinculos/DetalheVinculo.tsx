@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { api } from '../../lib/api';
 import { supabaseClient } from '../../lib/supabaseClient'; 
-import { ArrowLeft, Edit, Trash2, DollarSign, Calendar, Plus, Save, X, FileSpreadsheet, Paperclip, CheckCircle } from 'lucide-react';
+import { ArrowLeft, Edit, Trash2, DollarSign, Calendar, Plus, Save, X, FileSpreadsheet, Paperclip, CheckCircle, AlertCircle } from 'lucide-react';
 
 export default function DetalheVinculo() {
   const { id } = useParams();
@@ -10,9 +10,9 @@ export default function DetalheVinculo() {
   const [vinculo, setVinculo] = useState<any>(null);
   const [relatorios, setRelatorios] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [errorMsg, setErrorMsg] = useState('');
   const [showModal, setShowModal] = useState(false);
 
-  // Estados do Formulário e Upload
   const [uploading, setUploading] = useState(false);
   const [form, setForm] = useState({
     MesReferencia: '',
@@ -26,19 +26,21 @@ export default function DetalheVinculo() {
   const loadData = async () => {
     if (id) {
       try {
+        setErrorMsg('');
         const v = await api.vinculos.get(Number(id));
         setVinculo(v);
         
         const r = await api.fechamentos.list(Number(id));
-        // Proteção: se r for um erro ou undefined, define como array vazio
         if (Array.isArray(r)) {
           setRelatorios(r);
         } else {
-          console.error("Erro ao carregar relatórios:", r);
+          // Se não for array, é erro do backend
+          console.error("Resposta inválida:", r);
           setRelatorios([]);
         }
       } catch (error) {
         console.error("Erro fatal:", error);
+        setErrorMsg('Não foi possível carregar o histórico. Verifique se a tabela "fechamentos" foi criada no Supabase.');
       } finally {
         setLoading(false);
       }
@@ -59,7 +61,7 @@ export default function DetalheVinculo() {
       if (!file) return;
 
       setUploading(true);
-      const fileName = `${id}_${Date.now()}_${file.name}`;
+      const fileName = `recibo_${id}_${Date.now()}_${file.name}`;
       
       const { error } = await supabaseClient.storage
         .from('comprovantes')
@@ -72,10 +74,10 @@ export default function DetalheVinculo() {
         .getPublicUrl(fileName);
 
       setForm(prev => ({ ...prev, ArquivoURL: publicUrlData.publicUrl }));
-      alert("Arquivo anexado com sucesso!");
+      alert("Recibo anexado com sucesso!");
     } catch (error) {
       console.error(error);
-      alert("Erro ao fazer upload do arquivo.");
+      alert("Erro ao enviar arquivo. Verifique se o bucket 'comprovantes' existe no Supabase (Storage).");
     } finally {
       setUploading(false);
     }
@@ -89,7 +91,7 @@ export default function DetalheVinculo() {
       setForm({ MesReferencia: '', EnergiaCompensada: '', ValorRecebido: '', ValorPago: '', Spread: '', ArquivoURL: '' });
       loadData();
     } catch (error) {
-      alert('Erro ao salvar relatório');
+      alert('Erro ao salvar. Verifique o console do servidor.');
     }
   };
 
@@ -125,7 +127,6 @@ export default function DetalheVinculo() {
       </div>
 
       <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 mb-8">
-        {/* CORREÇÃO: Acesso minúsculo e com verificação opcional (?) */}
         <h1 className="text-2xl font-bold text-[#0B1E3F]">
            {vinculo.consumidores?.Nome || vinculo.consumidores?.nome || 'Consumidor'}
         </h1>
@@ -143,6 +144,13 @@ export default function DetalheVinculo() {
         </button>
       </div>
 
+      {errorMsg && (
+        <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-lg mb-4 flex items-center gap-2">
+          <AlertCircle className="w-5 h-5" />
+          {errorMsg}
+        </div>
+      )}
+
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
@@ -152,15 +160,13 @@ export default function DetalheVinculo() {
               <th className="px-6 py-3 text-left text-xs font-bold text-blue-600 uppercase">Recebido</th>
               <th className="px-6 py-3 text-left text-xs font-bold text-red-600 uppercase">Pago</th>
               <th className="px-6 py-3 text-left text-xs font-bold text-green-600 uppercase">Lucro</th>
-              <th className="px-6 py-3 text-right text-xs font-bold text-gray-500 uppercase">Anexo</th>
+              <th className="px-6 py-3 text-right text-xs font-bold text-gray-500 uppercase">Recibo</th>
               <th className="px-6 py-3"></th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
-            {/* CORREÇÃO: Verificação de segurança no relatorios.map */}
             {Array.isArray(relatorios) && relatorios.map((rel) => (
               <tr key={rel.fechamentoid || rel.FechamentoID} className="hover:bg-gray-50">
-                {/* CORREÇÃO: Acessa propriedades em minúsculo (retorno do banco) ou Maiúsculo (caso antigo) */}
                 <td className="px-6 py-4 font-medium">{rel.mesreferencia || rel.MesReferencia}</td>
                 <td className="px-6 py-4">{rel.energiacompensada || rel.EnergiaCompensada} kWh</td>
                 <td className="px-6 py-4 text-blue-700">R$ {rel.valorrecebido || rel.ValorRecebido}</td>
@@ -170,7 +176,7 @@ export default function DetalheVinculo() {
                 <td className="px-6 py-4 text-right">
                   {(rel.arquivourl || rel.ArquivoURL) ? (
                     <a href={rel.arquivourl || rel.ArquivoURL} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-blue-600 hover:underline text-sm font-medium">
-                      <FileSpreadsheet className="w-4 h-4" /> Ver Planilha
+                      <FileSpreadsheet className="w-4 h-4" /> Baixar Recibo
                     </a>
                   ) : (
                     <span className="text-gray-300">-</span>
@@ -184,8 +190,8 @@ export default function DetalheVinculo() {
                 </td>
               </tr>
             ))}
-            {(!relatorios || relatorios.length === 0) && (
-                <tr><td colSpan={7} className="p-4 text-center text-gray-500">Nenhum lançamento encontrado.</td></tr>
+            {(!relatorios || relatorios.length === 0) && !errorMsg && (
+                <tr><td colSpan={7} className="p-8 text-center text-gray-500">Nenhum lançamento encontrado. Clique em "Novo Lançamento".</td></tr>
             )}
           </tbody>
         </table>
@@ -229,16 +235,16 @@ export default function DetalheVinculo() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Anexar Planilha (Memória de Cálculo)</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Anexar Recibo / Memória de Cálculo</label>
                 <div className="flex items-center gap-3">
                   <label className="flex-1 cursor-pointer bg-white border border-gray-300 text-gray-600 rounded-lg px-4 py-2 hover:bg-gray-50 flex items-center justify-center gap-2 transition-colors">
                     <Paperclip className="w-4 h-4" />
-                    <span className="text-sm truncate">{uploading ? 'Enviando...' : (form.ArquivoURL ? 'Arquivo Anexado!' : 'Escolher Arquivo')}</span>
-                    <input type="file" className="hidden" onChange={handleFileUpload} disabled={uploading} accept=".pdf,.xls,.xlsx,.csv" />
+                    <span className="text-sm truncate">{uploading ? 'Enviando...' : (form.ArquivoURL ? 'Recibo Anexado!' : 'Escolher Arquivo (PDF/Img)')}</span>
+                    <input type="file" className="hidden" onChange={handleFileUpload} disabled={uploading} accept=".pdf,.png,.jpg,.jpeg,.xls,.xlsx" />
                   </label>
                   {form.ArquivoURL && <CheckCircle className="w-6 h-6 text-green-500" />}
                 </div>
-                {form.ArquivoURL && <p className="text-xs text-green-600 mt-1">Pronto para salvar.</p>}
+                {form.ArquivoURL && <p className="text-xs text-green-600 mt-1">Arquivo pronto para salvar.</p>}
               </div>
 
               <div className="flex justify-end gap-3 pt-2">

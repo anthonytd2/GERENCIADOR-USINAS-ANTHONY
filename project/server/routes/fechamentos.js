@@ -3,27 +3,35 @@ import { supabase } from '../db.js';
 
 const router = express.Router();
 
-// LISTAR
+// LISTAR HISTÓRICO
 router.get('/:vinculoId', async (req, res) => {
-  // CORREÇÃO: Tabela 'fechamentos' e coluna 'vinculoid' em minúsculo
-  const { data, error } = await supabase
-    .from('fechamentos')
-    .select('*')
-    .eq('vinculoid', req.params.vinculoId)
-    .order('mesreferencia', { ascending: false });
+  try {
+    // Busca na tabela 'fechamentos' (minúsculo)
+    const { data, error } = await supabase
+      .from('fechamentos')
+      .select('*')
+      .eq('vinculoid', req.params.vinculoId)
+      .order('mesreferencia', { ascending: false });
 
-  if (error) return res.status(500).json({ error: error.message });
-  
-  // Garante que retorna um array vazio se não houver dados, evitando erro no map
-  res.json(data || []);
+    if (error) {
+      console.error('Erro Supabase (GET):', error); // Mostra o erro real no terminal
+      return res.status(500).json({ error: error.message });
+    }
+    
+    res.json(data || []);
+  } catch (err) {
+    console.error('Erro Servidor:', err);
+    res.status(500).json({ error: 'Erro interno no servidor' });
+  }
 });
 
-// CRIAR
+// SALVAR NOVO FECHAMENTO (COM RECIBO)
 router.post('/', async (req, res) => {
   try {
     const { VinculoID, MesReferencia, EnergiaCompensada, ValorRecebido, ValorPago, Spread, ArquivoURL } = req.body;
 
-    // CORREÇÃO: Tabela e colunas em minúsculo
+    console.log('Tentando salvar:', req.body);
+
     const { data, error } = await supabase
       .from('fechamentos')
       .insert([{
@@ -38,7 +46,11 @@ router.post('/', async (req, res) => {
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {
+      console.error('Erro Supabase (POST):', error);
+      throw error;
+    }
+
     res.status(201).json(data);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -47,8 +59,11 @@ router.post('/', async (req, res) => {
 
 // EXCLUIR
 router.delete('/:id', async (req, res) => {
-  // CORREÇÃO: 'fechamentos' e 'fechamentoid'
-  const { error } = await supabase.from('fechamentos').delete().eq('fechamentoid', req.params.id);
+  const { error } = await supabase
+    .from('fechamentos')
+    .delete()
+    .eq('fechamentoid', req.params.id);
+    
   if (error) return res.status(500).json({ error: error.message });
   res.status(204).send();
 });

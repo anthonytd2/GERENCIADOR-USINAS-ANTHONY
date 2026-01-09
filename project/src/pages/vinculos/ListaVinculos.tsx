@@ -3,25 +3,29 @@ import { Link } from 'react-router-dom';
 import { api } from '../../lib/api';
 import { Plus, Edit, Trash2 } from 'lucide-react';
 
-// CORREÇÃO: Interface com propriedades em minúsculo (como vêm do banco)
-interface Vinculo {
-  VinculoID: number;
-  ConsumidorID: number;
-  UsinaID: number;
-  StatusID: number;
-  consumidores: { Nome: string };      // minúsculo
-  usinas: { NomeProprietario: string }; // minúsculo
-  status: { Descricao: string };        // minúsculo
-}
-
 export default function ListaVinculos() {
-  const [vinculos, setVinculos] = useState<Vinculo[]>([]);
+  const [vinculos, setVinculos] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   const loadVinculos = () => {
+    setLoading(true);
     api.vinculos.list()
-      .then(setVinculos)
-      .catch(err => console.error("Erro ao carregar:", err)) // Log de erro ajuda no debug
+      .then((data) => {
+        // Proteção: Se vier erro ou não for array, define array vazio
+        if (Array.isArray(data)) {
+          setVinculos(data);
+          setError('');
+        } else {
+          console.error("Dados inválidos recebidos:", data);
+          setVinculos([]);
+          setError('Erro ao carregar dados do servidor.');
+        }
+      })
+      .catch(err => {
+        console.error("Erro na requisição:", err);
+        setError('Falha na conexão com o servidor.');
+      })
       .finally(() => setLoading(false));
   };
 
@@ -35,14 +39,11 @@ export default function ListaVinculos() {
         await api.vinculos.delete(id);
         loadVinculos();
     } catch (error) {
-        console.error("Erro ao deletar:", error);
         alert("Erro ao deletar vínculo");
     }
   };
 
-  if (loading) {
-    return <div className="text-center py-8">Carregando...</div>;
-  }
+  if (loading) return <div className="text-center py-8">Carregando...</div>;
 
   return (
     <div>
@@ -57,8 +58,14 @@ export default function ListaVinculos() {
         </Link>
       </div>
 
+      {error && (
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+          {error}
+        </div>
+      )}
+
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-        {vinculos.length === 0 ? (
+        {vinculos.length === 0 && !error ? (
           <div className="p-8 text-center text-gray-500">
             Nenhum vínculo cadastrado
           </div>
@@ -83,40 +90,39 @@ export default function ListaVinculos() {
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {vinculos.map((vinculo) => (
-                  <tr key={vinculo.VinculoID} className="hover:bg-gray-50 transition-colors">
+                  // Usa 'vinculoid' (minúsculo) ou 'VinculoID' (fallback)
+                  <tr key={vinculo.vinculoid || vinculo.VinculoID} className="hover:bg-gray-50 transition-colors">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm font-medium">
-                        {/* CORREÇÃO: Acesso minúsculo (vinculo.consumidores) */}
                         <Link 
-                          to={`/vinculos/${vinculo.VinculoID}`} 
+                          to={`/vinculos/${vinculo.vinculoid || vinculo.VinculoID}`} 
                           className="text-blue-600 hover:text-blue-900 hover:underline"
                         >
-                          {vinculo.consumidores?.Nome || 'N/A'}
+                          {/* Tenta ler minúsculo (novo) ou maiúsculo (velho) */}
+                          {vinculo.consumidores?.nome || vinculo.Consumidores?.Nome || 'N/A'}
                         </Link>
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-900">
-                        {/* CORREÇÃO: Acesso minúsculo (vinculo.usinas) */}
-                        {vinculo.usinas?.NomeProprietario || 'N/A'}
+                        {vinculo.usinas?.nomeproprietario || vinculo.Usinas?.NomeProprietario || 'N/A'}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
-                        {/* CORREÇÃO: Acesso minúsculo (vinculo.status) */}
-                        {vinculo.status?.Descricao || 'N/A'}
+                        {vinculo.status?.descricao || vinculo.Status?.Descricao || 'N/A'}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex justify-end space-x-2">
                         <Link
-                          to={`/vinculos/${vinculo.VinculoID}/editar`}
+                          to={`/vinculos/${vinculo.vinculoid || vinculo.VinculoID}/editar`}
                           className="inline-flex items-center px-3 py-1 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-colors"
                         >
                           <Edit className="w-4 h-4" />
                         </Link>
                         <button
-                          onClick={() => handleDelete(vinculo.VinculoID)}
+                          onClick={() => handleDelete(vinculo.vinculoid || vinculo.VinculoID)}
                           className="inline-flex items-center px-3 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200 transition-colors"
                         >
                           <Trash2 className="w-4 h-4" />

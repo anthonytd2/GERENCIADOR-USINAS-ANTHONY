@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { api } from '../../lib/api';
-// Importamos o cliente do supabase para fazer o upload
 import { supabaseClient } from '../../lib/supabaseClient'; 
 import { ArrowLeft, Edit, Trash2, DollarSign, Calendar, Plus, Save, X, FileSpreadsheet, Paperclip, CheckCircle } from 'lucide-react';
 
@@ -13,7 +12,6 @@ export default function DetalheVinculo() {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
 
-  // Estados do Formulário e Upload
   const [uploading, setUploading] = useState(false);
   const [form, setForm] = useState({
     MesReferencia: '',
@@ -21,7 +19,7 @@ export default function DetalheVinculo() {
     ValorRecebido: '',
     ValorPago: '',
     Spread: '',
-    ArquivoURL: '' // Link do arquivo
+    ArquivoURL: '' 
   });
 
   const loadData = async () => {
@@ -29,8 +27,11 @@ export default function DetalheVinculo() {
       try {
         const v = await api.vinculos.get(Number(id));
         setVinculo(v);
+        // O erro 500 acontecia aqui, agora deve funcionar
         const r = await api.fechamentos.list(Number(id));
-        setRelatorios(r);
+        setRelatorios(r || []);
+      } catch (error) {
+        console.error("Erro ao carregar dados:", error);
       } finally {
         setLoading(false);
       }
@@ -45,24 +46,20 @@ export default function DetalheVinculo() {
     setForm(prev => ({ ...prev, ValorRecebido: recebido, ValorPago: pago, Spread: (r - p).toFixed(2) }));
   };
 
-  // Lógica de Upload de Arquivo
   const handleFileUpload = async (e: any) => {
     try {
       const file = e.target.files[0];
       if (!file) return;
 
       setUploading(true);
-      
-      // Cria um nome único para o arquivo: "IDVinculo_Data_NomeOriginal"
       const fileName = `${id}_${Date.now()}_${file.name}`;
       
-      const { data, error } = await supabaseClient.storage
-        .from('comprovantes') // Nome do bucket que criamos no Passo 2
+      const { error } = await supabaseClient.storage
+        .from('comprovantes')
         .upload(fileName, file);
 
       if (error) throw error;
 
-      // Pega o link público
       const { data: publicUrlData } = supabaseClient.storage
         .from('comprovantes')
         .getPublicUrl(fileName);
@@ -82,10 +79,10 @@ export default function DetalheVinculo() {
     try {
       await api.fechamentos.create({ VinculoID: Number(id), ...form });
       setShowModal(false);
-      // Limpa o formulário
       setForm({ MesReferencia: '', EnergiaCompensada: '', ValorRecebido: '', ValorPago: '', Spread: '', ArquivoURL: '' });
       loadData();
     } catch (error) {
+      console.error(error);
       alert('Erro ao salvar relatório');
     }
   };
@@ -107,7 +104,6 @@ export default function DetalheVinculo() {
 
   return (
     <div>
-      {/* CABEÇALHO */}
       <div className="mb-6 flex justify-between items-center">
         <Link to="/vinculos" className="flex items-center gap-2 text-gray-500 hover:text-gray-900">
           <ArrowLeft className="w-4 h-4" /> Voltar
@@ -123,11 +119,15 @@ export default function DetalheVinculo() {
       </div>
 
       <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 mb-8">
-        <h1 className="text-2xl font-bold text-[#0B1E3F]">{vinculo.Consumidores.Nome}</h1>
-        <p className="text-gray-500">Usina: {vinculo.Usinas.NomeProprietario}</p>
+        {/* CORREÇÃO: Acesso usando minúsculo (consumidores, usinas) */}
+        <h1 className="text-2xl font-bold text-[#0B1E3F]">
+          {vinculo.consumidores?.Nome || vinculo.consumidores?.nome || 'Consumidor'}
+        </h1>
+        <p className="text-gray-500">
+          Usina: {vinculo.usinas?.NomeProprietario || vinculo.usinas?.nomeproprietario || 'N/A'}
+        </p>
       </div>
 
-      {/* ÁREA DE RELATÓRIOS */}
       <div className="flex justify-between items-end mb-4">
         <h2 className="text-xl font-bold text-[#0B1E3F] flex items-center gap-2">
           <DollarSign className="w-6 h-6 text-blue-600" /> Histórico Financeiro
@@ -152,17 +152,17 @@ export default function DetalheVinculo() {
           </thead>
           <tbody className="divide-y divide-gray-200">
             {relatorios.map((rel) => (
-              <tr key={rel.FechamentoID} className="hover:bg-gray-50">
-                <td className="px-6 py-4 font-medium">{rel.MesReferencia}</td>
-                <td className="px-6 py-4">{rel.EnergiaCompensada} kWh</td>
-                <td className="px-6 py-4 text-blue-700">R$ {rel.ValorRecebido}</td>
-                <td className="px-6 py-4 text-red-700">R$ {rel.ValorPago}</td>
-                <td className="px-6 py-4 text-green-700 font-bold">R$ {rel.Spread}</td>
+              <tr key={rel.fechamentoid || rel.FechamentoID} className="hover:bg-gray-50">
+                {/* CORREÇÃO: Acesso usando chaves minúsculas retornadas pelo banco */}
+                <td className="px-6 py-4 font-medium">{rel.mesreferencia || rel.MesReferencia}</td>
+                <td className="px-6 py-4">{rel.energiacompensada || rel.EnergiaCompensada} kWh</td>
+                <td className="px-6 py-4 text-blue-700">R$ {rel.valorrecebido || rel.ValorRecebido}</td>
+                <td className="px-6 py-4 text-red-700">R$ {rel.valorpago || rel.ValorPago}</td>
+                <td className="px-6 py-4 text-green-700 font-bold">R$ {rel.spread || rel.Spread}</td>
                 
-                {/* COLUNA DO ANEXO */}
                 <td className="px-6 py-4 text-right">
-                  {rel.ArquivoURL ? (
-                    <a href={rel.ArquivoURL} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-blue-600 hover:underline text-sm font-medium">
+                  {(rel.arquivourl || rel.ArquivoURL) ? (
+                    <a href={rel.arquivourl || rel.ArquivoURL} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-blue-600 hover:underline text-sm font-medium">
                       <FileSpreadsheet className="w-4 h-4" /> Ver Planilha
                     </a>
                   ) : (
@@ -171,7 +171,7 @@ export default function DetalheVinculo() {
                 </td>
 
                 <td className="px-6 py-4 text-right">
-                  <button onClick={() => handleDeleteRelatorio(rel.FechamentoID)} className="text-gray-400 hover:text-red-500">
+                  <button onClick={() => handleDeleteRelatorio(rel.fechamentoid || rel.FechamentoID)} className="text-gray-400 hover:text-red-500">
                     <Trash2 className="w-4 h-4" />
                   </button>
                 </td>
@@ -181,7 +181,6 @@ export default function DetalheVinculo() {
         </table>
       </div>
 
-      {/* MODAL */}
       {showModal && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
           <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-6">
@@ -219,7 +218,6 @@ export default function DetalheVinculo() {
                 </div>
               </div>
 
-              {/* CAMPO DE UPLOAD */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Anexar Planilha (Memória de Cálculo)</label>
                 <div className="flex items-center gap-3">

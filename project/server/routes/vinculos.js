@@ -6,16 +6,17 @@ const router = express.Router();
 // LISTAR TODOS
 router.get('/', async (req, res) => {
   try {
+    // CORREÇÃO: Tabela 'vinculos' e relacionamentos em minúsculo (consumidores, usinas, status)
     const { data, error } = await supabase
-      .from('Vinculos')
+      .from('vinculos')
       .select(`
         VinculoID,
         ConsumidorID,
         UsinaID,
         StatusID,
-        Consumidores(Nome),
-        Usinas(NomeProprietario),
-        Status(Descricao)
+        consumidores(Nome),
+        usinas(NomeProprietario),
+        status(Descricao)
       `)
       .order('VinculoID');
 
@@ -29,16 +30,17 @@ router.get('/', async (req, res) => {
 // --- NOVO: BUSCAR UM VÍNCULO (DETALHES) ---
 router.get('/:id', async (req, res) => {
   try {
+    // CORREÇÃO: Tabela e relacionamentos em minúsculo
     const { data, error } = await supabase
-      .from('Vinculos')
+      .from('vinculos')
       .select(`
         VinculoID,
         ConsumidorID,
         UsinaID,
         StatusID,
-        Consumidores(Nome, MediaConsumo), 
-        Usinas(NomeProprietario, GeracaoEstimada), 
-        Status(Descricao)
+        consumidores(Nome, MediaConsumo), 
+        usinas(NomeProprietario, GeracaoEstimada), 
+        status(Descricao)
       `)
       .eq('VinculoID', req.params.id)
       .single();
@@ -54,8 +56,9 @@ router.get('/:id', async (req, res) => {
 // CRIAR
 router.post('/', async (req, res) => {
   try {
+    // CORREÇÃO: 'vinculos'
     const { data, error } = await supabase
-      .from('Vinculos')
+      .from('vinculos')
       .insert([req.body])
       .select()
       .single();
@@ -70,8 +73,9 @@ router.post('/', async (req, res) => {
 // ATUALIZAR
 router.put('/:id', async (req, res) => {
   try {
+    // CORREÇÃO: 'vinculos'
     const { data, error } = await supabase
-      .from('Vinculos')
+      .from('vinculos')
       .update(req.body)
       .eq('VinculoID', req.params.id)
       .select()
@@ -87,8 +91,9 @@ router.put('/:id', async (req, res) => {
 // EXCLUIR
 router.delete('/:id', async (req, res) => {
   try {
+    // CORREÇÃO: 'vinculos'
     const { error } = await supabase
-      .from('Vinculos')
+      .from('vinculos')
       .delete()
       .eq('VinculoID', req.params.id);
 

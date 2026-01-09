@@ -1,163 +1,158 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { api } from '../../lib/api';
-import { ArrowLeft, Save } from 'lucide-react';
+import { ArrowLeft, Save, X } from 'lucide-react';
 
-export default function FormularioVinculo() {
+// DEFINIÇÃO DAS PROPS QUE O FORMULÁRIO ACEITA
+interface FormularioVinculoProps {
+  vinculoParaEditar?: any;
+  onSalvar?: () => void;
+  onCancelar?: () => void;
+}
+
+export default function FormularioVinculo({ vinculoParaEditar, onSalvar, onCancelar }: FormularioVinculoProps = {}) {
   const navigate = useNavigate();
   const { id } = useParams();
-  const isEditing = !!id;
+  
+  // Decide se está editando baseado na URL (id) OU se recebeu dados do pai (vinculoParaEditar)
+  const isEditing = !!id || !!vinculoParaEditar;
+  
+  // Pega o ID correto (da URL ou do objeto passado)
+  const editingId = id ? Number(id) : (vinculoParaEditar?.id || vinculoParaEditar?.VinculoID);
 
   const [formData, setFormData] = useState({
     ConsumidorID: '',
     UsinaID: '',
     StatusID: '',
-    Observacao: '' // Novo campo
+    Observacao: ''
   });
 
-  const [listas, setListas] = useState({
-    consumidores: [],
-    usinas: [],
-    status: []
+  const [listas, setListas] = useState<{consumidores:any[], usinas:any[], status:any[]}>({
+    consumidores: [], usinas: [], status: []
   });
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Carrega as listas para os Dropdowns
-    Promise.all([
-      api.consumidores.list(),
-      api.usinas.list(),
-      api.status.list()
-    ]).then(([consumidores, usinas, status]) => {
-      setListas({ consumidores, usinas, status });
-    });
+    const init = async () => {
+      try {
+        const [c, u, s] = await Promise.all([
+          api.consumidores.list().catch(()=>[]),
+          api.usinas.list().catch(()=>[]),
+          api.status.list().catch(()=>[])
+        ]);
+        setListas({ consumidores:c||[], usinas:u||[], status:s||[] });
 
-    // Se for edição, carrega os dados do vínculo
-    if (isEditing) {
-      api.vinculos.get(Number(id)).then((data) => {
-        setFormData({
-          ConsumidorID: data.ConsumidorID,
-          UsinaID: data.UsinaID,
-          StatusID: data.StatusID,
-          Observacao: data.Observacao || '' // Garante string vazia se nulo
-        });
-      });
-    }
-  }, [id, isEditing]);
+        // SE RECEBEU DADOS DO PAI (Edição na mesma tela)
+        if (vinculoParaEditar) {
+          setFormData({
+            ConsumidorID: vinculoParaEditar.consumidor_id || vinculoParaEditar.ConsumidorID || '',
+            UsinaID: vinculoParaEditar.usina_id || vinculoParaEditar.UsinaID || '',
+            StatusID: vinculoParaEditar.status_id || vinculoParaEditar.StatusID || '',
+            Observacao: vinculoParaEditar.observacao || vinculoParaEditar.Observacao || ''
+          });
+        } 
+        // SE TEM ID NA URL (Edição por rota direta)
+        else if (id) {
+          const v = await api.vinculos.get(Number(id));
+          setFormData({
+            ConsumidorID: v.ConsumidorID || v.consumidorid || '',
+            UsinaID: v.UsinaID || v.usinaid || '',
+            StatusID: v.StatusID || v.statusid || '',
+            Observacao: v.Observacao || v.observacao || ''
+          });
+        }
+      } catch (e) { console.error(e); } finally { setLoading(false); }
+    };
+    init();
+  }, [id, vinculoParaEditar]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const dataToSend = {
+      const payload = {
         ConsumidorID: Number(formData.ConsumidorID),
         UsinaID: Number(formData.UsinaID),
         StatusID: Number(formData.StatusID),
         Observacao: formData.Observacao
       };
 
-      if (isEditing) {
-        await api.vinculos.update(Number(id), dataToSend);
+      if (isEditing && editingId) {
+        await api.vinculos.update(editingId, payload);
       } else {
-        await api.vinculos.create(dataToSend);
+        await api.vinculos.create(payload);
       }
-      navigate('/vinculos');
-    } catch (error) {
-      console.error('Erro ao salvar:', error);
-      alert('Erro ao salvar vínculo');
-    }
+
+      // Se foi chamado pelo componente pai, avisa que salvou
+      if (onSalvar) {
+        onSalvar();
+      } else {
+        // Se foi por rota, navega de volta
+        navigate('/vinculos');
+      }
+    } catch (e) { alert('Erro ao salvar'); }
   };
+
+  if(loading) return <div className="p-8">Carregando...</div>;
 
   return (
     <div>
-      {/* CABEÇALHO */}
       <div className="mb-8 flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Link to="/vinculos" className="p-2 hover:bg-gray-100 rounded-full transition-colors">
-            <ArrowLeft className="w-6 h-6 text-gray-600" />
-          </Link>
-          <h2 className="text-3xl font-bold text-gray-900">
-            {isEditing ? 'Editar Vínculo' : 'Novo Vínculo'}
-          </h2>
+          {/* Só mostra seta de voltar se NÃO estiver no modo modal/interno */}
+          {!onCancelar && (
+            <Link to="/vinculos"><ArrowLeft className="w-6 h-6 text-gray-600"/></Link>
+          )}
+          <h2 className="text-3xl font-bold">{isEditing ? 'Editar' : 'Novo'} Vínculo</h2>
         </div>
+        
+        {/* Botão de Fechar caso esteja no modo interno */}
+        {onCancelar && (
+          <button onClick={onCancelar} className="p-2 hover:bg-gray-100 rounded-full">
+            <X className="w-6 h-6 text-gray-500"/>
+          </button>
+        )}
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-8">
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 max-w-3xl">
-          <div className="grid grid-cols-1 gap-8">
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Consumidor *</label>
-              <select
-                required
-                value={formData.ConsumidorID}
-                onChange={e => setFormData({ ...formData, ConsumidorID: e.target.value })}
-                className="w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500 p-2.5"
-              >
-                <option value="">Selecione um consumidor</option>
-                {listas.consumidores.map((c: any) => (
-                  <option key={c.ConsumidorID} value={c.ConsumidorID}>
-                    {c.Nome}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Usina *</label>
-              <select
-                required
-                value={formData.UsinaID}
-                onChange={e => setFormData({ ...formData, UsinaID: e.target.value })}
-                className="w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500 p-2.5"
-              >
-                <option value="">Selecione uma usina</option>
-                {listas.usinas.map((u: any) => (
-                  <option key={u.UsinaID} value={u.UsinaID}>
-                    {u.NomeProprietario} ({u.Tipo})
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Status *</label>
-              <select
-                required
-                value={formData.StatusID}
-                onChange={e => setFormData({ ...formData, StatusID: e.target.value })}
-                className="w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500 p-2.5"
-              >
-                <option value="">Selecione um status</option>
-                {listas.status.map((s: any) => (
-                  <option key={s.StatusID} value={s.StatusID}>
-                    {s.Descricao}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* CAMPO DE OBSERVAÇÃO */}
-            <div className="border-t border-gray-100 pt-6">
-              <label className="block text-sm font-medium text-gray-700 mb-2">Observações do Contrato</label>
-              <textarea
-                rows={4}
-                value={formData.Observacao}
-                onChange={e => setFormData({ ...formData, Observacao: e.target.value })}
-                className="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                placeholder="Ex: Condições especiais de negociação, avisos importantes..."
-              />
-            </div>
-          </div>
+      <form onSubmit={handleSubmit} className="bg-white p-6 rounded-xl shadow border space-y-6 max-w-3xl">
+        <div>
+          <label className="block text-sm font-medium mb-2">Consumidor</label>
+          <select required className="w-full border rounded p-2" value={formData.ConsumidorID} onChange={e=>setFormData({...formData,ConsumidorID:e.target.value})}>
+            <option value="">Selecione...</option>
+            {listas.consumidores.map((c:any)=><option key={c.ConsumidorID||c.id} value={c.ConsumidorID||c.id}>{c.Nome||c.nome}</option>)}
+          </select>
         </div>
 
-        {/* BOTÃO DE SALVAR */}
-        <div className="flex justify-start pt-2 max-w-3xl">
-          <button
-            type="submit"
-            className="flex items-center gap-2 px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium shadow-lg shadow-blue-900/20 transition-all hover:-translate-y-1"
-          >
-            <Save className="w-5 h-5" />
-            Salvar Vínculo
+        <div>
+          <label className="block text-sm font-medium mb-2">Usina</label>
+          <select required className="w-full border rounded p-2" value={formData.UsinaID} onChange={e=>setFormData({...formData,UsinaID:e.target.value})}>
+            <option value="">Selecione...</option>
+            {listas.usinas.map((u:any)=><option key={u.UsinaID||u.id} value={u.UsinaID||u.id}>{u.NomeProprietario||u.nomeproprietario||u.nome}</option>)}
+          </select>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium mb-2">Status</label>
+          <select required className="w-full border rounded p-2" value={formData.StatusID} onChange={e=>setFormData({...formData,StatusID:e.target.value})}>
+            <option value="">Selecione...</option>
+            {listas.status.map((s:any)=><option key={s.StatusID||s.id} value={s.StatusID||s.id}>{s.Descricao||s.descricao}</option>)}
+          </select>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium mb-2">Observações</label>
+          <textarea rows={4} className="w-full border rounded p-2" value={formData.Observacao} onChange={e=>setFormData({...formData,Observacao:e.target.value})}/>
+        </div>
+
+        <div className="flex gap-4">
+          <button type="submit" className="px-8 py-3 bg-blue-600 text-white rounded font-medium flex items-center gap-2">
+            <Save className="w-5 h-5"/> Salvar
           </button>
+          
+          {onCancelar && (
+            <button type="button" onClick={onCancelar} className="px-8 py-3 bg-gray-100 text-gray-700 rounded font-medium hover:bg-gray-200">
+              Cancelar
+            </button>
+          )}
         </div>
       </form>
     </div>

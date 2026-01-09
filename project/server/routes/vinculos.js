@@ -6,7 +6,7 @@ const router = express.Router();
 // LISTAR TODOS
 router.get('/', async (req, res) => {
   try {
-    // CORREÇÃO: Usando nomes em minúsculo para tabelas e relacionamentos
+    // CORREÇÃO: Usando 'vinculos', 'consumidores', 'usinas', 'status' (minúsculo)
     const { data, error } = await supabase
       .from('vinculos')
       .select(`
@@ -24,10 +24,9 @@ router.get('/', async (req, res) => {
   }
 });
 
-// BUSCAR UM
+// BUSCAR UM (DETALHES)
 router.get('/:id', async (req, res) => {
   try {
-    // CORREÇÃO: Relacionamentos em minúsculo
     const { data, error } = await supabase
       .from('vinculos')
       .select(`

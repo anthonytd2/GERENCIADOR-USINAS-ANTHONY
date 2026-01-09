@@ -6,7 +6,7 @@ const router = express.Router();
 // LISTAR TODOS
 router.get('/', async (req, res) => {
   try {
-    // CORREÇÃO: Tudo em minúsculo para bater com o Postgres
+    // CORREÇÃO: Tabelas e colunas em minúsculo (padrão do banco)
     const { data, error } = await supabase
       .from('vinculos')
       .select(`
@@ -15,7 +15,7 @@ router.get('/', async (req, res) => {
         usinas (nomeproprietario),
         status (descricao)
       `)
-      .order('vinculoid'); // Ordena pelo ID
+      .order('vinculoid'); // Ordena pelo ID correto
 
     if (error) throw error;
     res.json(data);
@@ -27,6 +27,7 @@ router.get('/', async (req, res) => {
 // BUSCAR UM (DETALHES)
 router.get('/:id', async (req, res) => {
   try {
+    // CORREÇÃO: Busca por ID minúsculo e relacionamentos minúsculos
     const { data, error } = await supabase
       .from('vinculos')
       .select(`
@@ -35,7 +36,7 @@ router.get('/:id', async (req, res) => {
         usinas (nomeproprietario, geracaoestimada),
         status (descricao)
       `)
-      .eq('vinculoid', req.params.id) // ID em minúsculo
+      .eq('vinculoid', req.params.id)
       .single();
 
     if (error) throw error;
@@ -49,8 +50,8 @@ router.get('/:id', async (req, res) => {
 // CRIAR
 router.post('/', async (req, res) => {
   try {
-    // Supabase ignora maiúsculas/minúsculas no insert se o objeto bater com as colunas, 
-    // mas é ideal enviar minúsculo ou deixar o JS converter.
+    // O Supabase geralmente aceita o body se as chaves baterem, 
+    // mas idealmente o frontend já deve mandar minúsculo ou o banco aceita.
     const { data, error } = await supabase.from('vinculos').insert([req.body]).select().single();
     if (error) throw error;
     res.status(201).json(data);
@@ -66,7 +67,7 @@ router.put('/:id', async (req, res) => {
       .eq('vinculoid', req.params.id)
       .select()
       .single();
-      
+
     if (error) throw error;
     res.json(data);
   } catch (error) { res.status(500).json({ error: error.message }); }
@@ -79,7 +80,7 @@ router.delete('/:id', async (req, res) => {
       .from('vinculos')
       .delete()
       .eq('vinculoid', req.params.id);
-      
+
     if (error) throw error;
     res.status(204).send();
   } catch (error) { res.status(500).json({ error: error.message }); }

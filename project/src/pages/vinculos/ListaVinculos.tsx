@@ -12,19 +12,19 @@ export default function ListaVinculos() {
     setLoading(true);
     api.vinculos.list()
       .then((data) => {
-        // Verifica se é uma lista válida antes de salvar
+        // Verifica se recebeu uma lista válida antes de usar
         if (Array.isArray(data)) {
           setVinculos(data);
           setError('');
         } else {
           console.error("Dados inválidos:", data);
-          setVinculos([]); 
-          // Se o backend retornar erro, evitamos o crash do .map
+          setVinculos([]);
+          setError('Erro ao carregar dados. Verifique o servidor.');
         }
       })
       .catch(err => {
         console.error(err);
-        setError('Erro ao carregar vínculos.');
+        setError('Erro de conexão com a API.');
       })
       .finally(() => setLoading(false));
   };
@@ -61,7 +61,7 @@ export default function ListaVinculos() {
       {error && <div className="p-4 mb-4 text-red-700 bg-red-100 rounded">{error}</div>}
 
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-        {vinculos.length === 0 ? (
+        {vinculos.length === 0 && !error ? (
           <div className="p-8 text-center text-gray-500">
             Nenhum vínculo cadastrado
           </div>
@@ -70,16 +70,26 @@ export default function ListaVinculos() {
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Consumidor</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Usina</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Ações</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Consumidor
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Usina
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Status
+                  </th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Ações
+                  </th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {vinculos.map((vinculo) => {
-                  // Fallback: Tenta ler minúsculo (novo padrão) ou Maiúsculo (antigo)
+                  // Fallback para ler ID (tenta minúsculo, depois Maiúsculo)
                   const id = vinculo.vinculoid || vinculo.VinculoID;
+                  
+                  // Acessa as propriedades aninhadas em minúsculo (retorno do Supabase)
                   const nomeConsumidor = vinculo.consumidores?.nome || vinculo.Consumidores?.Nome || 'N/A';
                   const nomeUsina = vinculo.usinas?.nomeproprietario || vinculo.Usinas?.NomeProprietario || 'N/A';
                   const statusDesc = vinculo.status?.descricao || vinculo.Status?.Descricao || 'N/A';
@@ -94,7 +104,9 @@ export default function ListaVinculos() {
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">{nomeUsina}</div>
+                        <div className="text-sm text-gray-900">
+                          {nomeUsina}
+                        </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
@@ -103,10 +115,16 @@ export default function ListaVinculos() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                         <div className="flex justify-end space-x-2">
-                          <Link to={`/vinculos/${id}/editar`} className="inline-flex items-center px-3 py-1 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-colors">
+                          <Link
+                            to={`/vinculos/${id}/editar`}
+                            className="inline-flex items-center px-3 py-1 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-colors"
+                          >
                             <Edit className="w-4 h-4" />
                           </Link>
-                          <button onClick={() => handleDelete(id)} className="inline-flex items-center px-3 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200 transition-colors">
+                          <button
+                            onClick={() => handleDelete(id)}
+                            className="inline-flex items-center px-3 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200 transition-colors"
+                          >
                             <Trash2 className="w-4 h-4" />
                           </button>
                         </div>

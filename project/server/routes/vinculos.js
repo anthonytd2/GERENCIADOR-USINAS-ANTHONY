@@ -13,9 +13,9 @@ router.get('/', async (req, res) => {
         ConsumidorID,
         UsinaID,
         StatusID,
-        consumidores(Nome),
-        usinas(NomeProprietario),
-        status(Descricao)
+        consumidores (Nome),
+        usinas (NomeProprietario),
+        status (Descricao)
       `)
       .order('VinculoID');
 
@@ -26,10 +26,10 @@ router.get('/', async (req, res) => {
   }
 });
 
-// BUSCAR UM (DETALHES) - CORRIGIDO
+// BUSCAR UM (DETALHES + EDIÇÃO)
 router.get('/:id', async (req, res) => {
   try {
-    // ADICIONEI 'observacao' NA LISTA ABAIXO
+    // CORREÇÃO: Adicionado 'observacao' e garantido o JOIN correto
     const { data, error } = await supabase
       .from('vinculos')
       .select(`
@@ -37,10 +37,10 @@ router.get('/:id', async (req, res) => {
         ConsumidorID,
         UsinaID,
         StatusID,
-        observacao, 
-        consumidores(Nome, MediaConsumo), 
-        usinas(NomeProprietario, GeracaoEstimada), 
-        status(Descricao)
+        observacao,
+        consumidores (Nome, MediaConsumo),
+        usinas (NomeProprietario, GeracaoEstimada),
+        status (Descricao)
       `)
       .eq('VinculoID', req.params.id)
       .single();
@@ -53,7 +53,7 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// ROTAS DE CRIAR/EDITAR/EXCLUIR (Mantenha igual ou use o padrão abaixo)
+// CRIAR
 router.post('/', async (req, res) => {
   try {
     const { data, error } = await supabase.from('vinculos').insert([req.body]).select().single();
@@ -62,6 +62,7 @@ router.post('/', async (req, res) => {
   } catch (error) { res.status(500).json({ error: error.message }); }
 });
 
+// ATUALIZAR
 router.put('/:id', async (req, res) => {
   try {
     const { data, error } = await supabase.from('vinculos').update(req.body).eq('VinculoID', req.params.id).select().single();
@@ -70,6 +71,7 @@ router.put('/:id', async (req, res) => {
   } catch (error) { res.status(500).json({ error: error.message }); }
 });
 
+// EXCLUIR
 router.delete('/:id', async (req, res) => {
   try {
     const { error } = await supabase.from('vinculos').delete().eq('VinculoID', req.params.id);

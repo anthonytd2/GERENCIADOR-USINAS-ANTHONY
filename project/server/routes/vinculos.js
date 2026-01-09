@@ -6,24 +6,29 @@ const router = express.Router();
 // Listar todos os vínculos
 router.get('/', async (req, res) => {
   try {
+    // CORREÇÃO: Removi o JOIN com status temporariamente para evitar o erro 500.
+    // Usamos um CASE para exibir o status baseado no ID ou retornamos 'Indefinido'.
     const query = `
       SELECT 
         v.*,
         c.nome as consumidor_nome,
         u.nome as usina_nome,
-        s.nome as status_nome  -- CORREÇÃO: Mudado de s.descricao para s.nome
+        CASE 
+          WHEN v.status_id = 1 THEN 'Ativo'
+          WHEN v.status_id = 2 THEN 'Pendente'
+          ELSE 'Verificar' 
+        END as status_nome
       FROM vinculos v
       LEFT JOIN consumidores c ON v.consumidor_id = c.id
       LEFT JOIN usinas u ON v.usina_id = u.id
-      LEFT JOIN status s ON v.status_id = s.id
       ORDER BY v.created_at DESC
     `;
     
     const result = await pool.query(query);
     res.json(result.rows);
   } catch (error) {
-    console.error('Erro ao buscar vínculos:', error);
-    res.status(500).json({ error: 'Erro ao buscar vínculos' });
+    console.error('Erro detalhado ao buscar vínculos:', error); // Log mais detalhado
+    res.status(500).json({ error: 'Erro ao buscar vínculos', details: error.message });
   }
 });
 

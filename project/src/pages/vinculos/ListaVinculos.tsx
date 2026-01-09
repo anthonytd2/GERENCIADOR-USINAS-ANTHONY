@@ -26,19 +26,26 @@ const ListaVinculos = () => {
     try {
       setLoading(true);
       setError('');
-      const response = await api.get('/vinculos');
       
-      // Proteção: Garante que é um array antes de setar
-      if (Array.isArray(response.data)) {
-        setVinculos(response.data);
+      // CORREÇÃO: Usando a função correta definida em api.ts
+      const dados = await api.vinculos.list();
+      
+      console.log('Dados recebidos:', dados); // Para debug
+
+      // O seu api.ts já retorna o JSON direto (o array), não um objeto { data: ... }
+      if (Array.isArray(dados)) {
+        setVinculos(dados);
+      } else if (dados && Array.isArray(dados.data)) {
+        // Fallback caso a API mude
+        setVinculos(dados.data);
       } else {
-        console.error("Formato inválido recebido:", response.data);
+        console.error("Formato inválido recebido:", dados);
         setVinculos([]);
         setError('Erro: Dados recebidos em formato inválido.');
       }
     } catch (error) {
       console.error('Erro ao carregar vínculos:', error);
-      setError('Não foi possível carregar os vínculos. Verifique a conexão com o servidor.');
+      setError('Não foi possível carregar os vínculos. Verifique se o servidor backend está rodando.');
       setVinculos([]);
     } finally {
       setLoading(false);
@@ -52,7 +59,7 @@ const ListaVinculos = () => {
   const handleExcluir = async (id: number) => {
     if (window.confirm('Tem certeza que deseja excluir este vínculo?')) {
       try {
-        await api.delete(`/vinculos/${id}`);
+        await api.vinculos.delete(id);
         carregarVinculos();
       } catch (error) {
         console.error('Erro ao excluir:', error);

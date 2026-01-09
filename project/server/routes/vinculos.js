@@ -1,89 +1,86 @@
 import express from 'express';
-import { supabase } from '../db.js';
+import { pool } from '../db.js';
 
 const router = express.Router();
 
-// LISTAR TODOS
+// Listar todos os vínculos
 router.get('/', async (req, res) => {
   try {
-    // CORREÇÃO: Tabelas e colunas em minúsculo (padrão do banco)
-    const { data, error } = await supabase
-      .from('vinculos')
-      .select(`
-        *,
-        consumidores (nome),
-        usinas (nomeproprietario),
-        status (descricao)
-      `)
-      .order('vinculoid'); // Ordena pelo ID correto
-
-    if (error) throw error;
-    res.json(data);
+    const query = `
+      SELECT 
+        v.*,
+        c.nome as consumidor_nome,
+        u.nome as usina_nome,
+        s.nome as status_nome  -- CORREÇÃO: Mudado de s.descricao para s.nome
+      FROM vinculos v
+      LEFT JOIN consumidores c ON v.consumidor_id = c.id
+      LEFT JOIN usinas u ON v.usina_id = u.id
+      LEFT JOIN status s ON v.status_id = s.id
+      ORDER BY v.created_at DESC
+    `;
+    
+    const result = await pool.query(query);
+    res.json(result.rows);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('Erro ao buscar vínculos:', error);
+    res.status(500).json({ error: 'Erro ao buscar vínculos' });
   }
 });
 
-// BUSCAR UM (DETALHES)
-router.get('/:id', async (req, res) => {
-  try {
-    // CORREÇÃO: Busca por ID minúsculo e relacionamentos minúsculos
-    const { data, error } = await supabase
-      .from('vinculos')
-      .select(`
-        *,
-        consumidores (nome, mediaconsumo),
-        usinas (nomeproprietario, geracaoestimada),
-        status (descricao)
-      `)
-      .eq('vinculoid', req.params.id)
-      .single();
-
-    if (error) throw error;
-    if (!data) return res.status(404).json({ error: 'Vínculo não encontrado' });
-    res.json(data);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// CRIAR
+// Criar novo vínculo
 router.post('/', async (req, res) => {
+  const { consumidor_id, usina_id, percentual, status_id, data_inicio } = req.body;
+  
   try {
-    // O Supabase geralmente aceita o body se as chaves baterem, 
-    // mas idealmente o frontend já deve mandar minúsculo ou o banco aceita.
-    const { data, error } = await supabase.from('vinculos').insert([req.body]).select().single();
-    if (error) throw error;
-    res.status(201).json(data);
-  } catch (error) { res.status(500).json({ error: error.message }); }
+    const result = await pool.query(
+      `INSERT INTO vinculos (consumidor_id, usina_id, percentual, status_id, data_inicio)
+       VALUES ($1, $2, $3, $4, $5)
+       RETURNING *`,
+      [consumidor_id, usina_id, percentual, status_id, data_inicio]
+    );
+    res.status(201).json(result.rows[0]);
+  } catch (error) {
+    console.error('Erro ao criar vínculo:', error);
+    res.status(500).json({ error: 'Erro ao criar vínculo' });
+  }
 });
 
-// ATUALIZAR
+// Atualizar vínculo
 router.put('/:id', async (req, res) => {
+  const { id } = req.params;
+  const { percentual, status_id, data_inicio, data_fim } = req.body;
+  
   try {
-    const { data, error } = await supabase
-      .from('vinculos')
-      .update(req.body)
-      .eq('vinculoid', req.params.id)
-      .select()
-      .single();
-
-    if (error) throw error;
-    res.json(data);
-  } catch (error) { res.status(500).json({ error: error.message }); }
+    const result = await pool.query(
+      `UPDATE vinculos 
+       SET percentual = $1, status_id = $2, data_inicio = $3, data_fim = $4, updated_at = CURRENT_TIMESTAMP
+       WHERE id = $5
+       RETURNING *`,
+      [percentual, status_id, data_inicio, data_fim, id]
+    );
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Vínculo não encontrado' });
+    }
+    
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Erro ao atualizar vínculo:', error);
+    res.status(500).json({ error: 'Erro ao atualizar vínculo' });
+  }
 });
 
-// EXCLUIR
+// Excluir vínculo
 router.delete('/:id', async (req, res) => {
+  const { id } = req.params;
+  
   try {
-    const { error } = await supabase
-      .from('vinculos')
-      .delete()
-      .eq('vinculoid', req.params.id);
-
-    if (error) throw error;
-    res.status(204).send();
-  } catch (error) { res.status(500).json({ error: error.message }); }
+    await pool.query('DELETE FROM vinculos WHERE id = $1', [id]);
+    res.json({ message: 'Vínculo excluído com sucesso' });
+  } catch (error) {
+    console.error('Erro ao excluir vínculo:', error);
+    res.status(500).json({ error: 'Erro ao excluir vínculo' });
+  }
 });
 
 export default router;

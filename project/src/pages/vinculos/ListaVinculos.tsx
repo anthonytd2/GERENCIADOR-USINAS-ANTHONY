@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Search, Edit2, Trash2, Link as LinkIcon, AlertCircle, Eye, FileText } from 'lucide-react';
+import { Plus, Search, Edit2, Trash2, Link as LinkIcon, AlertCircle } from 'lucide-react';
+import { Link } from 'react-router-dom'; // Importante para o link funcionar
 import { api } from '../../lib/api';
 import FormularioVinculo from './FormularioVinculo';
-import { useNavigate } from 'react-router-dom';
 
 interface Vinculo {
   id: number;
@@ -22,15 +22,14 @@ const ListaVinculos = () => {
   const [showForm, setShowForm] = useState(false);
   const [vinculoEmEdicao, setVinculoEmEdicao] = useState<Vinculo | null>(null);
   const [error, setError] = useState('');
-  const navigate = useNavigate(); // Hook para navegação
 
   const carregarVinculos = async () => {
     try {
       setLoading(true);
       setError('');
-      
       const dados = await api.vinculos.list();
       
+      // Garante que é array
       if (Array.isArray(dados)) {
         setVinculos(dados);
       } else if (dados && Array.isArray(dados.data)) {
@@ -39,7 +38,7 @@ const ListaVinculos = () => {
         setVinculos([]);
       }
     } catch (error) {
-      console.error('Erro ao carregar vínculos:', error);
+      console.error('Erro ao carregar:', error);
       setError('Não foi possível carregar os vínculos.');
       setVinculos([]);
     } finally {
@@ -119,7 +118,7 @@ const ListaVinculos = () => {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Usina</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Percentual</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ações</th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Ações</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
@@ -137,8 +136,14 @@ const ListaVinculos = () => {
               ) : (
                 vinculos.map((vinculo) => (
                   <tr key={vinculo.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {vinculo.consumidor_nome}
+                    {/* AQUI ESTÁ A MUDANÇA: Link azul no nome, igual a Consumidores */}
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                      <Link 
+                        to={`/vinculos/${vinculo.id}`} 
+                        className="text-blue-600 hover:text-blue-800 hover:underline"
+                      >
+                        {vinculo.consumidor_nome}
+                      </Link>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {vinculo.usina_nome}
@@ -156,32 +161,19 @@ const ListaVinculos = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex justify-end gap-2">
-                        {/* BOTÃO VER DETALHES (RECIBOS/CÁLCULOS) */}
-                        <button 
-                          onClick={() => navigate(`/vinculos/${vinculo.id}`)}
-                          className="text-indigo-600 hover:text-indigo-900"
-                          title="Ver Detalhes e Cálculos"
-                        >
-                          <FileText size={18} />
-                        </button>
-
-                        {/* BOTÃO EDITAR */}
+                        {/* Botões de Ação (Editar/Excluir) */}
                         <button
                           onClick={() => {
                             setVinculoEmEdicao(vinculo);
                             setShowForm(true);
                           }}
                           className="text-blue-600 hover:text-blue-900"
-                          title="Editar"
                         >
                           <Edit2 size={18} />
                         </button>
-
-                        {/* BOTÃO EXCLUIR */}
                         <button 
                           onClick={() => handleExcluir(vinculo.id)}
                           className="text-red-600 hover:text-red-900"
-                          title="Excluir"
                         >
                           <Trash2 size={18} />
                         </button>

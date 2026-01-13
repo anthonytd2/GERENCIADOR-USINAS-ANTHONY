@@ -13,12 +13,13 @@ router.get('/', async (req, res) => {
 
     if (errorVinculos) throw errorVinculos;
 
-    // Busca dados auxiliares para montar a lista
+    // Busca dados auxiliares
     const { data: consumidores } = await supabase.from('consumidores').select('*');
     const { data: usinas } = await supabase.from('usinas').select('*');
     const { data: statusList } = await supabase.from('status').select('*');
 
     const vinculosFormatados = vinculos.map(v => {
+      // Cruzamento manual de dados para evitar erros de Foreign Key
       const cons = consumidores?.find(c => (c.ConsumidorID || c.consumidorid) === (v.ConsumidorID || v.consumidorid));
       const usina = usinas?.find(u => (u.UsinaID || u.usinaid) === (v.UsinaID || v.usinaid));
       const stat = statusList?.find(s => (s.StatusID || s.statusid) === (v.StatusID || v.statusid));
@@ -50,44 +51,34 @@ router.get('/', async (req, res) => {
   }
 });
 
-// --- NOVO: BUSCAR UM VÍNCULO ESPECÍFICO (DETALHES) ---
+// --- ROTA DE DETALHES (ESSENCIAL PARA O CLIQUE FUNCIONAR) ---
 router.get('/:id', async (req, res) => {
   try {
     const id = req.params.id;
 
-    // 1. Busca o vínculo específico
-    const { data: vinculo, error } = await supabase
+    // Busca o vínculo
+    let { data: vinculo, error } = await supabase
       .from('vinculos')
       .select('*')
-      .eq('VinculoID', id) // Tenta Maiúsculo
+      .eq('VinculoID', id)
       .single();
 
-    // Se falhar, tenta minúsculo
-    let dadosVinculo = vinculo;
+    // Tenta minúsculo se falhar (fallback de segurança)
     if (error || !vinculo) {
        const retry = await supabase.from('vinculos').select('*').eq('vinculoid', id).single();
-       dadosVinculo = retry.data;
+       vinculo = retry.data;
     }
 
-    if (!dadosVinculo) return res.status(404).json({ error: 'Vínculo não encontrado' });
+    if (!vinculo) return res.status(404).json({ error: 'Vínculo não encontrado' });
 
-    // 2. Busca os detalhes relacionados (Consumidor, Usina, Status)
-    const { data: consumidor } = await supabase.from('consumidores').select('*').eq('ConsumidorID', dadosVinculo.ConsumidorID || dadosVinculo.consumidorid).single();
-    const { data: usina } = await supabase.from('usinas').select('*').eq('UsinaID', dadosVinculo.UsinaID || dadosVinculo.usinaid).single();
-    const { data: status } = await supabase.from('status').select('*').eq('StatusID', dadosVinculo.StatusID || dadosVinculo.statusid).single();
+    // Busca dados complementares para mostrar na tela de detalhes
+    const { data: consumidor } = await supabase.from('consumidores').select('*').eq('ConsumidorID', vinculo.ConsumidorID || vinculo.consumidorid).single();
+    const { data: usina } = await supabase.from('usinas').select('*').eq('UsinaID', vinculo.UsinaID || vinculo.usinaid).single();
+    const { data: status } = await supabase.from('status').select('*').eq('StatusID', vinculo.StatusID || vinculo.statusid).single();
 
-    // 3. Monta o objeto completo para a tela de detalhes
     const resultado = {
-      ...dadosVinculo,
-      // Normaliza os IDs e nomes para o frontend
-      id: dadosVinculo.VinculoID || dadosVinculo.vinculoid,
-      ConsumidorID: dadosVinculo.ConsumidorID || dadosVinculo.consumidorid,
-      UsinaID: dadosVinculo.UsinaID || dadosVinculo.usinaid,
-      StatusID: dadosVinculo.StatusID || dadosVinculo.statusid,
-      Percentual: dadosVinculo.Percentual || dadosVinculo.percentual,
-      Observacao: dadosVinculo.Observacao || dadosVinculo.observacao,
-      
-      // Inclui os objetos completos para exibir nomes e detalhes
+      ...vinculo,
+      id: vinculo.VinculoID || vinculo.vinculoid,
       consumidor: consumidor || {},
       usina: usina || {},
       status: status || {}
@@ -95,7 +86,6 @@ router.get('/:id', async (req, res) => {
 
     res.json(resultado);
   } catch (error) {
-    console.error('Erro ao buscar detalhe:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -104,13 +94,9 @@ router.get('/:id', async (req, res) => {
 router.post('/', async (req, res) => {
   try {
     const { ConsumidorID, UsinaID, Percentual, StatusID, Observacao } = req.body;
-    
     const { data, error } = await supabase
       .from('vinculos')
-      .insert([{ 
-          ConsumidorID, UsinaID, Percentual, StatusID, Observacao,
-          DataInicio: new Date()
-      }])
+      .insert([{ ConsumidorID, UsinaID, Percentual, StatusID, Observacao, DataInicio: new Date() }])
       .select().single();
 
     if (error) throw error;
@@ -140,11 +126,7 @@ router.put('/:id', async (req, res) => {
 // --- EXCLUIR ---
 router.delete('/:id', async (req, res) => {
   try {
-    const { error } = await supabase
-      .from('vinculos')
-      .delete()
-      .eq('VinculoID', req.params.id);
-
+    const { error } = await supabase.from('vinculos').delete().eq('VinculoID', req.params.id);
     if (error) await supabase.from('vinculos').delete().eq('vinculoid', req.params.id);
     res.json({ message: 'Sucesso' });
   } catch (error) {

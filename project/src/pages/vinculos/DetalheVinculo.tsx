@@ -1,9 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { api } from '../../lib/api';
-// Importamos 'supabaseClient' com alias 'supabase'
 import { supabaseClient as supabase } from '../../lib/supabaseClient'; 
-import { ArrowLeft, FileText, Upload, Trash2, DollarSign, Download, Edit2, Save, X, Calendar, Zap, TrendingUp } from 'lucide-react';
+import { ArrowLeft, FileText, Upload, Trash2, DollarSign, Download, Edit2, Save, X, Calendar, Zap, TrendingUp, CheckCircle } from 'lucide-react';
 
 interface Fechamento {
   fechamentoid: number;
@@ -34,7 +33,7 @@ export default function DetalheVinculo() {
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
 
-  // Estados do Formulário (Edição/Criação)
+  // Estados do Formulário
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
 
@@ -46,8 +45,9 @@ export default function DetalheVinculo() {
     spread: '',
     arquivo: null as File | null,
     recibo: null as File | null,
-    arquivourl_existente: '',
-    recibourl_existente: ''
+    // URLs existentes (podem ser anuladas se o usuário remover)
+    arquivourl_existente: null as string | null,
+    recibourl_existente: null as string | null
   });
 
   const carregarDados = async () => {
@@ -93,8 +93,8 @@ export default function DetalheVinculo() {
       spread: String(item.spread),
       arquivo: null,
       recibo: null,
-      arquivourl_existente: item.arquivourl || '',
-      recibourl_existente: item.recibourl || ''
+      arquivourl_existente: item.arquivourl || null,
+      recibourl_existente: item.recibourl || null
     });
     setShowForm(true);
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -103,18 +103,28 @@ export default function DetalheVinculo() {
   const handleCancelar = () => {
     setShowForm(false);
     setEditingId(null);
-    setFormData({ mesreferencia: '', energiacompensada: '', valorrecebido: '', valorpago: '', spread: '', arquivo: null, recibo: null, arquivourl_existente: '', recibourl_existente: '' });
+    setFormData({ mesreferencia: '', energiacompensada: '', valorrecebido: '', valorpago: '', spread: '', arquivo: null, recibo: null, arquivourl_existente: null, recibourl_existente: null });
   };
 
   const handleSalvar = async (e: React.FormEvent) => {
     e.preventDefault();
     setUploading(true);
     try {
-      let planilhaUrl = editingId ? formData.arquivourl_existente : '';
-      let reciboUrl = editingId ? formData.recibourl_existente : '';
+      // Lógica de URL Final:
+      // 1. Se tem arquivo novo -> Upload e usa URL nova.
+      // 2. Se não tem novo mas tem existente -> Mantém existente.
+      // 3. Se não tem nenhum -> Null (remove do banco).
+      
+      let finalPlanilhaUrl = formData.arquivourl_existente;
+      let finalReciboUrl = formData.recibourl_existente;
 
-      if (formData.arquivo) planilhaUrl = await uploadArquivo(formData.arquivo, 'documentos');
-      if (formData.recibo) reciboUrl = await uploadArquivo(formData.recibo, 'comprovantes');
+      if (formData.arquivo) {
+        finalPlanilhaUrl = await uploadArquivo(formData.arquivo, 'documentos');
+      }
+      
+      if (formData.recibo) {
+        finalReciboUrl = await uploadArquivo(formData.recibo, 'comprovantes');
+      }
 
       const payload = {
         MesReferencia: formData.mesreferencia,
@@ -122,8 +132,8 @@ export default function DetalheVinculo() {
         ValorRecebido: Number(formData.valorrecebido),
         ValorPago: Number(formData.valorpago),
         Spread: Number(formData.spread),
-        ArquivoURL: planilhaUrl,
-        ReciboURL: reciboUrl,
+        ArquivoURL: finalPlanilhaUrl,
+        ReciboURL: finalReciboUrl,
         VinculoID: Number(id)
       };
 
@@ -134,7 +144,12 @@ export default function DetalheVinculo() {
       }
       handleCancelar();
       carregarDados();
-    } catch (error) { console.error(error); alert('Erro ao salvar. Verifique conexão.'); } finally { setUploading(false); }
+    } catch (error) { 
+      console.error(error); 
+      alert('Erro ao salvar.'); 
+    } finally { 
+      setUploading(false); 
+    }
   };
 
   const handleExcluir = async (fechamentoId: number) => {
@@ -143,12 +158,16 @@ export default function DetalheVinculo() {
     }
   };
 
+  // Funções para remover arquivo existente no formulário
+  const removerArquivoExistente = () => setFormData(prev => ({ ...prev, arquivourl_existente: null }));
+  const removerReciboExistente = () => setFormData(prev => ({ ...prev, recibourl_existente: null }));
+
   if (loading) return <div className="p-8 text-center text-gray-500">Carregando...</div>;
   if (!vinculo) return <div className="p-8 text-center text-red-500">Vínculo não encontrado.</div>;
 
   return (
     <div className="space-y-6">
-      {/* HEADER PADRONIZADO */}
+      {/* HEADER */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <Link to="/vinculos" className="p-2 hover:bg-white rounded-full text-gray-600 transition-colors shadow-sm bg-gray-50">
@@ -163,7 +182,6 @@ export default function DetalheVinculo() {
             </div>
           </div>
         </div>
-        
         {!showForm && (
           <button onClick={() => setShowForm(true)} className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-blue-700 shadow-sm transition-all">
             <DollarSign size={20} /> Lançar Mês
@@ -171,8 +189,9 @@ export default function DetalheVinculo() {
         )}
       </div>
 
-      {/* CARDS DE RESUMO (Igual DetalheConsumidor) */}
+      {/* CARDS RESUMO */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {/* ... (Cards mantidos igual ao anterior) ... */}
         <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
           <div className="flex items-center gap-3 mb-2">
             <div className="p-2 bg-blue-50 rounded-lg text-blue-600"><FileText size={20} /></div>
@@ -181,30 +200,24 @@ export default function DetalheVinculo() {
           <p className="text-lg font-bold text-gray-900">{vinculo.consumidor?.Nome || 'N/A'}</p>
           <p className="text-sm text-gray-500">{vinculo.consumidor?.Documento || '-'}</p>
         </div>
-
         <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
           <div className="flex items-center gap-3 mb-2">
             <div className="p-2 bg-yellow-50 rounded-lg text-yellow-600"><Zap size={20} /></div>
             <h3 className="font-semibold text-gray-700">Usina Geradora</h3>
           </div>
           <p className="text-lg font-bold text-gray-900">{vinculo.usina?.NomeProprietario || 'N/A'}</p>
-          <div className="flex items-center gap-2 mt-1">
-            <span className="text-sm text-gray-500">Participação:</span>
-            <span className="px-2 py-0.5 bg-yellow-100 text-yellow-800 rounded text-xs font-bold">{vinculo.Percentual}%</span>
-          </div>
+          <span className="text-xs font-bold bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded">{vinculo.Percentual}% partic.</span>
         </div>
-
         <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
           <div className="flex items-center gap-3 mb-2">
             <div className="p-2 bg-green-50 rounded-lg text-green-600"><TrendingUp size={20} /></div>
             <h3 className="font-semibold text-gray-700">Status</h3>
           </div>
           <p className="text-lg font-bold text-gray-900">{vinculo.status?.Descricao || vinculo.status_nome}</p>
-          <p className="text-sm text-gray-500">Início: {vinculo.DataInicio ? new Date(vinculo.DataInicio).toLocaleDateString() : '-'}</p>
         </div>
       </div>
 
-      {/* FORMULÁRIO DE EDIÇÃO/CRIAÇÃO */}
+      {/* FORMULÁRIO */}
       {showForm && (
         <div className="bg-white rounded-xl border border-blue-100 shadow-md p-6 animate-fade-in-down">
           <div className="flex justify-between items-center mb-6 pb-2 border-b border-gray-100">
@@ -218,66 +231,93 @@ export default function DetalheVinculo() {
           <form onSubmit={handleSalvar} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-6">
             <div className="lg:col-span-1">
               <label className="block text-xs font-bold text-gray-600 uppercase mb-1">Mês Ref.</label>
-              <input required type="date" className="w-full border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" 
+              <input required type="date" className="w-full border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500" 
                 value={formData.mesreferencia} onChange={e => setFormData({...formData, mesreferencia: e.target.value})} />
             </div>
-            
             <div className="lg:col-span-1">
               <label className="block text-xs font-bold text-gray-600 uppercase mb-1">Energia (kWh)</label>
-              <input required type="number" className="w-full border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              <input required type="number" className="w-full border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500"
                 value={formData.energiacompensada} onChange={e => setFormData({...formData, energiacompensada: e.target.value})} />
             </div>
-
             <div className="lg:col-span-1">
               <label className="block text-xs font-bold text-gray-600 uppercase mb-1">Recebido (R$)</label>
-              <input required type="number" step="0.01" className="w-full border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 text-green-700 font-semibold"
+              <input required type="number" step="0.01" className="w-full border-gray-200 rounded-lg text-green-700 font-semibold"
                 value={formData.valorrecebido} onChange={e => setFormData({...formData, valorrecebido: e.target.value})} />
             </div>
-
             <div className="lg:col-span-1">
               <label className="block text-xs font-bold text-gray-600 uppercase mb-1">Pago (R$)</label>
-              <input required type="number" step="0.01" className="w-full border-gray-200 rounded-lg focus:ring-2 focus:ring-red-500 text-red-700 font-semibold"
+              <input required type="number" step="0.01" className="w-full border-gray-200 rounded-lg text-red-700 font-semibold"
                 value={formData.valorpago} onChange={e => setFormData({...formData, valorpago: e.target.value})} />
             </div>
-
             <div className="lg:col-span-2">
-              <label className="block text-xs font-bold text-gray-600 uppercase mb-1">Spread (Lucro)</label>
+              <label className="block text-xs font-bold text-gray-600 uppercase mb-1">Spread</label>
               <input readOnly type="number" className="w-full bg-gray-100 border-gray-200 rounded-lg text-blue-700 font-bold cursor-not-allowed"
                 value={formData.spread} />
             </div>
 
-            {/* UPLOADS */}
-            <div className="lg:col-span-3 p-4 bg-gray-50 rounded-lg border border-dashed border-gray-300">
+            {/* SEÇÃO DE ARQUIVOS COM REMOÇÃO VISUAL */}
+            
+            {/* 1. PLANILHA */}
+            <div className="lg:col-span-3 p-4 bg-gray-50 rounded-lg border border-dashed border-gray-300 relative">
               <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-                <FileText size={16} className="text-blue-500"/>
-                {editingId && formData.arquivourl_existente ? 'Substituir Planilha' : 'Anexar Planilha'}
+                <FileText size={16} className="text-blue-500"/> Planilha / Fatura
               </label>
-              <input type="file" className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-blue-100 file:text-blue-700 hover:file:bg-blue-200"
-                onChange={e => setFormData({...formData, arquivo: e.target.files ? e.target.files[0] : null})} />
+
+              {/* Se existe arquivo antigo, mostra CARD com botão REMOVER */}
+              {formData.arquivourl_existente ? (
+                <div className="flex items-center justify-between bg-white p-3 rounded border border-blue-100 shadow-sm">
+                  <div className="flex items-center gap-2 text-sm text-gray-600 overflow-hidden">
+                    <CheckCircle size={16} className="text-green-500 flex-shrink-0"/>
+                    <span className="truncate">Arquivo Atual Anexado</span>
+                  </div>
+                  <button type="button" onClick={removerArquivoExistente} className="text-red-500 hover:bg-red-50 p-1 rounded transition-colors" title="Remover e substituir">
+                    <X size={18}/>
+                  </button>
+                </div>
+              ) : (
+                /* Se não existe (ou foi removido), mostra INPUT file */
+                <input type="file" className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-blue-100 file:text-blue-700 hover:file:bg-blue-200"
+                  onChange={e => setFormData({...formData, arquivo: e.target.files ? e.target.files[0] : null})} />
+              )}
             </div>
 
-            <div className="lg:col-span-3 p-4 bg-gray-50 rounded-lg border border-dashed border-gray-300">
+            {/* 2. COMPROVANTE */}
+            <div className="lg:col-span-3 p-4 bg-gray-50 rounded-lg border border-dashed border-gray-300 relative">
               <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-                <Upload size={16} className="text-green-500"/>
-                {editingId && formData.recibourl_existente ? 'Substituir Comprovante' : 'Anexar Comprovante'}
+                <Upload size={16} className="text-green-500"/> Comprovante / Recibo
               </label>
-              <input type="file" className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-green-100 file:text-green-700 hover:file:bg-green-200"
-                onChange={e => setFormData({...formData, recibo: e.target.files ? e.target.files[0] : null})} />
+
+              {/* Se existe recibo antigo */}
+              {formData.recibourl_existente ? (
+                <div className="flex items-center justify-between bg-white p-3 rounded border border-green-100 shadow-sm">
+                  <div className="flex items-center gap-2 text-sm text-gray-600 overflow-hidden">
+                    <CheckCircle size={16} className="text-green-500 flex-shrink-0"/>
+                    <span className="truncate">Recibo Atual Anexado</span>
+                  </div>
+                  <button type="button" onClick={removerReciboExistente} className="text-red-500 hover:bg-red-50 p-1 rounded transition-colors" title="Remover e substituir">
+                    <X size={18}/>
+                  </button>
+                </div>
+              ) : (
+                 /* Se não existe, mostra INPUT file */
+                <input type="file" className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-green-100 file:text-green-700 hover:file:bg-green-200"
+                  onChange={e => setFormData({...formData, recibo: e.target.files ? e.target.files[0] : null})} />
+              )}
             </div>
 
-            <div className="lg:col-span-6 flex justify-end gap-3 mt-2 border-t border-gray-100 pt-4">
+            <div className="lg:col-span-6 flex justify-end gap-3 mt-2 pt-4 border-t border-gray-100">
               <button type="button" onClick={handleCancelar} className="px-6 py-2 bg-white text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 font-medium">Cancelar</button>
               <button type="submit" disabled={uploading} className={`px-6 py-2 text-white rounded-lg flex items-center gap-2 shadow-md font-medium ${uploading ? 'bg-gray-400' : 'bg-blue-600 hover:bg-blue-700'}`}>
-                <Save size={18} /> {uploading ? 'Salvando...' : 'Salvar Lançamento'}
+                <Save size={18} /> {uploading ? 'Salvando...' : 'Salvar'}
               </button>
             </div>
           </form>
         </div>
       )}
 
-      {/* TABELA PADRONIZADA */}
+      {/* HISTÓRICO - TABELA */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+        <div className="px-6 py-4 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
           <h2 className="font-bold text-gray-700 flex items-center gap-2"><Calendar size={18}/> Histórico Financeiro</h2>
         </div>
         

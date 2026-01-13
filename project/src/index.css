@@ -1,20 +1,140 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/* ============================================================
+   PADRÃO VISUAL GLOBAL (Design System)
+   Cola isso no seu index.css ou App.css
+   ============================================================ */
 
 :root {
-  font-family: 'Inter', sans-serif; /* Fonte mais bonita e moderna */
-  font-size: 14px; /* Tamanho ideal (nem gigante, nem minúsculo) */
+  /* Paleta de Cores (Baseada nos seus prints) */
+  --cor-fundo-pagina: #0f172a; /* Fundo bem escuro */
+  --cor-fundo-card: #1e293b;   /* Fundo dos formulários/cards */
+  --cor-fundo-input: #334155;  /* Fundo onde digita */
+  --cor-borda: #475569;        /* Borda discreta */
+  --cor-destaque: #3b82f6;     /* Azul do botão/foco */
+  --cor-destaque-hover: #2563eb;
+  --cor-texto-principal: #f8fafc;
+  --cor-texto-secundario: #94a3b8;
+  
+  /* Medidas Padrão */
+  --borda-raio: 8px;           /* Arredondamento dos cantos */
+  --espaco-padrao: 1.5rem;     /* Espaçamento entre elementos */
 }
 
+/* 1. RESET BÁSICO (Para garantir que todas as pág. usem a mesma fonte) */
 body {
-  @apply bg-slate-50 text-slate-900;
-  /* Removi o 'zoom' que estava quebrando o layout */
+  background-color: var(--cor-fundo-pagina);
+  color: var(--cor-texto-principal);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
 }
 
-/* Tabelas mais elegantes */
-td, th {
-  @apply py-3 px-4 !important;
+/* 2. CONTAINER DE PÁGINA (Use em volta de todo o conteúdo) */
+.page-container {
+  padding: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* 3. CARD / ÁREA DO FORMULÁRIO (O quadrado cinza onde ficam os dados) */
+.padrao-card {
+  background-color: var(--cor-fundo-card);
+  border-radius: var(--borda-raio);
+  padding: 2rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  margin-bottom: 2rem;
+}
+
+/* 4. TÍTULOS (H1, H2, H3) */
+.padrao-titulo {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: white;
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.padrao-subtitulo {
+  font-size: 1.1rem;
+  color: var(--cor-texto-secundario);
+  border-bottom: 1px solid var(--cor-borda);
+  padding-bottom: 0.5rem;
+  margin: 1.5rem 0 1rem 0;
+  font-weight: 600;
+}
+
+/* 5. GRID DE FORMULÁRIO (Para alinhar lado a lado) */
+.padrao-form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); /* Responsivo automático */
+  gap: 1.5rem;
+}
+
+/* 6. INPUTS E SELECTS (Onde o usuário digita) */
+.padrao-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.padrao-label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #cbd5e1;
+}
+
+.padrao-input, 
+.padrao-select, 
+.padrao-textarea {
+  background-color: var(--cor-fundo-input);
+  border: 1px solid var(--cor-borda);
+  border-radius: 6px; /* Um pouco menos arredondado que o card */
+  padding: 0.75rem 1rem;
+  color: white;
+  font-size: 0.95rem;
+  width: 100%; /* Ocupa todo espaço disponível */
+  transition: all 0.2s ease;
+  outline: none;
+}
+
+/* Estado de Foco (Quando clica para digitar) */
+.padrao-input:focus, 
+.padrao-select:focus, 
+.padrao-textarea:focus {
+  border-color: var(--cor-destaque);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2); /* Brilho azul suave */
+}
+
+/* Campos desabilitados */
+.padrao-input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* 7. BOTÕES PADRONIZADOS */
+.padrao-btn {
+  background-color: var(--cor-destaque);
+  color: white;
+  padding: 0.75rem 1.5rem;
+  border-radius: 6px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: background 0.2s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.padrao-btn:hover {
+  background-color: var(--cor-destaque-hover);
+}
+
+.padrao-btn-outline {
+  background: transparent;
+  border: 1px solid var(--cor-borda);
+  color: var(--cor-texto-secundario);
 }

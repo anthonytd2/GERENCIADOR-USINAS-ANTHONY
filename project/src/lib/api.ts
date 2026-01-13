@@ -1,44 +1,54 @@
-// ARQUIVO: project/src/lib/api.ts
-const API_BASE = 'https://api-gestao-solar.onrender.com/api'; 
-// Use 'http://localhost:3001/api' se estiver rodando localmente
+import axios from 'axios';
+
+// Verifica se está rodando local ou em produção
+const isLocal = window.location.hostname === 'localhost';
+const API_BASE = isLocal 
+  ? 'http://localhost:3001/api' 
+  : 'https://api-gestao-solar.onrender.com/api';
+
+const axiosInstance = axios.create({
+  baseURL: API_BASE,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
 
 export const api = {
-  consumidores: {
-    list: () => fetch(`${API_BASE}/consumidores`).then(r => r.json()),
-    get: (id: number) => fetch(`${API_BASE}/consumidores/${id}`).then(r => r.json()),
-    create: (data: any) => fetch(`${API_BASE}/consumidores`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }).then(r => r.json()),
-    update: (id: number, data: any) => fetch(`${API_BASE}/consumidores/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }).then(r => r.json()),
-    delete: (id: number) => fetch(`${API_BASE}/consumidores/${id}`, { method: 'DELETE' })
-  },
   usinas: {
-    list: () => fetch(`${API_BASE}/usinas`).then(r => r.json()),
-    get: (id: number) => fetch(`${API_BASE}/usinas/${id}`).then(r => r.json()),
-    vinculos: (id: number) => fetch(`${API_BASE}/usinas/${id}/vinculos`).then(r => r.json()),
-    create: (data: any) => fetch(`${API_BASE}/usinas`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }).then(r => r.json()),
-    update: (id: number, data: any) => fetch(`${API_BASE}/usinas/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }).then(r => r.json()),
-    delete: (id: number) => fetch(`${API_BASE}/usinas/${id}`, { method: 'DELETE' })
+    list: () => axiosInstance.get('/usinas').then((res: any) => res.data),
+    get: (id: number) => axiosInstance.get(`/usinas/${id}`).then((res: any) => res.data),
+    create: (data: any) => axiosInstance.post('/usinas', data).then((res: any) => res.data),
+    update: (id: number, data: any) => axiosInstance.put(`/usinas/${id}`, data).then((res: any) => res.data),
+    delete: (id: number) => axiosInstance.delete(`/usinas/${id}`).then((res: any) => res.data),
   },
-  status: {
-    list: () => fetch(`${API_BASE}/status`).then(r => r.json())
+  consumidores: {
+    list: () => axiosInstance.get('/consumidores').then((res: any) => res.data),
+    get: (id: number) => axiosInstance.get(`/consumidores/${id}`).then((res: any) => res.data),
+    create: (data: any) => axiosInstance.post('/consumidores', data).then((res: any) => res.data),
+    update: (id: number, data: any) => axiosInstance.put(`/consumidores/${id}`, data).then((res: any) => res.data),
+    delete: (id: number) => axiosInstance.delete(`/consumidores/${id}`).then((res: any) => res.data),
   },
   vinculos: {
-    list: () => fetch(`${API_BASE}/vinculos`).then(r => r.json()),
-    get: (id: number) => fetch(`${API_BASE}/vinculos/${id}`).then(r => r.json()),
-    create: (data: any) => fetch(`${API_BASE}/vinculos`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }).then(r => r.json()),
-    update: (id: number, data: any) => fetch(`${API_BASE}/vinculos/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }).then(r => r.json()),
-    delete: (id: number) => fetch(`${API_BASE}/vinculos/${id}`, { method: 'DELETE' })
-  }, 
-  entidades: {
-    list: () => fetch(`${API_BASE}/entidades`).then(res => res.json()),
-    create: (data: any) => fetch(`${API_BASE}/entidades`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }).then(res => res.json()),
-    update: (id: number, data: any) => fetch(`${API_BASE}/entidades/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }).then(res => res.json()),
-    delete: (id: number) => fetch(`${API_BASE}/entidades/${id}`, { method: 'DELETE' }),
+    list: () => axiosInstance.get('/vinculos').then((res: any) => res.data),
+    get: (id: number) => axiosInstance.get(`/vinculos/${id}`).then((res: any) => res.data),
+    create: (data: any) => axiosInstance.post('/vinculos', data).then((res: any) => res.data),
+    update: (id: number, data: any) => axiosInstance.put(`/vinculos/${id}`, data).then((res: any) => res.data),
+    delete: (id: number) => axiosInstance.delete(`/vinculos/${id}`).then((res: any) => res.data),
+  },
+  status: {
+    list: () => axiosInstance.get('/status').then((res: any) => res.data),
   },
   fechamentos: {
-    list: (vinculoId: number) => fetch(`${API_BASE}/fechamentos/${vinculoId}`).then(r => r.json()),
-    create: (data: any) => fetch(`${API_BASE}/fechamentos`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }).then(r => r.json()),
-    // NOVA FUNÇÃO UPDATE
-    update: (id: number, data: any) => fetch(`${API_BASE}/fechamentos/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }).then(r => r.json()),
-    delete: (id: number) => fetch(`${API_BASE}/fechamentos/${id}`, { method: 'DELETE' })
-  }
+    list: (vinculoId: number) => axiosInstance.get(`/fechamentos/${vinculoId}`).then((res: any) => res.data),
+    create: (data: any) => axiosInstance.post('/fechamentos', data).then((res: any) => res.data),
+    // Função de atualizar (PUT) para permitir edições
+    update: (id: number, data: any) => axiosInstance.put(`/fechamentos/${id}`, data).then((res: any) => res.data),
+    delete: (id: number) => axiosInstance.delete(`/fechamentos/${id}`).then((res: any) => res.data),
+  },
+  
+  // Helpers genéricos
+  get: (url: string) => axiosInstance.get(url).then((res: any) => res.data),
+  post: (url: string, data: any) => axiosInstance.post(url, data).then((res: any) => res.data),
+  put: (url: string, data: any) => axiosInstance.put(url, data).then((res: any) => res.data),
+  delete: (url: string) => axiosInstance.delete(url).then((res: any) => res.data),
 };

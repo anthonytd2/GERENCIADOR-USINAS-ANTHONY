@@ -3,13 +3,13 @@ import { supabase } from '../db.js';
 
 const router = express.Router();
 
-// LISTAR FECHAMENTOS DE UM VÍNCULO
+// LISTAR
 router.get('/:vinculoId', async (req, res) => {
   try {
     const { data, error } = await supabase
       .from('fechamentos')
       .select('*')
-      .eq('vinculoid', req.params.vinculoId)
+      .eq('vinculoid', req.params.vinculoId) // Nota: vinculoid minúsculo
       .order('mesreferencia', { ascending: false });
 
     if (error) throw error;
@@ -19,7 +19,7 @@ router.get('/:vinculoId', async (req, res) => {
   }
 });
 
-// CRIAR NOVO FECHAMENTO
+// CRIAR
 router.post('/', async (req, res) => {
   try {
     const { data, error } = await supabase.from('fechamentos').insert([req.body]).select().single();
@@ -30,7 +30,7 @@ router.post('/', async (req, res) => {
   }
 });
 
-// --- ATUALIZAR FECHAMENTO (CORRIGIDO) ---
+// ATUALIZAR (Correção do Erro 500)
 router.put('/:id', async (req, res) => {
   try {
     const { id } = req.params;
@@ -39,38 +39,53 @@ router.put('/:id', async (req, res) => {
       ValorPago, Spread, ArquivoURL, ReciboURL 
     } = req.body;
 
-    // Monta o objeto de atualização
+    // 1. Monta o objeto básico (usando nomes minúsculos que funcionam no Postgres)
     const payload = {
       mesreferencia: MesReferencia,
       energiacompensada: EnergiaCompensada,
       valorrecebido: ValorRecebido,
       valorpago: ValorPago,
       spread: Spread,
-      updated_at: new Date()
+      updated_at: new Date() // Requer que a coluna exista! (Passo 1)
     };
 
-    // Lógica Segura:
-    // Se ArquivoURL for enviado (seja string ou null), atualiza.
-    // Se for undefined (não enviado), mantém o que estava no banco.
+    // 2. Só atualiza as URLs se elas foram enviadas no corpo da requisição
+    // Se receber null, grava null (remove o arquivo). Se undefined, ignora.
     if (ArquivoURL !== undefined) payload.arquivourl = ArquivoURL;
     if (ReciboURL !== undefined) payload.recibourl = ReciboURL;
 
-    const { data, error } = await supabase
+    // 3. Tenta atualizar
+    let { data, error } = await supabase
       .from('fechamentos')
       .update(payload)
-      .eq('fechamentoid', id)
+      .eq('fechamentoid', id) // Tenta ID minúsculo
       .select()
       .single();
+
+    // 4. Se der erro (ex: coluna updated_at não existe), tenta sem ela como fallback
+    if (error) {
+       console.warn("Tentando fallback sem updated_at...");
+       delete payload.updated_at; 
+       const retry = await supabase
+         .from('fechamentos')
+         .update(payload)
+         .eq('fechamentoid', id)
+         .select()
+         .single();
+         
+       data = retry.data;
+       error = retry.error;
+    }
 
     if (error) throw error;
     res.json(data);
   } catch (error) {
-    console.error('Erro ao atualizar fechamento:', error);
+    console.error('Erro backend:', error);
     res.status(500).json({ error: error.message });
   }
 });
 
-// EXCLUIR FECHAMENTO
+// EXCLUIR
 router.delete('/:id', async (req, res) => {
   try {
     const { error } = await supabase.from('fechamentos').delete().eq('fechamentoid', req.params.id);

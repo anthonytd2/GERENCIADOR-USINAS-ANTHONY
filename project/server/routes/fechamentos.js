@@ -19,18 +19,41 @@ router.get('/:vinculoId', async (req, res) => {
   }
 });
 
-// CRIAR
+// CRIAR (CORRIGIDO: Mapeamento de Maiúsculo para Minúsculo)
 router.post('/', async (req, res) => {
   try {
-    const { data, error } = await supabase.from('fechamentos').insert([req.body]).select().single();
+    const { 
+      MesReferencia, EnergiaCompensada, ValorRecebido, 
+      ValorPago, Spread, ArquivoURL, ReciboURL, VinculoID 
+    } = req.body;
+
+    // Cria um objeto com as chaves em minúsculo para o Supabase
+    const payload = {
+      mesreferencia: MesReferencia,
+      energiacompensada: EnergiaCompensada,
+      valorrecebido: ValorRecebido,
+      valorpago: ValorPago,
+      spread: Spread,
+      arquivourl: ArquivoURL, // Pode ser null
+      recibourl: ReciboURL,   // Pode ser null
+      vinculoid: VinculoID
+    };
+
+    const { data, error } = await supabase
+      .from('fechamentos')
+      .insert([payload])
+      .select()
+      .single();
+
     if (error) throw error;
     res.status(201).json(data);
   } catch (error) {
+    console.error('Erro ao criar fechamento:', error);
     res.status(500).json({ error: error.message });
   }
 });
 
-// ATUALIZAR (Correção do Erro 500)
+// ATUALIZAR
 router.put('/:id', async (req, res) => {
   try {
     const { id } = req.params;
@@ -39,18 +62,17 @@ router.put('/:id', async (req, res) => {
       ValorPago, Spread, ArquivoURL, ReciboURL 
     } = req.body;
 
-    // 1. Monta o objeto básico (usando nomes minúsculos que funcionam no Postgres)
+    // 1. Monta o objeto básico (minúsculo)
     const payload = {
       mesreferencia: MesReferencia,
       energiacompensada: EnergiaCompensada,
       valorrecebido: ValorRecebido,
       valorpago: ValorPago,
       spread: Spread,
-      updated_at: new Date() // Requer que a coluna exista! (Passo 1)
+      updated_at: new Date()
     };
 
-    // 2. Só atualiza as URLs se elas foram enviadas no corpo da requisição
-    // Se receber null, grava null (remove o arquivo). Se undefined, ignora.
+    // 2. Só atualiza as URLs se elas foram enviadas (para permitir remover se for null)
     if (ArquivoURL !== undefined) payload.arquivourl = ArquivoURL;
     if (ReciboURL !== undefined) payload.recibourl = ReciboURL;
 
@@ -58,13 +80,12 @@ router.put('/:id', async (req, res) => {
     let { data, error } = await supabase
       .from('fechamentos')
       .update(payload)
-      .eq('fechamentoid', id) // Tenta ID minúsculo
+      .eq('fechamentoid', id)
       .select()
       .single();
 
-    // 4. Se der erro (ex: coluna updated_at não existe), tenta sem ela como fallback
-    if (error) {
-       console.warn("Tentando fallback sem updated_at...");
+    // 4. Fallback caso a coluna updated_at não exista no banco
+    if (error && error.message.includes('updated_at')) {
        delete payload.updated_at; 
        const retry = await supabase
          .from('fechamentos')
@@ -88,7 +109,11 @@ router.put('/:id', async (req, res) => {
 // EXCLUIR
 router.delete('/:id', async (req, res) => {
   try {
-    const { error } = await supabase.from('fechamentos').delete().eq('fechamentoid', req.params.id);
+    const { error } = await supabase
+      .from('fechamentos')
+      .delete()
+      .eq('fechamentoid', req.params.id);
+      
     if (error) throw error;
     res.json({ message: 'Sucesso' });
   } catch (error) {

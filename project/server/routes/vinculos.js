@@ -3,30 +3,34 @@ import { supabase } from '../db.js';
 
 const router = express.Router();
 
-// --- LISTAR TODOS OS VÍNCULOS ---
+// --- LISTAR TODOS OS VÍNCULOS (MÉTODO SEGURO - MANUAL JOIN) ---
 router.get('/', async (req, res) => {
   try {
-    // Busca dados usando os nomes corretos das tabelas e colunas
-    // Tenta buscar a descrição do status, nome do consumidor e da usina via JOIN
-    const { data, error } = await supabase
+    // 1. Busca APENAS os vínculos (sem tentar fazer join automático que dá erro)
+    const { data: vinculos, error: errorVinculos } = await supabase
       .from('vinculos')
-      .select(`
-        *,
-        consumidores ( Nome ),
-        usinas ( Nome, NomeProprietario ),
-        status ( Descricao )
-      `)
+      .select('*')
       .order('created_at', { ascending: false });
 
-    if (error) throw error;
+    if (errorVinculos) throw errorVinculos;
 
-    // Formata os dados para o Frontend (que espera tudo minúsculo e simplificado)
-    const vinculosFormatados = data.map(v => {
-      // Tenta pegar o nome da usina (pode ser Nome ou NomeProprietario dependendo da tabela)
-      const nomeUsina = v.usinas?.NomeProprietario || v.usinas?.Nome || 'Usina não encontrada';
-      
-      // Tenta pegar o status da tabela JOIN ou adivinha pelo ID se o join falhar
-      let nomeStatus = v.status?.Descricao;
+    // 2. Busca as tabelas auxiliares separadamente
+    // Isso evita o erro de "Could not find relationship"
+    const { data: consumidores } = await supabase.from('consumidores').select('ConsumidorID, Nome');
+    const { data: usinas } = await supabase.from('usinas').select('UsinaID, Nome, NomeProprietario');
+    const { data: statusList } = await supabase.from('status').select('StatusID, Descricao');
+
+    // 3. Cruza os dados manualmente usando JavaScript
+    const vinculosFormatados = vinculos.map(v => {
+      // Encontra o consumidor correspondente pelo ID
+      const cons = consumidores?.find(c => c.ConsumidorID === v.ConsumidorID);
+      // Encontra a usina correspondente pelo ID
+      const usina = usinas?.find(u => u.UsinaID === v.UsinaID);
+      // Encontra o status correspondente pelo ID
+      const stat = statusList?.find(s => s.StatusID === v.StatusID);
+
+      // Define o nome do status (usa o do banco ou um fallback fixo)
+      let nomeStatus = stat?.Descricao;
       if (!nomeStatus) {
          if (v.StatusID === 1) nomeStatus = 'Ativo';
          else if (v.StatusID === 2) nomeStatus = 'Pendente';
@@ -34,16 +38,16 @@ router.get('/', async (req, res) => {
       }
 
       return {
-        id: v.VinculoID, // Mapeia VinculoID para id
+        id: v.VinculoID, // O frontend espera 'id' minúsculo
         consumidor_id: v.ConsumidorID,
         usina_id: v.UsinaID,
         status_id: v.StatusID,
         percentual: v.Percentual,
         data_inicio: v.DataInicio,
         
-        // Campos extras para exibição
-        consumidor_nome: v.consumidores?.Nome || 'Consumidor desconhecido',
-        usina_nome: nomeUsina,
+        // Campos montados manualmente
+        consumidor_nome: cons?.Nome || 'Consumidor não encontrado',
+        usina_nome: usina?.NomeProprietario || usina?.Nome || 'Usina não encontrada',
         status_nome: nomeStatus
       };
     });
@@ -57,22 +61,19 @@ router.get('/', async (req, res) => {
 
 // --- CRIAR NOVO VÍNCULO ---
 router.post('/', async (req, res) => {
-  // Recebe os dados (o frontend manda em PascalCase como visto no Formulario)
   const { ConsumidorID, UsinaID, Percentual, StatusID, Observacao } = req.body;
   
   try {
     const { data, error } = await supabase
       .from('vinculos')
-      .insert([
-        { 
+      .insert([{ 
           ConsumidorID, 
           UsinaID, 
           Percentual, 
           StatusID, 
           Observacao,
-          DataInicio: new Date() // Define data de início automática
-        }
-      ])
+          DataInicio: new Date()
+      }])
       .select()
       .single();
 
@@ -98,7 +99,7 @@ router.put('/:id', async (req, res) => {
         Observacao,
         updated_at: new Date() 
       })
-      .eq('VinculoID', id) // Usa VinculoID para encontrar o registro
+      .eq('VinculoID', id)
       .select()
       .single();
 
@@ -118,7 +119,7 @@ router.delete('/:id', async (req, res) => {
     const { error } = await supabase
       .from('vinculos')
       .delete()
-      .eq('VinculoID', id); // Usa VinculoID
+      .eq('VinculoID', id);
 
     if (error) throw error;
     res.json({ message: 'Vínculo excluído com sucesso' });

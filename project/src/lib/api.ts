@@ -17,6 +17,8 @@ export const api = {
   usinas: {
     list: () => axiosInstance.get('/usinas').then((res: any) => res.data),
     get: (id: number) => axiosInstance.get(`/usinas/${id}`).then((res: any) => res.data),
+    // A FUNÇÃO QUE FALTAVA ESTÁ AQUI:
+    vinculos: (id: number) => axiosInstance.get(`/usinas/${id}/vinculos`).then((res: any) => res.data),
     create: (data: any) => axiosInstance.post('/usinas', data).then((res: any) => res.data),
     update: (id: number, data: any) => axiosInstance.put(`/usinas/${id}`, data).then((res: any) => res.data),
     delete: (id: number) => axiosInstance.delete(`/usinas/${id}`).then((res: any) => res.data),
@@ -38,10 +40,15 @@ export const api = {
   status: {
     list: () => axiosInstance.get('/status').then((res: any) => res.data),
   },
+  entidades: {
+    list: () => axiosInstance.get('/entidades').then((res: any) => res.data),
+    create: (data: any) => axiosInstance.post('/entidades', data).then((res: any) => res.data),
+    update: (id: number, data: any) => axiosInstance.put(`/entidades/${id}`, data).then((res: any) => res.data),
+    delete: (id: number) => axiosInstance.delete(`/entidades/${id}`).then((res: any) => res.data),
+  },
   fechamentos: {
     list: (vinculoId: number) => axiosInstance.get(`/fechamentos/${vinculoId}`).then((res: any) => res.data),
     create: (data: any) => axiosInstance.post('/fechamentos', data).then((res: any) => res.data),
-    // Função de atualizar (PUT) para permitir edições
     update: (id: number, data: any) => axiosInstance.put(`/fechamentos/${id}`, data).then((res: any) => res.data),
     delete: (id: number) => axiosInstance.delete(`/fechamentos/${id}`).then((res: any) => res.data),
   },

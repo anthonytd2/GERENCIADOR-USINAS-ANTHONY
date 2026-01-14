@@ -1,72 +1,66 @@
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Users, Zap, Link as LinkIcon, LogOut, Sun, FileText } from 'lucide-react';
+import { 
+  LayoutDashboard, 
+  Users, 
+  Zap, 
+  Link as LinkIcon, 
+  FileText,
+  Calculator // Importação do novo ícone
+} from 'lucide-react';
+
+const menuItems = [
+  { icon: LayoutDashboard, label: 'Dashboard', path: '/' },
+  { icon: Users, label: 'Consumidores', path: '/consumidores' },
+  { icon: Zap, label: 'Usinas', path: '/usinas' },
+  { icon: LinkIcon, label: 'Vínculos', path: '/vinculos' },
+  { icon: FileText, label: 'Recibos', path: '/recibos' },
+  // Novo item adicionado
+  { icon: Calculator, label: 'Simulador', path: '/simulador' },
+];
 
 export default function Sidebar() {
   const location = useLocation();
 
-  const isActive = (path: string) => {
-    return location.pathname.startsWith(path) 
-      ? 'bg-blue-600 text-white shadow-lg' 
-      : 'text-blue-100 hover:bg-white/10 hover:text-white';
-  };
-
   return (
-    <div className="w-64 bg-[#0B1E3F] h-full flex flex-col shadow-2xl z-20 flex-shrink-0"> 
-      
-      {/* LOGO */}
-      <div className="p-6 border-b border-blue-800/50 flex flex-col items-center text-center">
-        <div className="bg-blue-600/20 p-3 rounded-full mb-3 ring-2 ring-blue-400/30 shadow-[0_0_15px_rgba(59,130,246,0.3)]">
-          <Sun className="w-8 h-8 text-yellow-400 fill-yellow-400" />
-        </div>
-        <h1 className="text-xl font-bold text-white tracking-tight">
-          Gestão Solar <span className="text-blue-400 block text-xs font-medium mt-1 tracking-[0.2em] uppercase">Locações</span>
+    <aside className="w-64 bg-white border-r border-gray-200 min-h-screen flex flex-col fixed left-0 top-0 h-full overflow-y-auto">
+      <div className="p-6 border-b border-gray-100">
+        <h1 className="text-2xl font-bold text-blue-900 flex items-center gap-2">
+          <Zap className="w-8 h-8 text-blue-600 fill-current" />
+          Gestão Solar
         </h1>
       </div>
 
-      {/* NAVEGAÇÃO */}
-      <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
-        <p className="px-4 text-[11px] font-bold text-blue-400 uppercase tracking-wider mb-2 opacity-80">
-          Principal
-        </p>
-        
-        <Link to="/" className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-medium tracking-wide ${location.pathname === '/' ? 'bg-blue-600 text-white shadow-md' : 'text-blue-100 hover:bg-white/10 hover:text-white'}`}>
-          <LayoutDashboard className="w-5 h-5" />
-          Dashboard
-        </Link>
-
-        <p className="px-4 text-[11px] font-bold text-blue-400 uppercase tracking-wider mb-2 mt-8 opacity-80">
-          Cadastros
-        </p>
-
-        <Link to="/consumidores" className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-medium tracking-wide ${isActive('/consumidores')}`}>
-          <Users className="w-5 h-5" />
-          Consumidores
-        </Link>
-
-        <Link to="/usinas" className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-medium tracking-wide ${isActive('/usinas')}`}>
-          <Zap className="w-5 h-5" />
-          Usinas
-        </Link>
-
-        <Link to="/vinculos" className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-medium tracking-wide ${isActive('/vinculos')}`}>
-          <LinkIcon className="w-5 h-5" />
-          Vínculos
-        </Link>
-
-        {/* --- NOVO BOTÃO DE RECIBOS --- */}
-        <Link to="/recibos" className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-medium tracking-wide ${isActive('/recibos')}`}>
-          <FileText className="w-5 h-5" />
-          Emitir Recibos
-        </Link>
+      <nav className="flex-1 p-4 space-y-2">
+        {menuItems.map((item) => {
+          const Icon = item.icon;
+          // Verifica se está ativo (exato ou sub-rota, exceto para dashboard que é exato)
+          const isActive = item.path === '/' 
+            ? location.pathname === '/'
+            : location.pathname.startsWith(item.path);
+          
+          return (
+            <Link
+              key={item.path}
+              to={item.path}
+              className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+                isActive 
+                  ? 'bg-blue-50 text-blue-700 font-medium shadow-sm' 
+                  : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+              }`}
+            >
+              <Icon className={`w-5 h-5 ${isActive ? 'text-blue-600' : 'text-gray-400'}`} />
+              {item.label}
+            </Link>
+          );
+        })}
       </nav>
 
-      {/* RODAPÉ */}
-      <div className="p-4 border-t border-blue-800/50 bg-[#08162e]">
-        <button className="flex items-center gap-3 w-full px-4 py-3 text-red-300 hover:bg-red-900/20 hover:text-red-200 rounded-xl transition-all font-medium tracking-wide group">
-          <LogOut className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
-          Sair do Sistema
-        </button>
+      <div className="p-4 border-t border-gray-100 mt-auto">
+        <div className="px-4 py-3 bg-gray-50 rounded-lg border border-gray-100">
+          <p className="text-xs font-semibold text-gray-500 uppercase">Sistema</p>
+          <p className="text-sm font-medium text-gray-900">Bionova Solar</p>
+        </div>
       </div>
-    </div>
+    </aside>
   );
 }

@@ -58,7 +58,7 @@ export default function Sidebar() {
       <div className="p-4 border-t border-gray-100 mt-auto">
         <div className="px-4 py-3 bg-gray-50 rounded-lg border border-gray-100">
           <p className="text-xs font-semibold text-gray-500 uppercase">Sistema</p>
-          <p className="text-sm font-medium text-gray-900">Bionova Solar</p>
+          <p className="text-sm font-medium text-gray-900">Bionova Solar v2</p>
         </div>
       </div>
     </aside>

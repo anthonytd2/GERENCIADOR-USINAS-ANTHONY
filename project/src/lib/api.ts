@@ -1,61 +1,76 @@
-import axios from 'axios';
+// src/lib/api.ts
 
-// Verifica se está rodando local ou em produção
-const isLocal = window.location.hostname === 'localhost';
-const API_BASE = isLocal 
-  ? 'http://localhost:3001/api' 
-  : 'https://api-gestao-solar.onrender.com/api';
+const API_URL = 'https://api-gestao-solar.onrender.com/api'; // Ou localhost se estiver testando local
 
-const axiosInstance = axios.create({
-  baseURL: API_BASE,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-});
+async function request(endpoint: string, options?: RequestInit) {
+  const response = await fetch(`${API_URL}${endpoint}`, {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options?.headers,
+    },
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.error || 'Erro na requisição');
+  }
+
+  // Verifica se tem conteúdo para retornar JSON (para casos de delete/204)
+  const text = await response.text();
+  return text ? JSON.parse(text) : null;
+}
 
 export const api = {
+  // ... (Mantenha os existentes: vinculos, usinas, consumidores, etc.) ...
+  vinculos: {
+    list: () => request('/vinculos'),
+    get: (id: number) => request(`/vinculos/${id}`),
+    create: (data: any) => request('/vinculos', { method: 'POST', body: JSON.stringify(data) }),
+    update: (id: number, data: any) => request(`/vinculos/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    delete: (id: number) => request(`/vinculos/${id}`, { method: 'DELETE' }),
+  },
   usinas: {
-    list: () => axiosInstance.get('/usinas').then((res: any) => res.data),
-    get: (id: number) => axiosInstance.get(`/usinas/${id}`).then((res: any) => res.data),
-    // A FUNÇÃO QUE FALTAVA ESTÁ AQUI:
-    vinculos: (id: number) => axiosInstance.get(`/usinas/${id}/vinculos`).then((res: any) => res.data),
-    create: (data: any) => axiosInstance.post('/usinas', data).then((res: any) => res.data),
-    update: (id: number, data: any) => axiosInstance.put(`/usinas/${id}`, data).then((res: any) => res.data),
-    delete: (id: number) => axiosInstance.delete(`/usinas/${id}`).then((res: any) => res.data),
+    list: () => request('/usinas'),
+    get: (id: number) => request(`/usinas/${id}`),
+    create: (data: any) => request('/usinas', { method: 'POST', body: JSON.stringify(data) }),
+    update: (id: number, data: any) => request(`/usinas/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    delete: (id: number) => request(`/usinas/${id}`, { method: 'DELETE' }),
   },
   consumidores: {
-    list: () => axiosInstance.get('/consumidores').then((res: any) => res.data),
-    get: (id: number) => axiosInstance.get(`/consumidores/${id}`).then((res: any) => res.data),
-    create: (data: any) => axiosInstance.post('/consumidores', data).then((res: any) => res.data),
-    update: (id: number, data: any) => axiosInstance.put(`/consumidores/${id}`, data).then((res: any) => res.data),
-    delete: (id: number) => axiosInstance.delete(`/consumidores/${id}`).then((res: any) => res.data),
-  },
-  vinculos: {
-    list: () => axiosInstance.get('/vinculos').then((res: any) => res.data),
-    get: (id: number) => axiosInstance.get(`/vinculos/${id}`).then((res: any) => res.data),
-    create: (data: any) => axiosInstance.post('/vinculos', data).then((res: any) => res.data),
-    update: (id: number, data: any) => axiosInstance.put(`/vinculos/${id}`, data).then((res: any) => res.data),
-    delete: (id: number) => axiosInstance.delete(`/vinculos/${id}`).then((res: any) => res.data),
+    list: () => request('/consumidores'),
+    get: (id: number) => request(`/consumidores/${id}`),
+    create: (data: any) => request('/consumidores', { method: 'POST', body: JSON.stringify(data) }),
+    update: (id: number, data: any) => request(`/consumidores/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    delete: (id: number) => request(`/consumidores/${id}`, { method: 'DELETE' }),
   },
   status: {
-    list: () => axiosInstance.get('/status').then((res: any) => res.data),
+    list: () => request('/status'),
   },
   entidades: {
-    list: () => axiosInstance.get('/entidades').then((res: any) => res.data),
-    create: (data: any) => axiosInstance.post('/entidades', data).then((res: any) => res.data),
-    update: (id: number, data: any) => axiosInstance.put(`/entidades/${id}`, data).then((res: any) => res.data),
-    delete: (id: number) => axiosInstance.delete(`/entidades/${id}`).then((res: any) => res.data),
+    list: () => request('/entidades'),
   },
   fechamentos: {
-    list: (vinculoId: number) => axiosInstance.get(`/fechamentos/${vinculoId}`).then((res: any) => res.data),
-    create: (data: any) => axiosInstance.post('/fechamentos', data).then((res: any) => res.data),
-    update: (id: number, data: any) => axiosInstance.put(`/fechamentos/${id}`, data).then((res: any) => res.data),
-    delete: (id: number) => axiosInstance.delete(`/fechamentos/${id}`).then((res: any) => res.data),
+    list: (vinculoId: number) => request(`/fechamentos/${vinculoId}`),
+    create: (data: any) => request('/fechamentos', { method: 'POST', body: JSON.stringify(data) }),
+    update: (id: number, data: any) => request(`/fechamentos/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    delete: (id: number) => request(`/fechamentos/${id}`, { method: 'DELETE' }),
   },
+
+  // --- NOVAS ROTAS (ADICIONE A PARTIR DAQUI) ---
   
-  // Helpers genéricos
-  get: (url: string) => axiosInstance.get(url).then((res: any) => res.data),
-  post: (url: string, data: any) => axiosInstance.post(url, data).then((res: any) => res.data),
-  put: (url: string, data: any) => axiosInstance.put(url, data).then((res: any) => res.data),
-  delete: (url: string) => axiosInstance.delete(url).then((res: any) => res.data),
+  concessionarias: {
+    list: () => request('/concessionarias'),
+  },
+
+  propostas: {
+    list: (status?: string) => {
+        // Se passar status, adiciona na URL (ex: ?status=Enviada)
+        const query = status ? `?status=${status}` : '';
+        return request(`/propostas${query}`);
+    },
+    create: (data: any) => request('/propostas', { method: 'POST', body: JSON.stringify(data) }),
+    update: (id: number, data: any) => request(`/propostas/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    delete: (id: number) => request(`/propostas/${id}`, { method: 'DELETE' }),
+  }
 };

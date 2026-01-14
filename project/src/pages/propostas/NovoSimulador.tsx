@@ -1,29 +1,23 @@
 import { useState, useEffect, useRef } from 'react';
 import { api } from '../../lib/api';
 import { calcularEconomia, DadosSimulacao } from '../../utils/calculadoraSolar';
-import { Save, Calculator, FileText, Search, User, ArrowRight } from 'lucide-react';
+import { Save, Calculator, FileText, Search, User, Zap, ArrowDown, CheckCircle } from 'lucide-react';
 // @ts-ignore
 import html2pdf from 'html2pdf.js';
 
 export default function NovoSimulador() {
-  // --- ESTADOS ---
   const [loading, setLoading] = useState(true);
-  const [tipoCliente, setTipoCliente] = useState<'base' | 'prospect'>('prospect');
+  const [tipoCliente, setTipoCliente] = useState<'base' | 'prospect'>('base');
   
-  // Listas para seleção
   const [clientesBase, setClientesBase] = useState<any[]>([]);
   const [concessionarias, setConcessionarias] = useState<any[]>([]);
-  
-  // Controle de Seleção
   const [clienteSelecionadoId, setClienteSelecionadoId] = useState('');
   
-  // Formulário Principal
   const [form, setForm] = useState({
     nome: '',
     uc: '',
     concessionaria_id: '',
     
-    // Dados Financeiros
     consumoKwh: '',
     valorTusd: '',
     valorTe: '',
@@ -31,11 +25,9 @@ export default function NovoSimulador() {
     valorIluminacao: '0',
     valorOutros: '0',
     
-    // Parâmetros Técnicos (Lei 14.300)
-    fioB_Total: '0.1450', // Padrão editável
-    fioB_Percentual: '60', // Padrão 2026
+    fioB_Total: '0.1450', 
+    fioB_Percentual: '60', 
     
-    // Impostos (Valores em R$)
     valorPis: '0',
     valorCofins: '0',
     valorIcms: '0',
@@ -46,7 +38,6 @@ export default function NovoSimulador() {
   const [resultado, setResultado] = useState<any>(null);
   const pdfTemplateRef = useRef<HTMLDivElement>(null);
 
-  // --- INICIALIZAÇÃO ---
   useEffect(() => {
     async function loadData() {
       try {
@@ -57,7 +48,7 @@ export default function NovoSimulador() {
         setClientesBase(cli);
         setConcessionarias(conc);
       } catch (e) {
-        console.error(e);
+        console.error("Erro ao carregar dados", e);
       } finally {
         setLoading(false);
       }
@@ -65,23 +56,26 @@ export default function NovoSimulador() {
     loadData();
   }, []);
 
-  // --- HANDLERS ---
+  // --- CORREÇÃO: PUXAR DADOS DO CLIENTE ---
   const handleClienteChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const id = e.target.value;
     setClienteSelecionadoId(id);
     
     if (id) {
-      const cli = clientesBase.find(c => c.consumidorid === Number(id));
+      const cli = clientesBase.find(c => c.consumidorid === Number(id) || c.id === Number(id));
       if (cli) {
+        console.log("Cliente selecionado:", cli); // Para debug
         setForm(prev => ({
           ...prev,
-          nome: cli.nome,
-          uc: '', // Deixa vazio pra escolher a UC específica se quiser
-          consumoKwh: cli.mediaconsumo ? String(cli.mediaconsumo) : prev.consumoKwh
+          nome: cli.nome || cli.razao_social || '',
+          // Tenta pegar UC de vários nomes possíveis que podem vir do banco
+          uc: cli.unidade_consumidora || cli.uc || cli.numero_uc || '', 
+          // Tenta pegar consumo
+          consumoKwh: cli.mediaconsumo ? String(cli.mediaconsumo) : (cli.media_consumo ? String(cli.media_consumo) : prev.consumoKwh)
         }));
       }
     } else {
-      setForm(prev => ({ ...prev, nome: '' }));
+      setForm(prev => ({ ...prev, nome: '', uc: '', consumoKwh: '' }));
     }
   };
 
@@ -92,8 +86,6 @@ export default function NovoSimulador() {
 
   const handleSimular = (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Converte tudo para número
     const dados: DadosSimulacao = {
       consumoKwh: Number(form.consumoKwh),
       valorTusd: Number(form.valorTusd),
@@ -108,329 +100,242 @@ export default function NovoSimulador() {
       valorIcms: Number(form.valorIcms),
       descontoBionova: Number(form.descontoBionova)
     };
-
-    const res = calcularEconomia(dados);
-    setResultado(res);
+    setResultado(calcularEconomia(dados));
   };
 
   const salvarProposta = async (status: string) => {
-    if (!resultado) return alert("Por favor, clique em 'Calcular' antes de salvar.");
-    
-    const payload = {
-      consumidor_id: tipoCliente === 'base' && clienteSelecionadoId ? Number(clienteSelecionadoId) : null,
-      nome_cliente_prospect: form.nome,
-      concessionaria_id: form.concessionaria_id ? Number(form.concessionaria_id) : null,
-      dados_simulacao: form,
-      status: status,
-      // Futuro: aqui você pode salvar a URL do PDF se fizer upload pro Supabase Storage
-    };
-
+    if (!resultado) return alert("Calcule antes de salvar!");
     try {
-        await api.propostas.create(payload);
-        alert(`Proposta salva com sucesso como: ${status}!`);
+        await api.propostas.create({
+          consumidor_id: tipoCliente === 'base' && clienteSelecionadoId ? Number(clienteSelecionadoId) : null,
+          nome_cliente_prospect: form.nome,
+          concessionaria_id: form.concessionaria_id ? Number(form.concessionaria_id) : null,
+          dados_simulacao: form,
+          status: status,
+        });
+        alert(`Sucesso! Proposta ${status}.`);
     } catch (error) {
-        console.error(error);
-        alert("Erro ao salvar proposta.");
+        alert("Erro ao salvar.");
     }
   };
 
-const gerarPDF = () => {
-    if (!resultado) return alert("Simule primeiro!");
-    
-    const element = pdfTemplateRef.current;
-    
-    // CORREÇÃO 1: Se o elemento não existir por algum motivo, para tudo.
-    // Isso resolve o erro: "Type 'null' is not assignable..."
-    if (!element) {
-        alert("Erro: Modelo do PDF não encontrado.");
-        return;
-    }
-    
+  const gerarPDF = () => {
+    if (!resultado || !pdfTemplateRef.current) return;
     const opt = {
       margin: 0,
-      filename: `Proposta_Bionova_${form.nome.replace(/\s+/g, '_')}.pdf`,
-      // CORREÇÃO 2: Usamos 'as const' para jurar pro TypeScript que esses textos não vão mudar.
-      // Isso resolve o erro: "Type 'string' is not assignable to type 'jpeg'..."
+      filename: `Proposta_${form.nome}.pdf`,
       image: { type: 'jpeg' as const, quality: 0.98 },
       html2canvas: { scale: 2, useCORS: true },
       jsPDF: { unit: 'mm' as const, format: 'a4' as const, orientation: 'portrait' as const }
     };
-
-    // Aqui usamos 'as any' no opt apenas por segurança caso a biblioteca tenha definições extras
-    html2pdf().set(opt).from(element).save();
-    
+    html2pdf().set(opt).from(pdfTemplateRef.current).save();
     salvarProposta('Enviada');
   };
 
-  // Funções Auxiliares de Formatação
-  const fmtMoeda = (v: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v);
-  const fmtNum = (v: number) => new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 2 }).format(v);
+  const fmt = (v: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v);
+  const fmtP = (v: number) => new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 1 }).format(v) + '%';
 
-  if (loading) return <div className="p-8 text-center">Carregando dados...</div>;
+  if (loading) return <div className="p-10 text-center">Carregando...</div>;
 
   return (
     <div className="max-w-7xl mx-auto pb-20">
       
-      {/* CABEÇALHO */}
-      <div className="flex items-center gap-3 mb-8">
-        <div className="p-3 bg-blue-100 rounded-lg text-blue-600">
-          <Calculator className="w-8 h-8" />
-        </div>
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Novo Simulador Comercial</h1>
-          <p className="text-gray-500">Gere propostas precisas com a regra da Lei 14.300</p>
-        </div>
+      {/* HEADER */}
+      <div className="mb-8 border-b border-gray-200 pb-6">
+        <h1 className="text-3xl font-bold text-gray-900">Simulador Comercial</h1>
+        <p className="text-gray-500 mt-1">Gere propostas detalhadas com cálculo exato da Lei 14.300</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         
-        {/* --- COLUNA ESQUERDA: FORMULÁRIO (lg:col-span-5) --- */}
-        <div className="lg:col-span-5 space-y-6">
+        {/* === COLUNA DA ESQUERDA: FORMULÁRIO === */}
+        <div className="lg:col-span-4 space-y-6">
           
-          {/* CARD 1: IDENTIFICAÇÃO */}
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+          {/* 1. Seleção de Cliente */}
+          <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-200">
             <h2 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
-              <User className="w-5 h-5 text-blue-600"/> Dados do Cliente
+              <User className="w-5 h-5 text-blue-600"/> Cliente
             </h2>
             
-            {/* Switch Tipo Cliente */}
             <div className="flex bg-gray-100 p-1 rounded-lg mb-4">
-              <button 
-                onClick={() => setTipoCliente('base')}
-                className={`flex-1 py-2 text-sm font-medium rounded-md transition-all ${tipoCliente === 'base' ? 'bg-white shadow text-blue-700' : 'text-gray-500'}`}
-              >
-                Cliente da Base
-              </button>
-              <button 
-                onClick={() => setTipoCliente('prospect')}
-                className={`flex-1 py-2 text-sm font-medium rounded-md transition-all ${tipoCliente === 'prospect' ? 'bg-white shadow text-blue-700' : 'text-gray-500'}`}
-              >
-                Novo Prospect
-              </button>
+              <button onClick={() => setTipoCliente('base')} className={`flex-1 py-1.5 text-sm font-medium rounded-md transition-all ${tipoCliente === 'base' ? 'bg-white shadow text-blue-700' : 'text-gray-500'}`}>Base</button>
+              <button onClick={() => setTipoCliente('prospect')} className={`flex-1 py-1.5 text-sm font-medium rounded-md transition-all ${tipoCliente === 'prospect' ? 'bg-white shadow text-blue-700' : 'text-gray-500'}`}>Novo</button>
             </div>
 
-            {tipoCliente === 'base' ? (
+            {tipoCliente === 'base' && (
                <div className="mb-4">
-                 <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Buscar Cliente</label>
-                 <div className="relative">
-                   <select 
-                     className="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 appearance-none bg-white"
-                     value={clienteSelecionadoId}
-                     onChange={handleClienteChange}
-                   >
-                     <option value="">Selecione um cliente...</option>
-                     {clientesBase.map(c => (
-                       <option key={c.consumidorid} value={c.consumidorid}>{c.nome}</option>
-                     ))}
-                   </select>
-                   <Search className="w-4 h-4 text-gray-400 absolute left-3 top-3 pointer-events-none"/>
-                 </div>
+                 <select className="w-full p-2 border rounded-lg bg-white text-sm" value={clienteSelecionadoId} onChange={handleClienteChange}>
+                   <option value="">Selecione da lista...</option>
+                   {clientesBase.map(c => (
+                     <option key={c.consumidorid || c.id} value={c.consumidorid || c.id}>{c.nome || c.razao_social}</option>
+                   ))}
+                 </select>
                </div>
-            ) : null}
+            )}
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="col-span-2">
-                <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Nome Completo</label>
-                <input 
-                  type="text" 
-                  name="nome"
-                  value={form.nome} 
-                  onChange={handleInputChange}
-                  className="w-full p-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
-                  placeholder="Ex: João da Silva"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Nº da UC</label>
-                <input 
-                  type="text" 
-                  name="uc"
-                  value={form.uc}
-                  onChange={handleInputChange}
-                  className="w-full p-2 border rounded-lg"
-                  placeholder="Ex: 12345678"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Concessionária</label>
-                <select 
-                  name="concessionaria_id"
-                  value={form.concessionaria_id}
-                  onChange={handleInputChange}
-                  className="w-full p-2 border rounded-lg bg-white"
-                >
-                  <option value="">Selecione...</option>
-                  {concessionarias.map(c => (
-                    <option key={c.id} value={c.id}>{c.nome}</option>
-                  ))}
-                </select>
-              </div>
+            <div className="space-y-3">
+                <input type="text" name="nome" value={form.nome} onChange={handleInputChange} className="w-full p-2 border rounded text-sm" placeholder="Nome Completo" />
+                <div className="grid grid-cols-2 gap-2">
+                  <input type="text" name="uc" value={form.uc} onChange={handleInputChange} className="w-full p-2 border rounded text-sm" placeholder="Nº UC" />
+                  <select name="concessionaria_id" value={form.concessionaria_id} onChange={handleInputChange} className="w-full p-2 border rounded text-sm bg-white">
+                    <option value="">Concessionária</option>
+                    {concessionarias.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
+                  </select>
+                </div>
             </div>
           </div>
 
-          {/* CARD 2: DADOS FINANCEIROS */}
-          <form onSubmit={handleSimular} className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+          {/* 2. Dados Financeiros */}
+          <form onSubmit={handleSimular} className="bg-white p-5 rounded-xl shadow-sm border border-gray-200">
             <h2 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
-              <FileText className="w-5 h-5 text-green-600"/> Dados da Fatura
+              <Zap className="w-5 h-5 text-orange-500"/> Fatura Atual
             </h2>
 
-            <div className="space-y-4">
+            <div className="space-y-3">
               <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">Consumo Mensal (kWh)</label>
-                <input type="number" name="consumoKwh" required value={form.consumoKwh} onChange={handleInputChange} className="w-full p-2 border rounded-lg text-lg font-bold text-blue-900 bg-blue-50" placeholder="0" />
+                <label className="text-xs font-semibold text-gray-500">Consumo (kWh)</label>
+                <input type="number" name="consumoKwh" required value={form.consumoKwh} onChange={handleInputChange} className="w-full p-2 border rounded text-lg font-bold text-blue-900 bg-blue-50" />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs text-gray-500 mb-1">TUSD Total (R$)</label>
-                  <input type="number" step="0.01" name="valorTusd" required value={form.valorTusd} onChange={handleInputChange} className="w-full p-2 border rounded-lg" placeholder="0.00" />
-                </div>
-                <div>
-                  <label className="block text-xs text-gray-500 mb-1">TE Total (R$)</label>
-                  <input type="number" step="0.01" name="valorTe" required value={form.valorTe} onChange={handleInputChange} className="w-full p-2 border rounded-lg" placeholder="0.00" />
-                </div>
-                <div>
-                  <label className="block text-xs text-gray-500 mb-1">Bandeira (R$)</label>
-                  <input type="number" step="0.01" name="valorBandeira" value={form.valorBandeira} onChange={handleInputChange} className="w-full p-2 border rounded-lg" />
-                </div>
-                <div>
-                  <label className="block text-xs text-gray-500 mb-1">Ilum. Pública (R$)</label>
-                  <input type="number" step="0.01" name="valorIluminacao" value={form.valorIluminacao} onChange={handleInputChange} className="w-full p-2 border rounded-lg" />
-                </div>
-                <div>
-                  <label className="block text-xs text-gray-500 mb-1">Outros/Multas (R$)</label>
-                  <input type="number" step="0.01" name="valorOutros" value={form.valorOutros} onChange={handleInputChange} className="w-full p-2 border rounded-lg" />
-                </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div><label className="text-[10px] text-gray-500">TUSD (R$)</label><input type="number" step="0.01" name="valorTusd" required value={form.valorTusd} onChange={handleInputChange} className="w-full p-2 border rounded text-sm" /></div>
+                <div><label className="text-[10px] text-gray-500">TE (R$)</label><input type="number" step="0.01" name="valorTe" required value={form.valorTe} onChange={handleInputChange} className="w-full p-2 border rounded text-sm" /></div>
+                <div><label className="text-[10px] text-gray-500">Bandeira (R$)</label><input type="number" step="0.01" name="valorBandeira" value={form.valorBandeira} onChange={handleInputChange} className="w-full p-2 border rounded text-sm" /></div>
+                <div><label className="text-[10px] text-gray-500">Ilum. Púb (R$)</label><input type="number" step="0.01" name="valorIluminacao" value={form.valorIluminacao} onChange={handleInputChange} className="w-full p-2 border rounded text-sm" /></div>
+                <div><label className="text-[10px] text-gray-500">Outros (R$)</label><input type="number" step="0.01" name="valorOutros" value={form.valorOutros} onChange={handleInputChange} className="w-full p-2 border rounded text-sm" /></div>
               </div>
 
-              <div className="border-t pt-4 mt-4">
-                <h3 className="text-sm font-bold text-gray-900 mb-2">Impostos (para abater)</h3>
+              <div className="pt-3 border-t">
+                <p className="text-xs font-bold mb-2">Impostos (para cálculo)</p>
                 <div className="grid grid-cols-3 gap-2">
-                  <div>
-                    <label className="block text-[10px] text-gray-500">PIS (R$)</label>
-                    <input type="number" step="0.01" name="valorPis" value={form.valorPis} onChange={handleInputChange} className="w-full p-1.5 border rounded text-sm" />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] text-gray-500">COFINS (R$)</label>
-                    <input type="number" step="0.01" name="valorCofins" value={form.valorCofins} onChange={handleInputChange} className="w-full p-1.5 border rounded text-sm" />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] text-gray-500">ICMS TUSD (R$)</label>
-                    <input type="number" step="0.01" name="valorIcms" value={form.valorIcms} onChange={handleInputChange} className="w-full p-1.5 border rounded text-sm" />
-                  </div>
+                  <input type="number" step="0.01" name="valorPis" placeholder="PIS" value={form.valorPis} onChange={handleInputChange} className="w-full p-1 border rounded text-xs" />
+                  <input type="number" step="0.01" name="valorCofins" placeholder="COFINS" value={form.valorCofins} onChange={handleInputChange} className="w-full p-1 border rounded text-xs" />
+                  <input type="number" step="0.01" name="valorIcms" placeholder="ICMS TUSD" value={form.valorIcms} onChange={handleInputChange} className="w-full p-1 border rounded text-xs" />
                 </div>
               </div>
 
-              <div className="bg-orange-50 p-3 rounded-lg border border-orange-100">
-                <h3 className="text-xs font-bold text-orange-800 mb-2 uppercase">Regra Fio B (Lei 14.300)</h3>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-[10px] text-orange-700">Tarifa Fio B Total</label>
-                    <input type="number" step="0.0001" name="fioB_Total" value={form.fioB_Total} onChange={handleInputChange} className="w-full p-1.5 border border-orange-200 rounded text-sm text-orange-900" />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] text-orange-700">% Transição (ex: 60)</label>
-                    <input type="number" name="fioB_Percentual" value={form.fioB_Percentual} onChange={handleInputChange} className="w-full p-1.5 border border-orange-200 rounded text-sm text-orange-900" />
-                  </div>
+              <div className="bg-orange-50 p-3 rounded mt-3 border border-orange-100">
+                <p className="text-[10px] text-orange-800 font-bold uppercase mb-1">Configuração Fio B</p>
+                <div className="grid grid-cols-2 gap-2">
+                  <input type="number" step="0.0001" name="fioB_Total" value={form.fioB_Total} onChange={handleInputChange} className="w-full p-1 text-xs border rounded" />
+                  <div className="flex items-center gap-1"><input type="number" name="fioB_Percentual" value={form.fioB_Percentual} onChange={handleInputChange} className="w-12 p-1 text-xs border rounded" /><span className="text-xs">%</span></div>
                 </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-bold text-blue-900 mb-1">Desconto Bionova (%)</label>
-                <div className="flex items-center gap-2">
-                  <input 
-                    type="range" min="0" max="30" step="1" name="descontoBionova" 
-                    value={form.descontoBionova} onChange={handleInputChange} 
-                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
-                  />
-                  <span className="text-xl font-bold text-blue-600 w-12 text-center">{form.descontoBionova}%</span>
-                </div>
+              <div className="pt-4">
+                 <label className="text-sm font-bold text-blue-900 block mb-1">Desconto Bionova</label>
+                 <div className="flex items-center gap-3">
+                   <input type="range" min="0" max="30" name="descontoBionova" value={form.descontoBionova} onChange={handleInputChange} className="flex-1" />
+                   <span className="text-xl font-bold text-blue-600">{form.descontoBionova}%</span>
+                 </div>
               </div>
 
-              <button type="submit" className="w-full py-3 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 shadow-lg shadow-blue-200 transition-all flex justify-center items-center gap-2">
-                <Calculator className="w-5 h-5" /> Calcular Economia
+              <button type="submit" className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg shadow mt-4 flex justify-center gap-2">
+                <Calculator className="w-5 h-5"/> Calcular
               </button>
             </div>
           </form>
         </div>
 
-        {/* --- COLUNA DIREITA: RESULTADOS (lg:col-span-7) --- */}
-        <div className="lg:col-span-7">
+        {/* === COLUNA DA DIREITA: RESULTADOS === */}
+        <div className="lg:col-span-8">
           {!resultado ? (
-            <div className="h-full flex flex-col items-center justify-center bg-gray-50 border-2 border-dashed border-gray-200 rounded-xl min-h-[400px] text-gray-400">
-              <Calculator className="w-16 h-16 mb-4 opacity-20" />
-              <p>Preencha os dados e clique em calcular</p>
+            <div className="h-full flex flex-col items-center justify-center bg-gray-50 border-2 border-dashed border-gray-200 rounded-xl text-gray-400 min-h-[400px]">
+              <Search className="w-16 h-16 opacity-20 mb-4"/>
+              <p>Preencha os dados e clique em Calcular</p>
             </div>
           ) : (
             <div className="space-y-6 animate-fade-in">
               
-              {/* BLOCO DE DESTAQUE */}
-              <div className="bg-gradient-to-r from-blue-600 to-blue-800 rounded-xl p-6 text-white shadow-xl relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-white opacity-5 rounded-full -mr-10 -mt-10"></div>
-                <div className="relative z-10">
-                  <p className="text-blue-100 text-sm font-medium mb-1">Economia Mensal Estimada</p>
-                  <h2 className="text-4xl font-bold mb-4">{fmtMoeda(resultado.economiaRealCliente)}</h2>
-                  <div className="flex gap-4 text-sm opacity-90">
-                    <div>
-                      <span className="block text-xs uppercase">Anual (12 meses)</span>
-                      <span className="font-semibold">{fmtMoeda(resultado.economiaRealCliente * 12)}</span>
-                    </div>
-                    <div>
-                      <span className="block text-xs uppercase">Em 5 anos</span>
-                      <span className="font-semibold">{fmtMoeda(resultado.economiaRealCliente * 60)}</span>
-                    </div>
-                  </div>
+              {/* 1. DESTAQUES (CARDS) */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* Economia Líquida */}
+                <div className="bg-green-600 text-white p-6 rounded-xl shadow-lg relative overflow-hidden">
+                   <div className="absolute right-0 top-0 opacity-10 p-4"><CheckCircle size={80}/></div>
+                   <p className="text-green-100 text-sm font-medium mb-1">Economia Real (Seu Bolso)</p>
+                   <h3 className="text-3xl font-bold">{fmt(resultado.economiaRealCliente)}</h3>
+                   <p className="text-xs mt-2 opacity-80">Por mês</p>
+                </div>
+
+                {/* Desconto Total % */}
+                <div className="bg-white p-6 rounded-xl shadow border border-gray-200">
+                   <p className="text-gray-500 text-sm font-medium mb-1">% Redução Fatura Total</p>
+                   <h3 className="text-3xl font-bold text-blue-600">{fmtP(resultado.percentualReducaoTotal)}</h3>
+                   <p className="text-xs text-gray-400 mt-2">Sobre o custo total atual</p>
+                </div>
+
+                {/* Desconto Bionova */}
+                <div className="bg-white p-6 rounded-xl shadow border border-gray-200">
+                   <p className="text-gray-500 text-sm font-medium mb-1">Desconto Energia</p>
+                   <h3 className="text-3xl font-bold text-gray-800">{form.descontoBionova}%</h3>
+                   <p className="text-xs text-gray-400 mt-2">Sobre a energia compensada</p>
                 </div>
               </div>
 
-              {/* TABELA COMPARATIVA */}
+              {/* 2. TABELA COMPARATIVA DETALHADA */}
               <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
                 <div className="p-4 bg-gray-50 border-b flex justify-between items-center">
-                  <h3 className="font-bold text-gray-700">Demonstrativo Financeiro</h3>
-                  <span className="text-xs text-gray-500 bg-white px-2 py-1 rounded border">Consumo: {form.consumoKwh} kWh</span>
+                  <h3 className="font-bold text-gray-800">Demonstrativo Financeiro</h3>
+                  <span className="text-xs bg-white px-2 py-1 border rounded text-gray-500">Consumo: {form.consumoKwh} kWh</span>
                 </div>
+                
                 <table className="w-full text-sm">
-                  <thead className="bg-gray-50 text-gray-500 text-xs uppercase text-left">
+                  <thead className="bg-gray-50 text-gray-500 text-xs uppercase">
                     <tr>
-                      <th className="px-4 py-3">Descrição</th>
-                      <th className="px-4 py-3 text-right">Sem Bionova</th>
-                      <th className="px-4 py-3 text-right text-blue-700 font-bold">Com Bionova</th>
+                      <th className="px-6 py-3 text-left">Descrição</th>
+                      <th className="px-6 py-3 text-right">Cenário Atual</th>
+                      <th className="px-6 py-3 text-right text-blue-700 font-bold">Com Bionova</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
                     <tr>
-                      <td className="px-4 py-3 text-gray-600">Distribuidora (Novo TUSD + Taxas)</td>
-                      <td className="px-4 py-3 text-right font-medium">{fmtMoeda(resultado.faturaAtual)}</td>
-                      <td className="px-4 py-3 text-right font-bold text-gray-800">{fmtMoeda(resultado.novaFaturaComSolar)}</td>
+                      <td className="px-6 py-4 text-gray-600">
+                        <span className="block font-medium text-gray-900">Fatura Concessionária</span>
+                        <span className="text-xs text-gray-400">Energia + Taxas + Impostos</span>
+                      </td>
+                      <td className="px-6 py-4 text-right font-medium text-gray-900">{fmt(resultado.faturaAtual)}</td>
+                      <td className="px-6 py-4 text-right font-medium text-gray-900">{fmt(resultado.novaFaturaDistribuidora)}</td>
                     </tr>
-                    <tr className="bg-green-50">
-                      <td className="px-4 py-3 text-green-800 font-medium">Boleto Usina (Aluguel)</td>
-                      <td className="px-4 py-3 text-right text-gray-400">-</td>
-                      <td className="px-4 py-3 text-right font-bold text-green-700">{fmtMoeda(resultado.pagamentoUsina)}</td>
+                    
+                    <tr className="bg-blue-50/50">
+                      <td className="px-6 py-4 text-gray-600">
+                        <span className="block font-medium text-blue-900">Pagamento Usina (Aluguel)</span>
+                        <span className="text-xs text-gray-400">Referente a energia injetada</span>
+                      </td>
+                      <td className="px-6 py-4 text-right text-gray-300">-</td>
+                      <td className="px-6 py-4 text-right font-bold text-blue-700">{fmt(resultado.pagamentoUsina)}</td>
                     </tr>
-                    <tr className="bg-gray-50 font-bold text-base">
-                      <td className="px-4 py-4 text-gray-900">CUSTO FINAL</td>
-                      <td className="px-4 py-4 text-right text-gray-500 line-through decoration-red-500">{fmtMoeda(resultado.faturaAtual)}</td>
-                      <td className="px-4 py-4 text-right text-blue-700">{fmtMoeda(resultado.novoCustoTotal)}</td>
+
+                    {/* LINHA DE TOTAIS */}
+                    <tr className="bg-gray-50 text-base">
+                      <td className="px-6 py-5 font-bold text-gray-900">TOTAL MENSAL</td>
+                      <td className="px-6 py-5 text-right font-bold text-gray-500 line-through decoration-red-400">{fmt(resultado.faturaAtual)}</td>
+                      <td className="px-6 py-5 text-right font-bold text-blue-700 text-lg">{fmt(resultado.novoCustoTotal)}</td>
                     </tr>
                   </tbody>
                 </table>
+
+                {/* RODAPÉ DA TABELA: DETALHES EXTRAS */}
+                <div className="bg-gray-50 p-4 border-t border-gray-100 grid grid-cols-2 gap-4 text-xs text-gray-500">
+                  <div>
+                    <span className="block font-semibold">Valor de Redução Bruta:</span>
+                    <span>{fmt(resultado.economiaBruta)} (Abatimento total na conta)</span>
+                  </div>
+                  <div className="text-right">
+                    <span className="block font-semibold text-green-600">Economia Líquida (Você Ganha):</span>
+                    <span className="font-bold text-green-700 text-sm">{fmt(resultado.economiaRealCliente)}</span>
+                  </div>
+                </div>
               </div>
 
-              {/* AÇÕES */}
-              <div className="flex gap-3 pt-4">
-                <button 
-                  onClick={() => salvarProposta('Rascunho')}
-                  className="flex-1 py-3 bg-white border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 flex items-center justify-center gap-2"
-                >
-                  <Save className="w-4 h-4" /> Salvar Rascunho
-                </button>
-                <button 
-                  onClick={gerarPDF}
-                  className="flex-[2] py-3 bg-green-600 text-white font-bold rounded-lg hover:bg-green-700 shadow-lg shadow-green-100 flex items-center justify-center gap-2"
-                >
-                  <FileText className="w-5 h-5" /> Gerar Proposta (PDF)
-                </button>
+              {/* 3. BOTÕES DE AÇÃO */}
+              <div className="flex gap-4 pt-4">
+                 <button onClick={() => salvarProposta('Rascunho')} className="flex-1 py-3 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 flex justify-center items-center gap-2">
+                   <Save className="w-4 h-4"/> Salvar Rascunho
+                 </button>
+                 <button onClick={gerarPDF} className="flex-[2] py-3 bg-green-600 hover:bg-green-700 text-white font-bold rounded-lg shadow-lg flex justify-center items-center gap-2">
+                   <FileText className="w-5 h-5"/> Gerar Proposta PDF
+                 </button>
               </div>
 
             </div>
@@ -438,63 +343,62 @@ const gerarPDF = () => {
         </div>
       </div>
 
-      {/* --- MOLDE DO PDF (Escondido) --- */}
+      {/* --- MODELO PDF (OCULTO) --- */}
       {resultado && (
-        <div style={{ position: 'absolute', top: -9999, left: -9999 }}>
-          <div ref={pdfTemplateRef} className="w-[210mm] min-h-[297mm] bg-white text-black font-sans p-[20mm]">
-            
-            {/* CAPA DO PDF */}
-            <div className="text-center mb-10 border-b-4 border-orange-500 pb-10">
-              <h1 className="text-4xl font-bold text-[#212540] mb-2">PROPOSTA COMERCIAL</h1>
-              <p className="text-lg text-gray-600">Locação de Usina Solar</p>
-              <div className="mt-8 bg-gray-100 p-6 rounded-xl border text-left inline-block w-full max-w-lg">
-                <p className="text-lg mb-2"><strong>Cliente:</strong> {form.nome}</p>
-                <p className="text-lg mb-2"><strong>UC:</strong> {form.uc || 'N/A'}</p>
-                <p className="text-lg"><strong>Data:</strong> {new Date().toLocaleDateString()}</p>
+        <div className="fixed left-[-9999px]">
+           <div ref={pdfTemplateRef} className="w-[210mm] min-h-[297mm] bg-white p-[15mm] font-sans text-gray-800">
+              
+              {/* Cabeçalho PDF */}
+              <div className="flex justify-between items-center border-b-2 border-blue-600 pb-6 mb-8">
+                 <div>
+                    <h1 className="text-3xl font-bold text-blue-900">Proposta de Economia</h1>
+                    <p className="text-sm text-gray-500">Energia Solar por Assinatura</p>
+                 </div>
+                 <div className="text-right text-sm">
+                    <p><strong>Cliente:</strong> {form.nome}</p>
+                    <p><strong>Data:</strong> {new Date().toLocaleDateString()}</p>
+                 </div>
               </div>
-            </div>
 
-            {/* CONTEÚDO */}
-            <div className="mb-8">
-              <h3 className="text-xl font-bold text-[#212540] mb-4 border-b pb-2">Resumo da Economia</h3>
-              <table className="w-full text-sm mb-6 border-collapse">
+              {/* Resumo */}
+              <div className="bg-blue-50 rounded-lg p-6 mb-8 text-center border border-blue-100">
+                 <p className="text-blue-800 font-medium mb-2">Com a Bionova, sua economia mensal estimada é de:</p>
+                 <h2 className="text-5xl font-bold text-green-600">{fmt(resultado.economiaRealCliente)}</h2>
+                 <p className="text-sm text-gray-500 mt-2">Isso representa {fmtP(resultado.percentualReducaoTotal)} de redução na sua fatura total.</p>
+              </div>
+
+              {/* Tabela PDF */}
+              <table className="w-full text-sm mb-8 border-collapse">
                 <thead>
-                  <tr className="bg-[#212540] text-white">
-                    <th className="p-3 text-left">Descrição</th>
-                    <th className="p-3 text-right">Atual</th>
-                    <th className="p-3 text-right">Com Bionova</th>
+                  <tr className="bg-gray-100">
+                     <th className="p-3 text-left border-b border-gray-300">Descrição</th>
+                     <th className="p-3 text-right border-b border-gray-300">Hoje</th>
+                     <th className="p-3 text-right border-b border-gray-300 font-bold text-blue-700">Com Bionova</th>
                   </tr>
                 </thead>
                 <tbody>
-                  <tr>
-                    <td className="p-3 border-b">Consumo ({form.consumoKwh} kWh)</td>
-                    <td className="p-3 border-b text-right">{fmtMoeda(resultado.faturaAtual)}</td>
-                    <td className="p-3 border-b text-right font-bold">{fmtMoeda(resultado.novaFaturaComSolar)}</td>
-                  </tr>
-                  <tr>
-                    <td className="p-3 border-b">Pagamento à Usina</td>
-                    <td className="p-3 border-b text-right">-</td>
-                    <td className="p-3 border-b text-right">{fmtMoeda(resultado.pagamentoUsina)}</td>
-                  </tr>
-                  <tr className="bg-gray-100 font-bold text-lg">
-                    <td className="p-3">TOTAL A PAGAR</td>
-                    <td className="p-3 text-right">{fmtMoeda(resultado.faturaAtual)}</td>
-                    <td className="p-3 text-right text-blue-700">{fmtMoeda(resultado.novoCustoTotal)}</td>
-                  </tr>
+                   <tr>
+                      <td className="p-3 border-b">Distribuidora de Energia</td>
+                      <td className="p-3 border-b text-right">{fmt(resultado.faturaAtual)}</td>
+                      <td className="p-3 border-b text-right">{fmt(resultado.novaFaturaDistribuidora)}</td>
+                   </tr>
+                   <tr>
+                      <td className="p-3 border-b">Assinatura Solar</td>
+                      <td className="p-3 border-b text-right">-</td>
+                      <td className="p-3 border-b text-right font-bold">{fmt(resultado.pagamentoUsina)}</td>
+                   </tr>
+                   <tr className="bg-gray-50 font-bold">
+                      <td className="p-3 border-t-2 border-gray-300">CUSTO TOTAL</td>
+                      <td className="p-3 border-t-2 border-gray-300 text-right">{fmt(resultado.faturaAtual)}</td>
+                      <td className="p-3 border-t-2 border-gray-300 text-right text-blue-700">{fmt(resultado.novoCustoTotal)}</td>
+                   </tr>
                 </tbody>
               </table>
 
-              <div className="bg-[#212540] text-white p-6 rounded-lg text-center">
-                <p className="text-lg">Sua economia mensal será de:</p>
-                <h2 className="text-5xl font-bold text-orange-500 my-2">{fmtMoeda(resultado.economiaRealCliente)}</h2>
-                <p className="opacity-80">Isso representa {fmtMoeda(resultado.economiaRealCliente * 12)} ao ano!</p>
+              <div className="text-xs text-gray-400 mt-10 text-center">
+                 <p>Valores estimados com base no consumo informado e tarifas vigentes. Proposta válida por 10 dias.</p>
               </div>
-            </div>
-
-            <div className="text-center text-xs text-gray-500 mt-20">
-              <p>Proposta válida por 15 dias. Bionova Energia Solar.</p>
-            </div>
-          </div>
+           </div>
         </div>
       )}
 

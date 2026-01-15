@@ -1,5 +1,3 @@
-// src/utils/calculadoraSolar.ts
-
 export interface DadosSimulacao {
   consumoKwh: number;
   valorTusd: number;      
@@ -7,10 +5,8 @@ export interface DadosSimulacao {
   valorBandeira: number;  
   valorIluminacao: number;
   valorOutros: number;    
-  
   fioB_Total: number;      
   fioB_Percentual: number; 
-  
   valorPis: number;       
   valorCofins: number;    
   valorIcms: number;      
@@ -47,23 +43,25 @@ export function calcularEconomia(dados: DadosSimulacao) {
   const novaFaturaDistribuidora = novoTusd + dados.valorIluminacao + dados.valorOutros;
   const novoCustoTotal = novaFaturaDistribuidora + pagamentoUsina;
 
-  // 8. Indicadores Extras (O que você pediu)
+  // 8. Indicadores Extras
   const percentualReducaoTotal = faturaAtual > 0 ? (economiaRealCliente / faturaAtual) * 100 : 0;
 
   return {
-    faturaAtual,             // Valor Fatura Hoje
-    novaFaturaDistribuidora, // Nova conta (só distribuidora)
-    pagamentoUsina,          // Valor a pagar para Usina
-    novoCustoTotal,          // Total Com Bionova (Soma das duas acima)
+    faturaAtual,             
+    novaFaturaDistribuidora, 
+    pagamentoUsina,          
+    novoCustoTotal,          
+    economiaBruta,           
+    economiaRealCliente,     
+    percentualReducaoTotal,
     
-    economiaBruta,           // Valor de Redução (Total abatido)
-    economiaRealCliente,     // Economia Real (O dinheiro que sobra no bolso)
-    
-    percentualReducaoTotal,  // % Desconto sobre a fatura Total
+    // Retornamos os dados originais também para facilitar o relatório
+    dadosOriginais: dados,
     
     detalhes: {
       novoTusd,
-      tarifaIrredutivel
+      tarifaIrredutivel,
+      reducaoTusd // Quanto economizou só no TUSD
     }
   };
 }

@@ -1,8 +1,7 @@
 // src/lib/api.ts
 
 // --- CONFIGURAÇÃO DE URL ---
-// IMPORTANTE: Cole abaixo a URL do seu backend no Render (ex: https://meu-app.onrender.com)
-// Não coloque a barra '/' no final.
+// Atualizei com a URL que apareceu no seu erro para garantir que funcione
 const BASE_URL_RENDER = 'https://api-gestao-solar.onrender.com'; 
 
 const API_URL = import.meta.env.PROD 
@@ -26,6 +25,15 @@ async function request(endpoint: string, options: RequestInit = {}) {
 
     if (!res.ok) {
       const errorData = await res.json().catch(() => ({}));
+
+      // --- O DETETIVE DE ERROS (Modificação Nova) ---
+      // Se o backend mandar o motivo técnico (que configuramos no modo debug), 
+      // mostramos um alerta na tela para você saber exatamente o que corrigir.
+      if (errorData.mensagem_tecnica) {
+        alert(`🚨 ERRO DO BANCO: ${errorData.mensagem_tecnica}\n\nDetalhe: ${errorData.detalhe || 'Sem detalhe'}`);
+      }
+      // ----------------------------------------------
+
       throw new Error(errorData.error || `Erro ${res.status}: Falha na requisição`);
     }
 
@@ -40,7 +48,6 @@ async function request(endpoint: string, options: RequestInit = {}) {
 }
 
 // --- GERADOR DE CRUD PADRÃO ---
-// Cria automaticamente list, get, create, update e delete
 function createCrud(resource: string) {
   return {
     list: () => request(`/${resource}`),
@@ -62,16 +69,15 @@ export const api = {
   propostas: createCrud('propostas'),
   
   // Rota Customizada: Fechamentos
-  // Precisamos customizar porque o 'list' aqui exige um ID (do vínculo), diferente do padrão
   fechamentos: {
-    list: (vinculoId: number | string) => request(`/fechamentos/${vinculoId}`), // <--- AQUI ESTÁ O AJUSTE IMPORTANTE
+    // O list aceita um ID (o id do vinculo)
+    list: (vinculoId: number | string) => request(`/fechamentos/${vinculoId}`), 
     create: (data: any) => request('/fechamentos', { method: 'POST', body: JSON.stringify(data) }),
     update: (id: number | string, data: any) => request(`/fechamentos/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
     delete: (id: number | string) => request(`/fechamentos/${id}`, { method: 'DELETE' }),
   },
   
-  // Método Genérico (para chamadas manuais se precisar)
-  // Exemplo de uso: api.custom('/dashboard/resumo', 'GET')
+  // Método Genérico
   custom: (endpoint: string, method: 'GET' | 'POST' | 'PUT' | 'DELETE' = 'GET', body?: any) => 
     request(endpoint, { method, body: body ? JSON.stringify(body) : undefined }),
 };

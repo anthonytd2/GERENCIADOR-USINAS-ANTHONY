@@ -5,8 +5,7 @@ import {
   Zap, 
   Link as LinkIcon, 
   FileText,
-  Calculator,
-  DollarSign // Novo ícone para o financeiro
+  Calculator
 } from 'lucide-react';
 
 const menuItems = [
@@ -16,8 +15,7 @@ const menuItems = [
   { icon: LinkIcon, label: 'Vínculos', path: '/vinculos' },
   { icon: FileText, label: 'Recibos', path: '/recibos' },
   { icon: Calculator, label: 'Simulador', path: '/simulador' },
-  // Novo item Financeiro
-  { icon: DollarSign, label: 'Fechamento', path: '/financeiro/fechamento' },
+  // REMOVIDO: O item "Fechamento" que causava tela branca
 ];
 
 export default function Sidebar() {
@@ -35,7 +33,6 @@ export default function Sidebar() {
       <nav className="flex-1 p-4 space-y-2">
         {menuItems.map((item) => {
           const Icon = item.icon;
-          // Verifica se está ativo (exato ou sub-rota, exceto para dashboard que é exato)
           const isActive = item.path === '/' 
             ? location.pathname === '/'
             : location.pathname.startsWith(item.path);

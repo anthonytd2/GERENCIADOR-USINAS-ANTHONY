@@ -1,13 +1,25 @@
-const API_URL = 'http://localhost:3000/api';
+// src/lib/api.ts
+
+// A MÁGICA ACONTECE AQUI:
+// Se estiver em produção (Render), usa '/api' (o próprio domínio onde o site está).
+// Se estiver no seu computador (Dev), usa 'http://localhost:3000/api'.
+const API_URL = import.meta.env.PROD 
+  ? '/api' 
+  : 'http://localhost:3000/api';
 
 async function request(endpoint: string, options: RequestInit = {}) {
-  const res = await fetch(`${API_URL}${endpoint}`, {
+  // Ajusta headers para garantir que envia JSON
+  const headers = {
+    'Content-Type': 'application/json',
+    ...options.headers,
+  };
+
+  const config = {
     ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
-  });
+    headers,
+  };
+
+  const res = await fetch(`${API_URL}${endpoint}`, config);
 
   if (!res.ok) {
     const error = await res.json().catch(() => ({}));
@@ -34,9 +46,9 @@ export const api = {
   recibos: createCrud('recibos'),
   concessionarias: createCrud('concessionarias'),
   propostas: createCrud('propostas'),
-  fechamentos: createCrud('fechamentos'), // Rota específica para o financeiro
+  fechamentos: createCrud('fechamentos'),
   
-  // FUNÇÃO NECESSÁRIA PARA O FECHAMENTO FUNCIONAR:
+  // Função customizada para rotas específicas (como o /simular)
   custom: (endpoint: string, method: 'GET' | 'POST' | 'PUT' | 'DELETE', body?: any) => 
     request(endpoint, { method, body: body ? JSON.stringify(body) : undefined }),
 };

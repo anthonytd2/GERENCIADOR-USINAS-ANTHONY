@@ -1,14 +1,15 @@
 // src/lib/api.ts
 
-// A MÁGICA ACONTECE AQUI:
-// Se estiver em produção (Render), usa '/api' (o próprio domínio onde o site está).
-// Se estiver no seu computador (Dev), usa 'http://localhost:3000/api'.
+// AQUI ESTÁ A CORREÇÃO:
+// Substitua a URL abaixo pela URL que você copiou do painel do Render
+// NÃO esqueça de manter o "/api" no final.
+const BASE_URL_RENDER = 'https://api-gestao-solar.onrender.com'; 
+
 const API_URL = import.meta.env.PROD 
-  ? '/api' 
-  : 'http://localhost:3000/api';
+  ? `${BASE_URL_RENDER}/api` // Na internet: usa o Render
+  : 'http://localhost:3000/api'; // No seu PC: usa localhost
 
 async function request(endpoint: string, options: RequestInit = {}) {
-  // Ajusta headers para garantir que envia JSON
   const headers = {
     'Content-Type': 'application/json',
     ...options.headers,
@@ -18,6 +19,9 @@ async function request(endpoint: string, options: RequestInit = {}) {
     ...options,
     headers,
   };
+
+  // Log para ajudar a debugar se der erro
+  console.log(`Requisitando: ${API_URL}${endpoint}`);
 
   const res = await fetch(`${API_URL}${endpoint}`, config);
 
@@ -48,7 +52,6 @@ export const api = {
   propostas: createCrud('propostas'),
   fechamentos: createCrud('fechamentos'),
   
-  // Função customizada para rotas específicas (como o /simular)
   custom: (endpoint: string, method: 'GET' | 'POST' | 'PUT' | 'DELETE', body?: any) => 
     request(endpoint, { method, body: body ? JSON.stringify(body) : undefined }),
 };

@@ -3,12 +3,13 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { api } from '../../lib/api';
 import { ArrowLeft, User, Zap, TrendingUp, DollarSign } from 'lucide-react';
 
+// Interfaces simplificadas
 interface VinculoDetalhado {
   id: number;
   Percentual: number;
   DataInicio: string;
   status_nome: string;
-  nome_consumidor?: string; documento_consumidor?: string;
+  nome_consumidor?: string;
   nome_proprietario?: string;
   consumidor?: { Nome: string; Documento: string; };
   usina?: { NomeProprietario: string; Nome: string; };
@@ -24,10 +25,13 @@ export default function DetalheVinculo() {
   useEffect(() => {
     const carregar = async () => {
       try {
+        setLoading(true);
+        // BUSCA APENAS O VÍNCULO. Sem financeiro, sem erro.
         const dados = await api.vinculos.get(Number(id));
         setVinculo(dados);
       } catch (error) {
-        console.error(error);
+        console.error("Erro ao carregar vinculo:", error);
+        alert('Erro ao carregar detalhes do vínculo.');
       } finally {
         setLoading(false);
       }
@@ -45,7 +49,10 @@ export default function DetalheVinculo() {
     <div className="max-w-6xl mx-auto pb-20 space-y-6">
       <div className="flex items-center gap-4">
         <Link to="/vinculos" className="p-2 hover:bg-white rounded-full text-gray-600 bg-gray-50"><ArrowLeft size={24} /></Link>
-        <h1 className="text-2xl font-bold text-gray-800">Detalhes do Vínculo #{vinculo.id}</h1>
+        <div>
+          <h1 className="text-2xl font-bold text-gray-800">Detalhes do Vínculo</h1>
+          <div className="text-sm text-gray-500">#{vinculo.id} • {nomeConsumidor}</div>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -60,18 +67,18 @@ export default function DetalheVinculo() {
         </div>
         <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
           <div className="flex items-center gap-2 mb-2 text-green-600 font-semibold"><TrendingUp size={20}/> Status</div>
-          <p className="text-lg font-bold text-gray-900">{vinculo.status?.Descricao || vinculo.status_nome}</p>
+          <p className="text-lg font-bold text-gray-900">{vinculo.status?.Descricao || vinculo.status_nome || 'Ativo'}</p>
         </div>
       </div>
 
       <div className="mt-8 bg-blue-50 border border-blue-100 rounded-xl p-8 text-center">
         <h2 className="text-xl font-bold text-blue-900 mb-2">Financeiro</h2>
-        <p className="text-blue-600 mb-6">Gerencie faturas e recibos deste contrato.</p>
+        <p className="text-blue-600 mb-6">Acesse o histórico de faturas e pagamentos.</p>
         <button 
           onClick={() => navigate(`/vinculos/${id}/financeiro`)}
           className="bg-blue-600 text-white px-8 py-3 rounded-lg font-bold hover:bg-blue-700 shadow-lg flex items-center gap-2 mx-auto"
         >
-          <DollarSign size={24} /> Acessar Histórico Financeiro
+          <DollarSign size={24} /> Acessar Histórico
         </button>
       </div>
     </div>

@@ -1,19 +1,27 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import React from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Layout from './components/Layout';
 import Dashboard from './pages/Dashboard';
-import ListaConsumidores from './pages/consumidores/ListaConsumidores';
-import FormularioConsumidor from './pages/consumidores/FormularioConsumidor';
-import DetalheConsumidor from './pages/consumidores/DetalheConsumidor';
+
+// Usinas
 import ListaUsinas from './pages/usinas/ListaUsinas';
 import FormularioUsina from './pages/usinas/FormularioUsina';
 import DetalheUsina from './pages/usinas/DetalheUsina';
+
+// Consumidores
+import ListaConsumidores from './pages/consumidores/ListaConsumidores';
+import FormularioConsumidor from './pages/consumidores/FormularioConsumidor';
+import DetalheConsumidor from './pages/consumidores/DetalheConsumidor';
+
+// Vínculos
 import ListaVinculos from './pages/vinculos/ListaVinculos';
 import FormularioVinculo from './pages/vinculos/FormularioVinculo';
 import DetalheVinculo from './pages/vinculos/DetalheVinculo';
-import GerenciadorRecibos from './pages/recibos/GerenciadorRecibos';
+import FinanceiroVinculo from './pages/vinculos/FinanceiroVinculo'; // <--- NOVO IMPORT
+
 import NovoSimulador from './pages/propostas/NovoSimulador';
-import FechamentoMensal from './pages/financeiro/FechamentoMensal'; // Importação do Financeiro
-import FinanceiroVinculo from './pages/vinculos/FinanceiroVinculo';
+import GerenciadorRecibos from './pages/recibos/GerenciadorRecibos';
+
 function App() {
   return (
     <BrowserRouter>
@@ -21,35 +29,28 @@ function App() {
         <Route path="/" element={<Layout />}>
           <Route index element={<Dashboard />} />
           
-          {/* Rotas de Consumidores */}
+          {/* Usinas */}
+          <Route path="usinas" element={<ListaUsinas />} />
+          <Route path="usinas/nova" element={<FormularioUsina />} />
+          <Route path="usinas/:id" element={<DetalheUsina />} />
+          <Route path="usinas/:id/editar" element={<FormularioUsina />} />
+
+          {/* Consumidores */}
           <Route path="consumidores" element={<ListaConsumidores />} />
           <Route path="consumidores/novo" element={<FormularioConsumidor />} />
           <Route path="consumidores/:id" element={<DetalheConsumidor />} />
           <Route path="consumidores/:id/editar" element={<FormularioConsumidor />} />
-          
-          {/* Rotas de Usinas */}
-          <Route path="usinas" element={<ListaUsinas />} />
-          <Route path="usinas/novo" element={<FormularioUsina />} />
-          <Route path="usinas/:id" element={<DetalheUsina />} />
-          <Route path="usinas/:id/editar" element={<FormularioUsina />} />
-          
-          {/* Rotas de Vínculos */}
+
+          {/* Vínculos */}
           <Route path="vinculos" element={<ListaVinculos />} />
           <Route path="vinculos/novo" element={<FormularioVinculo />} />
           <Route path="vinculos/:id" element={<DetalheVinculo />} />
-          <Route path="vinculos/:id/editar" element={<FormularioVinculo />} />
+          {/* NOVA ROTA DO FINANCEIRO */}
+          <Route path="vinculos/:id/financeiro" element={<FinanceiroVinculo />} /> 
 
-          {/* Rota de Recibos */}
+          {/* Outros */}
+          <Route path="propostas/simulador" element={<NovoSimulador />} />
           <Route path="recibos" element={<GerenciadorRecibos />} />
-
-          {/* Rota Comercial */}
-          <Route path="simulador" element={<NovoSimulador />} />
-          
-          {/* Nova Rota Financeira */}
-          <Route path="financeiro/fechamento" element={<FechamentoMensal />} />
-          
-          <Route path="/vinculos/:id/financeiro" element={<FinanceiroVinculo />} />
-
         </Route>
       </Routes>
     </BrowserRouter>

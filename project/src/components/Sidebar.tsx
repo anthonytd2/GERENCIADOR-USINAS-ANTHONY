@@ -1,11 +1,6 @@
 import { Link, useLocation } from 'react-router-dom';
 import { 
-  LayoutDashboard, 
-  Users, 
-  Zap, 
-  Link as LinkIcon, 
-  FileText,
-  Calculator
+  LayoutDashboard, Users, Zap, Link as LinkIcon, FileText, Calculator
 } from 'lucide-react';
 
 const menuItems = [
@@ -15,7 +10,7 @@ const menuItems = [
   { icon: LinkIcon, label: 'Vínculos', path: '/vinculos' },
   { icon: FileText, label: 'Recibos', path: '/recibos' },
   { icon: Calculator, label: 'Simulador', path: '/simulador' },
-  // REMOVIDO: O item "Fechamento" que causava tela branca
+  // O ITEM "FECHAMENTO" FOI REMOVIDO DAQUI
 ];
 
 export default function Sidebar() {

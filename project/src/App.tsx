@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Layout from './components/Layout';
 import Dashboard from './pages/Dashboard';
 import ListaConsumidores from './pages/consumidores/ListaConsumidores';
@@ -11,7 +11,8 @@ import ListaVinculos from './pages/vinculos/ListaVinculos';
 import FormularioVinculo from './pages/vinculos/FormularioVinculo';
 import DetalheVinculo from './pages/vinculos/DetalheVinculo';
 import GerenciadorRecibos from './pages/recibos/GerenciadorRecibos';
-import NovoSimulador from './pages/propostas/NovoSimulador'; // <--- Nova Importação
+import NovoSimulador from './pages/propostas/NovoSimulador';
+import FechamentoMensal from './pages/financeiro/FechamentoMensal'; // Importação do Financeiro
 
 function App() {
   return (
@@ -41,8 +42,11 @@ function App() {
           {/* Rota de Recibos */}
           <Route path="recibos" element={<GerenciadorRecibos />} />
 
-          {/* Nova Rota Comercial */}
+          {/* Rota Comercial */}
           <Route path="simulador" element={<NovoSimulador />} />
+          
+          {/* Nova Rota Financeira */}
+          <Route path="financeiro/fechamento" element={<FechamentoMensal />} />
           
         </Route>
       </Routes>

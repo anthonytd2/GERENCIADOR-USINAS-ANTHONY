@@ -3,7 +3,7 @@ import { pool } from '../db.js';
 
 const router = express.Router();
 
-// 1. LISTAR (Busca fechamentos pelo ID do Vínculo)
+// 1. LISTAR (Com mensagem de erro detalhada)
 router.get('/:id', async (req, res) => {
   const { id } = req.params;
   try {
@@ -14,8 +14,12 @@ router.get('/:id', async (req, res) => {
     );
     res.json(result.rows);
   } catch (error) {
-    console.error("Erro no servidor (Fechamentos):", error);
-    res.status(500).json({ error: 'Erro ao buscar fechamentos', detalhe: error.message });
+    console.error("ERRO NO BACKEND:", error);
+    // AQUI: Mandamos o motivo real do erro para o navegador
+    res.status(500).json({ 
+      error: 'Erro ao buscar fechamentos', 
+      motivo_real: error.message 
+    });
   }
 });
 
@@ -23,63 +27,48 @@ router.get('/:id', async (req, res) => {
 router.post('/', async (req, res) => {
   try {
     const { MesReferencia, EnergiaCompensada, ValorRecebido, ValorPago, Spread, ArquivoURL, ReciboURL, VinculoID } = req.body;
-
     const query = `
       INSERT INTO fechamentos 
       (mesreferencia, energiacompensada, valorrecebido, valorpago, spread, arquivourl, recibourl, vinculoid)
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
       RETURNING *
     `;
-
-    // Salva VinculoID na coluna vinculoid
     const values = [MesReferencia, EnergiaCompensada, ValorRecebido, ValorPago, Spread, ArquivoURL, ReciboURL, VinculoID];
-    
     const result = await pool.query(query, values);
     res.json(result.rows[0]);
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: 'Erro ao criar fechamento' });
+    res.status(500).json({ error: 'Erro ao criar', motivo_real: error.message });
   }
 });
 
 // 3. ATUALIZAR
 router.put('/:id', async (req, res) => {
-  const { id } = req.params;
   try {
     const { MesReferencia, EnergiaCompensada, ValorRecebido, ValorPago, Spread, ArquivoURL, ReciboURL } = req.body;
-
     const query = `
       UPDATE fechamentos 
-      SET mesreferencia = $1, 
-          energiacompensada = $2, 
-          valorrecebido = $3, 
-          valorpago = $4, 
-          spread = $5, 
-          arquivourl = $6, 
-          recibourl = $7
+      SET mesreferencia = $1, energiacompensada = $2, valorrecebido = $3, valorpago = $4, spread = $5, arquivourl = $6, recibourl = $7
       WHERE fechamentoid = $8
       RETURNING *
     `;
-
-    const values = [MesReferencia, EnergiaCompensada, ValorRecebido, ValorPago, Spread, ArquivoURL, ReciboURL, id];
-
+    const values = [MesReferencia, EnergiaCompensada, ValorRecebido, ValorPago, Spread, ArquivoURL, ReciboURL, req.params.id];
     const result = await pool.query(query, values);
     res.json(result.rows[0]);
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: 'Erro ao atualizar fechamento' });
+    res.status(500).json({ error: 'Erro ao atualizar', motivo_real: error.message });
   }
 });
 
 // 4. EXCLUIR
 router.delete('/:id', async (req, res) => {
-  const { id } = req.params;
   try {
-    await pool.query('DELETE FROM fechamentos WHERE fechamentoid = $1', [id]);
+    await pool.query('DELETE FROM fechamentos WHERE fechamentoid = $1', [req.params.id]);
     res.json({ success: true });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: 'Erro ao excluir' });
+    res.status(500).json({ error: 'Erro ao excluir', motivo_real: error.message });
   }
 });
 

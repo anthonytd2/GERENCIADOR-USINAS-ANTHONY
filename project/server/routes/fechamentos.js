@@ -3,29 +3,19 @@ import { pool } from '../db.js';
 
 const router = express.Router();
 
-// 1. LISTAR (Busca todos os fechamentos de um Vínculo específico)
+// 1. LISTAR (Busca fechamentos pelo ID do Vínculo)
 router.get('/:id', async (req, res) => {
   const { id } = req.params;
   try {
-    console.log("Tentando buscar fechamentos para o ID:", id);
-    
-    // Tenta buscar na tabela
+    // Busca usando 'vinculoid' minúsculo
     const result = await pool.query(
       'SELECT * FROM fechamentos WHERE vinculoid = $1 ORDER BY mesreferencia DESC',
       [id]
     );
-    
     res.json(result.rows);
-
   } catch (error) {
-    console.error("ERRO GRAVE:", error);
-    
-    // AQUI ESTÁ O TRUQUE: Mandamos o erro exato para a tela
-    res.status(500).json({ 
-      error: 'Erro no Banco de Dados', 
-      mensagem_tecnica: error.message, // Vai dizer "relation X does not exist" ou similar
-      detalhe: error.detail 
-    });
+    console.error("Erro no servidor (Fechamentos):", error);
+    res.status(500).json({ error: 'Erro ao buscar fechamentos', detalhe: error.message });
   }
 });
 
@@ -41,7 +31,7 @@ router.post('/', async (req, res) => {
       RETURNING *
     `;
 
-    // Atenção: VinculoID vem do frontend, mas salva na coluna 'vinculoid'
+    // Salva VinculoID na coluna vinculoid
     const values = [MesReferencia, EnergiaCompensada, ValorRecebido, ValorPago, Spread, ArquivoURL, ReciboURL, VinculoID];
     
     const result = await pool.query(query, values);

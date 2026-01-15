@@ -14,10 +14,15 @@ async function getConfig() {
   let connectionString = process.env.DATABASE_URL;
 
   try {
+    if (!connectionString) {
+      console.error("❌ ERRO: DATABASE_URL não definida no .env!");
+      return {};
+    }
+
     const url = new URL(connectionString);
     const hostname = url.hostname;
 
-    // Se não for um IP, tenta resolver para IPv4
+    // Se não for um IP numérico, tenta resolver para IPv4
     if (!hostname.match(/^\d+\.\d+\.\d+\.\d+$/)) {
       console.log(`🌐 Resolvendo DNS IPv4 para: ${hostname}...`);
       const addresses = await dns.resolve4(hostname);
@@ -41,7 +46,7 @@ async function getConfig() {
   };
 }
 
-// Exportamos um objeto que imita o Pool, mas conecta do jeito certo na primeira vez
+// Exportamos um objeto que imita o Pool, mas conecta do jeito certo
 export const pool = {
   query: async (text, params) => {
     // Se ainda não conectou, cria a conexão agora
@@ -49,7 +54,6 @@ export const pool = {
       const config = await getConfig();
       poolInstance = new Pool(config);
       
-      // Tratamento de erro para não derrubar o servidor se a conexão cair depois
       poolInstance.on('error', (err) => {
         console.error('❌ Erro inesperado no cliente do banco', err);
         process.exit(-1);
@@ -60,7 +64,7 @@ export const pool = {
     return poolInstance.query(text, params);
   },
   
-  // Repassa outros métodos se necessário
+  // Garante conexão ao iniciar
   connect: async () => {
     if (!poolInstance) {
         const config = await getConfig();
@@ -74,7 +78,6 @@ export const pool = {
 import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_ANON_KEY;
-// Só cria se tiver as chaves
 export const supabase = (supabaseUrl && supabaseKey) 
   ? createClient(supabaseUrl, supabaseKey) 
   : null;

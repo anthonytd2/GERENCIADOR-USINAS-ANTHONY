@@ -191,6 +191,32 @@ router.post('/', async (req, res) => {
   } finally {
     client.release();
   }
-});
 
+  
+
+});
+router.get('/consumidor/:id', async (req, res) => {
+  const { id } = req.params;
+  try {
+    // Busca os fechamentos e junta com a data da produção para saber o mês
+    const query = `
+      SELECT 
+        f.*, 
+        p.mes_referencia,
+        p.leitura_anterior,
+        p.leitura_atual
+      FROM fechamentos f
+      JOIN producao_usinas p ON f.producao_id = p.id
+      WHERE f.consumidor_id = $1
+      ORDER BY p.mes_referencia DESC
+    `;
+    
+    const result = await pool.query(query, [id]);
+    res.json(result.rows);
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Erro ao buscar histórico financeiro' });
+  }
+});
 export default router;

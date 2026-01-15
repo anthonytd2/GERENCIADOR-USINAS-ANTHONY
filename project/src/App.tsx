@@ -13,7 +13,7 @@ import DetalheVinculo from './pages/vinculos/DetalheVinculo';
 import GerenciadorRecibos from './pages/recibos/GerenciadorRecibos';
 import NovoSimulador from './pages/propostas/NovoSimulador';
 import FechamentoMensal from './pages/financeiro/FechamentoMensal'; // Importação do Financeiro
-
+import FinanceiroVinculo from './pages/vinculos/FinanceiroVinculo';
 function App() {
   return (
     <BrowserRouter>
@@ -48,6 +48,8 @@ function App() {
           {/* Nova Rota Financeira */}
           <Route path="financeiro/fechamento" element={<FechamentoMensal />} />
           
+          <Route path="/vinculos/:id/financeiro" element={<FinanceiroVinculo />} />
+
         </Route>
       </Routes>
     </BrowserRouter>

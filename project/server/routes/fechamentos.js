@@ -4,25 +4,24 @@ import { pool } from '../db.js';
 const router = express.Router();
 
 // 1. LISTAR (Busca todos os fechamentos de um Vínculo específico)
-// O seu front chama: api.fechamentos.list(id) -> GET /api/fechamentos/:id
 router.get('/:id', async (req, res) => {
   const { id } = req.params;
   try {
+    // AQUI: Usamos 'vinculoid' minúsculo, pois foi assim que criamos no SQL acima
     const result = await pool.query(
       'SELECT * FROM fechamentos WHERE vinculoid = $1 ORDER BY mesreferencia DESC',
       [id]
     );
     res.json(result.rows);
   } catch (error) {
-    console.error(error);
+    console.error("Erro detalhado no servidor:", error); // Isso ajuda a ver o erro no Render
     res.status(500).json({ error: 'Erro ao buscar fechamentos' });
   }
 });
 
-// 2. CRIAR (Novo Lançamento)
+// 2. CRIAR
 router.post('/', async (req, res) => {
   try {
-    // Pegamos os dados que seu formulário enviou (PascalCase)
     const { MesReferencia, EnergiaCompensada, ValorRecebido, ValorPago, Spread, ArquivoURL, ReciboURL, VinculoID } = req.body;
 
     const query = `
@@ -32,6 +31,7 @@ router.post('/', async (req, res) => {
       RETURNING *
     `;
 
+    // Atenção: VinculoID vem do frontend, mas salva na coluna 'vinculoid'
     const values = [MesReferencia, EnergiaCompensada, ValorRecebido, ValorPago, Spread, ArquivoURL, ReciboURL, VinculoID];
     
     const result = await pool.query(query, values);
@@ -42,7 +42,7 @@ router.post('/', async (req, res) => {
   }
 });
 
-// 3. ATUALIZAR (Editar Lançamento)
+// 3. ATUALIZAR
 router.put('/:id', async (req, res) => {
   const { id } = req.params;
   try {

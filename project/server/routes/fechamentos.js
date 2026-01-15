@@ -7,15 +7,25 @@ const router = express.Router();
 router.get('/:id', async (req, res) => {
   const { id } = req.params;
   try {
-    // AQUI: Usamos 'vinculoid' minúsculo, pois foi assim que criamos no SQL acima
+    console.log("Tentando buscar fechamentos para o ID:", id);
+    
+    // Tenta buscar na tabela
     const result = await pool.query(
       'SELECT * FROM fechamentos WHERE vinculoid = $1 ORDER BY mesreferencia DESC',
       [id]
     );
+    
     res.json(result.rows);
+
   } catch (error) {
-    console.error("Erro detalhado no servidor:", error); // Isso ajuda a ver o erro no Render
-    res.status(500).json({ error: 'Erro ao buscar fechamentos' });
+    console.error("ERRO GRAVE:", error);
+    
+    // AQUI ESTÁ O TRUQUE: Mandamos o erro exato para a tela
+    res.status(500).json({ 
+      error: 'Erro no Banco de Dados', 
+      mensagem_tecnica: error.message, // Vai dizer "relation X does not exist" ou similar
+      detalhe: error.detail 
+    });
   }
 });
 

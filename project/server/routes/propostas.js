@@ -3,24 +3,14 @@ import { supabase } from '../db.js';
 
 const router = express.Router();
 
-// LISTAR PROPOSTAS (Com filtro opcional por status)
+// LISTAR PROPOSTAS (Pipeline)
 router.get('/', async (req, res) => {
   try {
-    let query = supabase
+    const { data, error } = await supabase
       .from('propostas')
-      .select(`
-        *,
-        concessionarias (nome),
-        consumidores (nome)
-      `)
-      .order('created_at', { ascending: false });
+      .select('*')
+      .order('created_at', { ascending: false }); // Mais recentes primeiro
 
-    // Se mandar ?status=Enviada na URL, filtra
-    if (req.query.status) {
-      query = query.eq('status', req.query.status);
-    }
-
-    const { data, error } = await query;
     if (error) throw error;
     res.json(data);
   } catch (error) {
@@ -28,52 +18,44 @@ router.get('/', async (req, res) => {
   }
 });
 
-// CRIAR NOVA PROPOSTA
+// CRIAR NOVA PROPOSTA (Salvar do Simulador)
 router.post('/', async (req, res) => {
   try {
+    const { consumidor_id, nome_cliente_prospect, concessionaria_id, dados_simulacao, status } = req.body;
+    
     const { data, error } = await supabase
       .from('propostas')
-      .insert([req.body])
+      .insert([{ 
+        consumidor_id, 
+        nome_cliente_prospect, 
+        concessionaria_id, 
+        dados_simulacao, 
+        status 
+      }])
       .select()
       .single();
 
     if (error) throw error;
     res.status(201).json(data);
   } catch (error) {
+    console.error('Erro ao salvar proposta:', error);
     res.status(500).json({ error: error.message });
   }
 });
 
-// ATUALIZAR STATUS OU DADOS
+// ATUALIZAR STATUS (Mover no Pipeline)
 router.put('/:id', async (req, res) => {
   try {
+    const { status } = req.body;
     const { data, error } = await supabase
       .from('propostas')
-      .update({
-        ...req.body,
-        updated_at: new Date()
-      })
+      .update({ status, updated_at: new Date() })
       .eq('id', req.params.id)
       .select()
       .single();
 
     if (error) throw error;
     res.json(data);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// EXCLUIR
-router.delete('/:id', async (req, res) => {
-  try {
-    const { error } = await supabase
-      .from('propostas')
-      .delete()
-      .eq('id', req.params.id);
-
-    if (error) throw error;
-    res.status(204).send();
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

@@ -3,17 +3,16 @@ import { supabase } from '../db.js';
 
 const router = express.Router();
 
-// --- LISTAR VÍNCULOS (OTIMIZADO) ---
+// --- LISTAR VÍNCULOS (ATUALIZADO COM DATA FIM) ---
 router.get('/', async (req, res) => {
   try {
-    // O Supabase faz o cruzamento (JOIN) direto no banco. Muito mais rápido.
-    // Trazemos apenas os campos necessários.
     const { data, error } = await supabase
       .from('vinculos')
       .select(`
         VinculoID,
         Percentual,
         DataInicio,
+        DataFim, 
         StatusID,
         ConsumidorID,
         UsinaID,
@@ -25,7 +24,6 @@ router.get('/', async (req, res) => {
 
     if (error) throw error;
 
-    // Formatamos para manter compatibilidade com seu Frontend
     const vinculosFormatados = data.map(v => ({
       id: v.VinculoID,
       consumidor_id: v.ConsumidorID,
@@ -33,7 +31,7 @@ router.get('/', async (req, res) => {
       status_id: v.StatusID,
       percentual: v.Percentual,
       data_inicio: v.DataInicio,
-      // O Supabase retorna objetos aninhados (ex: consumidores.Nome)
+      data_fim: v.DataFim, // Agora enviamos a data final
       consumidor_nome: v.consumidores?.Nome || 'Desconhecido',
       usina_nome: v.usinas?.NomeProprietario || 'Desconhecida',
       status_nome: v.status?.Descricao || 'Indefinido'
@@ -45,6 +43,10 @@ router.get('/', async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+
+// ... (Mantenha as outras rotas GET/:id, POST, PUT, DELETE iguais estavam) ...
+// Se precisar do código completo das outras rotas, me avise, mas só alteramos o GET '/'
+// para incluir DataFim.
 
 // --- ROTA DE DETALHES ---
 router.get('/:id', async (req, res) => {
@@ -63,7 +65,6 @@ router.get('/:id', async (req, res) => {
     if (error) throw error;
     if (!data) return res.status(404).json({ error: 'Vínculo não encontrado' });
 
-    // Mantendo a estrutura que seu frontend espera
     const resultado = {
       ...data,
       id: data.VinculoID,
@@ -81,10 +82,11 @@ router.get('/:id', async (req, res) => {
 // --- CRIAR ---
 router.post('/', async (req, res) => {
   try {
-    const { ConsumidorID, UsinaID, Percentual, StatusID, Observacao } = req.body;
+    // Adicione DataFim aqui se quiser salvar no create também
+    const { ConsumidorID, UsinaID, Percentual, StatusID, Observacao, DataFim } = req.body;
     const { data, error } = await supabase
       .from('vinculos')
-      .insert([{ ConsumidorID, UsinaID, Percentual, StatusID, Observacao, DataInicio: new Date() }])
+      .insert([{ ConsumidorID, UsinaID, Percentual, StatusID, Observacao, DataFim, DataInicio: new Date() }])
       .select().single();
 
     if (error) throw error;
@@ -97,10 +99,10 @@ router.post('/', async (req, res) => {
 // --- ATUALIZAR ---
 router.put('/:id', async (req, res) => {
   try {
-    const { Percentual, StatusID, Observacao } = req.body;
+    const { Percentual, StatusID, Observacao, DataFim } = req.body;
     const { data, error } = await supabase
       .from('vinculos')
-      .update({ Percentual, StatusID, Observacao })
+      .update({ Percentual, StatusID, Observacao, DataFim })
       .eq('VinculoID', req.params.id)
       .select().single();
 

@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../../lib/api';
-import { Plus, Edit, Trash2, Search, Percent, DollarSign, Zap } from 'lucide-react';
+import { Plus, Edit, Trash2, Search, Percent, DollarSign, Zap, MessageCircle } from 'lucide-react';
+import Skeleton from '../../components/Skeleton';
 
 interface Consumidor {
   ConsumidorID: number;
@@ -10,6 +11,7 @@ interface Consumidor {
   PercentualDesconto: number;
   TipoDesconto?: string;
   Vendedor?: string;
+  Telefone?: string; // Assume que o banco retorna isso (select *)
 }
 
 export default function ListaConsumidores() {
@@ -18,8 +20,12 @@ export default function ListaConsumidores() {
   const [busca, setBusca] = useState('');
 
   const loadConsumidores = () => {
+    setLoading(true);
     api.consumidores.list()
-      .then(setConsumidores)
+      .then((data: any) => {
+        const lista = Array.isArray(data) ? data : (data.data || []);
+        setConsumidores(lista);
+      })
       .finally(() => setLoading(false));
   };
 
@@ -33,29 +39,32 @@ export default function ListaConsumidores() {
     loadConsumidores();
   };
 
+  const handleWhatsapp = (telefone: string | undefined, nome: string) => {
+    if (!telefone) return alert('Telefone não cadastrado');
+    // Remove caracteres não numéricos
+    const num = telefone.replace(/\D/g, '');
+    const msg = `Olá ${nome}, tudo bem? Entro em contato referente à sua energia solar.`;
+    window.open(`https://wa.me/55${num}?text=${encodeURIComponent(msg)}`, '_blank');
+  };
+
   const formatMoeda = (valor: number) => {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL'
-    }).format(valor);
+    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(valor);
   };
 
   const consumidoresFiltrados = consumidores.filter(c => 
     c.Nome.toLowerCase().includes(busca.toLowerCase())
   );
 
-  if (loading) return <div className="text-center py-10 text-gray-500">Carregando consumidores...</div>;
-
   return (
     <div>
       <div className="flex justify-between items-center mb-8">
         <div>
-          <h2 className="text-3xl font-bold text-gray-900">Consumidores</h2>
+          <h2 className="text-3xl font-bold text-brand-dark">Consumidores</h2>
           <p className="text-gray-500 mt-1">Gerencie sua carteira de clientes</p>
         </div>
         <Link
           to="/consumidores/novo"
-          className="flex items-center gap-2 px-5 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 shadow-lg shadow-blue-900/20 transition-all hover:-translate-y-1"
+          className="flex items-center gap-2 px-5 py-3 bg-brand-DEFAULT text-white rounded-xl hover:bg-brand-dark shadow-lg shadow-blue-900/20 transition-all hover:-translate-y-1"
         >
           <Plus className="w-5 h-5" />
           <span>Novo Consumidor</span>
@@ -69,17 +78,19 @@ export default function ListaConsumidores() {
         <input
           type="text"
           placeholder="Buscar por nome..."
-          className="pl-10 w-full md:w-1/3 rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500 py-2 shadow-sm"
+          className="pl-10 w-full md:w-1/3 rounded-lg border-gray-300 focus:ring-brand-DEFAULT focus:border-brand-DEFAULT py-2 shadow-sm"
           value={busca}
           onChange={(e) => setBusca(e.target.value)}
         />
       </div>
 
       <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-        {consumidoresFiltrados.length === 0 ? (
-          <div className="p-10 text-center text-gray-500">
-            Nenhum consumidor encontrado.
-          </div>
+        {loading ? (
+           <div className="p-6 space-y-4">
+             {[1,2,3].map(i => <div key={i} className="flex justify-between"><div className="flex gap-4"><Skeleton className="h-10 w-10 rounded-full" /><Skeleton className="h-4 w-48" /></div><Skeleton className="h-8 w-20" /></div>)}
+           </div>
+        ) : consumidoresFiltrados.length === 0 ? (
+          <div className="p-10 text-center text-gray-500">Nenhum consumidor encontrado.</div>
         ) : (
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-100">
@@ -88,7 +99,7 @@ export default function ListaConsumidores() {
                   <th className="px-6 text-left py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Nome</th>
                   <th className="px-6 text-left py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Média Consumo</th>
                   <th className="px-6 text-left py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Cobrança</th>
-                  <th className="px-6 text-left py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Vendedor</th>
+                  <th className="px-6 text-center py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Contato</th>
                   <th className="px-6 text-right py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Ações</th>
                 </tr>
               </thead>
@@ -104,9 +115,7 @@ export default function ListaConsumidores() {
                           <div className="font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">
                             {c.Nome}
                           </div>
-                          <div className="text-xs text-gray-500">
-                            ID: {c.ConsumidorID}
-                          </div>
+                          <div className="text-xs text-gray-500">ID: {c.ConsumidorID}</div>
                         </div>
                       </Link>
                     </td>
@@ -116,8 +125,6 @@ export default function ListaConsumidores() {
                         <span className="font-medium">{c.MediaConsumo.toLocaleString('pt-BR')} kWh</span>
                       </div>
                     </td>
-                    
-                    {/* --- BADGES E FORMATAÇÃO MONETÁRIA --- */}
                     <td className="px-6 py-4">
                       {c.TipoDesconto === 'valor_fixo' ? (
                         <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
@@ -131,15 +138,24 @@ export default function ListaConsumidores() {
                         </span>
                       )}
                     </td>
-                    {/* ------------------------------------- */}
 
-                    <td className="px-6 py-4 text-gray-500">{c.Vendedor || '-'}</td>
+                    {/* COLUNA WHATSAPP */}
+                    <td className="px-6 py-4 text-center">
+                      <button 
+                        onClick={() => handleWhatsapp(c.Telefone, c.Nome)}
+                        className="p-2 bg-green-100 text-green-600 hover:bg-green-500 hover:text-white rounded-full transition-all duration-300"
+                        title="Abrir WhatsApp"
+                      >
+                        <MessageCircle className="w-5 h-5" />
+                      </button>
+                    </td>
+
                     <td className="px-6 py-4 text-right">
                       <div className="flex justify-end gap-2">
-                        <Link to={`/consumidores/${c.ConsumidorID}/editar`} className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg transition-colors">
+                        <Link to={`/consumidores/${c.ConsumidorID}/editar`} className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg">
                           <Edit className="w-5 h-5" />
                         </Link>
-                        <button onClick={() => handleDelete(c.ConsumidorID)} className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors">
+                        <button onClick={() => handleDelete(c.ConsumidorID)} className="p-2 text-red-500 hover:bg-red-50 rounded-lg">
                           <Trash2 className="w-5 h-5" />
                         </button>
                       </div>

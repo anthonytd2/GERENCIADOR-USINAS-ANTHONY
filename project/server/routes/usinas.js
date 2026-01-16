@@ -4,31 +4,29 @@ import { usinaSchema } from '../validators/schemas.js';
 
 const router = express.Router();
 
-// LISTAR
+// 1. LISTAR TODAS AS USINAS
 router.get('/', async (req, res) => {
   try {
-    // CORREÇÃO: Removi ', concessionarias(nome)' pois a tabela ou a relação não existe ainda.
+    // CORREÇÃO: Removemos a tentativa de buscar concessionárias que não existem
     const { data, error } = await supabase
       .from('usinas')
-      .select('*') 
+      .select('*')
       .order('NomeProprietario');
 
     if (error) throw error;
     res.json(data);
   } catch (error) {
-    // Dica: Olhe os logs do Render para ver a mensagem real do erro (ex: relation does not exist)
-    console.error("Erro ao listar usinas:", error);
     res.status(500).json({ error: error.message });
   }
 });
 
-// BUSCAR UMA (Detalhe)
+// 2. BUSCAR UMA USINA (Detalhe)
 router.get('/:id', async (req, res) => {
   try {
     const { data, error } = await supabase
       .from('usinas')
       .select('*')
-      // CORREÇÃO: O seu banco usa 'UsinaID' (provavelmente 'usinaid' no Postgres), não 'id'
+      // CORREÇÃO: Usamos 'usinaid' (como está no banco) em vez de 'id'
       .eq('usinaid', req.params.id) 
       .single();
 
@@ -39,7 +37,25 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// CRIAR
+// 3. NOVO: LISTAR VÍNCULOS DA USINA (Resolve o erro 404)
+router.get('/:id/vinculos', async (req, res) => {
+  try {
+    // Busca na tabela 'vinculos' onde o 'usinaid' é igual ao id da URL
+    // Traz também os dados das tabelas 'consumidores' e 'status'
+    const { data, error } = await supabase
+      .from('vinculos')
+      .select('*, Consumidores(Nome), Status(Descricao)') 
+      .eq('usinaid', req.params.id);
+
+    if (error) throw error;
+    res.json(data);
+  } catch (error) {
+    console.error("Erro ao buscar vínculos:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// 4. CRIAR USINA
 router.post('/', async (req, res) => {
   try {
     const dadosLimpos = usinaSchema.parse(req.body);
@@ -61,7 +77,7 @@ router.post('/', async (req, res) => {
   }
 });
 
-// ATUALIZAR
+// 5. ATUALIZAR USINA
 router.put('/:id', async (req, res) => {
   try {
     const dadosLimpos = usinaSchema.partial().parse(req.body);
@@ -69,8 +85,7 @@ router.put('/:id', async (req, res) => {
     const { data, error } = await supabase
       .from('usinas')
       .update(dadosLimpos)
-      // CORREÇÃO: Usar 'usinaid' em vez de 'id'
-      .eq('usinaid', req.params.id) 
+      .eq('usinaid', req.params.id) // CORREÇÃO: usinaid
       .select()
       .single();
 
@@ -85,14 +100,13 @@ router.put('/:id', async (req, res) => {
   }
 });
 
-// EXCLUIR
+// 6. EXCLUIR USINA
 router.delete('/:id', async (req, res) => {
   try {
     const { error } = await supabase
       .from('usinas')
       .delete()
-      // CORREÇÃO: Usar 'usinaid' em vez de 'id'
-      .eq('usinaid', req.params.id);
+      .eq('usinaid', req.params.id); // CORREÇÃO: usinaid
 
     if (error) throw error;
     res.json({ message: 'Usina excluída com sucesso' });

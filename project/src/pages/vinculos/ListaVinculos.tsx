@@ -4,12 +4,13 @@ import { Link } from 'react-router-dom';
 import { api } from '../../lib/api';
 import FormularioVinculo from './FormularioVinculo';
 
+// Interface alinhada com o Backend Otimizado
 interface Vinculo {
   id: number;
   consumidor_nome: string;
-  usina_nome: string;
+  usina_nome: string; // Garante que o nome da usina apareça
+  status_nome: string; // Garante que o status apareça
   percentual: number;
-  status_nome: string;
   data_inicio: string;
   status_id?: number;
   consumidor_id?: number;
@@ -28,6 +29,7 @@ const ListaVinculos = () => {
     try {
       setLoading(true);
       setError('');
+      // O backend otimizado já retorna os nomes prontos, não precisa fazer cruzamento aqui
       const dados = await api.vinculos.list();
       
       if (Array.isArray(dados)) {
@@ -61,9 +63,10 @@ const ListaVinculos = () => {
     }
   };
 
+  // Filtro de busca simples no front (já que agora carregamos rápido)
   const vinculosFiltrados = vinculos.filter(v => 
-    v.consumidor_nome.toLowerCase().includes(busca.toLowerCase()) ||
-    v.usina_nome.toLowerCase().includes(busca.toLowerCase())
+    (v.consumidor_nome?.toLowerCase() || '').includes(busca.toLowerCase()) ||
+    (v.usina_nome?.toLowerCase() || '').includes(busca.toLowerCase())
   );
 
   if (showForm) {
@@ -108,6 +111,7 @@ const ListaVinculos = () => {
         </div>
       )}
 
+      {/* BARRA DE BUSCA */}
       <div className="mb-6 relative">
         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
           <Search className="h-5 w-5 text-gray-400" />
@@ -132,7 +136,7 @@ const ListaVinculos = () => {
               <thead className="bg-slate-50">
                 <tr>
                   <th className="px-6 text-left py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Consumidor</th>
-                  <th className="px-6 text-left py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Usina</th>
+                  <th className="px-6 text-left py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Usina Conectada</th>
                   <th className="px-6 text-left py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Alocação</th>
                   <th className="px-6 text-center py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Status</th>
                   <th className="px-6 text-right py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Ações</th>
@@ -141,6 +145,8 @@ const ListaVinculos = () => {
               <tbody className="divide-y divide-gray-100">
                 {vinculosFiltrados.map((vinculo) => (
                   <tr key={vinculo.id} className="hover:bg-slate-50 transition-colors group">
+                    
+                    {/* COLUNA CONSUMIDOR - Avatar Roxo */}
                     <td className="px-6 py-4">
                       <Link to={`/vinculos/${vinculo.id}`} className="flex items-center gap-4">
                         <div className="h-10 w-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold group-hover:bg-indigo-200 transition-colors">
@@ -148,46 +154,48 @@ const ListaVinculos = () => {
                         </div>
                         <div>
                           <div className="font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">
-                            {vinculo.consumidor_nome}
+                            {vinculo.consumidor_nome || 'Sem Nome'}
                           </div>
                           <div className="text-xs text-gray-500">
-                            ID: {vinculo.id}
+                            Vínculo #{vinculo.id}
                           </div>
                         </div>
                       </Link>
                     </td>
 
+                    {/* COLUNA USINA - Ícone de Raio e Nome */}
                     <td className="px-6 py-4">
-                      <div className="flex items-center gap-2 text-gray-600">
-                        <Zap className="w-4 h-4 text-gray-400" />
-                        {vinculo.usina_nome}
+                      <div className="flex items-center gap-2 text-gray-700 font-medium">
+                        <Zap className="w-4 h-4 text-amber-500" />
+                        {vinculo.usina_nome || 'Usina não identificada'}
                       </div>
                     </td>
                     
+                    {/* COLUNA PERCENTUAL - Badge azul simples */}
                     <td className="px-6 py-4">
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-sm font-medium bg-blue-50 text-blue-700">
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-sm font-medium bg-blue-50 text-blue-700 border border-blue-100">
                         {vinculo.percentual}%
                       </span>
                     </td>
 
-                    {/* --- BADGES DE STATUS REFINADOS --- */}
+                    {/* COLUNA STATUS - Cores Condicionais (Green/Yellow/Red) */}
                     <td className="px-6 py-4 text-center">
-                      {vinculo.status_nome === 'Ativo' || vinculo.status_nome === 'Em compensação' ? (
+                      {(vinculo.status_nome === 'Ativo' || vinculo.status_nome === 'Em compensação') ? (
                         <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-100 text-emerald-700 font-bold text-xs uppercase tracking-wide border border-emerald-200">
-                          <CheckCircle className="w-3 h-3" /> Ativo
+                          <CheckCircle className="w-3 h-3" /> {vinculo.status_nome}
                         </span>
-                      ) : vinculo.status_nome === 'Pendente' || vinculo.status_nome === 'Aguardando transferência' ? (
+                      ) : (vinculo.status_nome === 'Pendente' || vinculo.status_nome === 'Aguardando transferência') ? (
                         <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-100 text-amber-700 font-bold text-xs uppercase tracking-wide border border-amber-200">
                           <Clock className="w-3 h-3" /> {vinculo.status_nome}
                         </span>
                       ) : (
                         <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 text-slate-700 font-bold text-xs uppercase tracking-wide border border-slate-200">
-                          <XCircle className="w-3 h-3" /> {vinculo.status_nome}
+                          <XCircle className="w-3 h-3" /> {vinculo.status_nome || 'Indefinido'}
                         </span>
                       )}
                     </td>
-                    {/* ---------------------------------- */}
 
+                    {/* AÇÕES */}
                     <td className="px-6 py-4 text-right">
                       <div className="flex justify-end gap-2">
                         <button
@@ -196,12 +204,14 @@ const ListaVinculos = () => {
                             setShowForm(true);
                           }}
                           className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg transition-colors"
+                          title="Editar"
                         >
                           <Edit className="w-5 h-5" />
                         </button>
                         <button 
                           onClick={() => handleExcluir(vinculo.id)}
                           className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                          title="Excluir"
                         >
                           <Trash2 className="w-5 h-5" />
                         </button>

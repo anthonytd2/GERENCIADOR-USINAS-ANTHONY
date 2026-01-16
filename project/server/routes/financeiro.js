@@ -1,62 +1,134 @@
 import express from 'express';
-import { pool } from '../db.js';
+import { supabase } from '../db.js';
 
 const router = express.Router();
 
+// LISTAR
 router.get('/:vinculoId', async (req, res) => {
   try {
-    const result = await pool.query(
-      'SELECT * FROM financeiro_novo WHERE vinculo_id = $1 ORDER BY mes_referencia DESC',
-      [req.params.vinculoId]
-    );
-    res.json(result.rows);
+    const { data, error } = await supabase
+      .from('fechamentos')
+      .select('*')
+      .eq('vinculoid', req.params.vinculoId)
+      .order('mesreferencia', { ascending: false });
+
+    if (error) throw error;
+    res.json(data);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
+// CRIAR
 router.post('/', async (req, res) => {
   try {
     const body = req.body;
-    const query = `
-      INSERT INTO financeiro_novo (
-        vinculo_id, mes_referencia, 
-        energia_compensada, valor_kw_base, taxa_fio_b, fatura_uc_geradora,
-        tarifa_com_imposto, valor_pago_fatura, taxas_ilum_publica,
-        total_bruto_gerador, total_liquido_gerador, total_simulado_copel,
-        economia_real, total_receber_cliente, spread_lucro,
-        arquivo_url, recibo_url
-      )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
-      RETURNING *
-    `;
-    const values = [
-      body.vinculo_id, body.mes_referencia,
-      body.energia_compensada, body.valor_kw_base, body.taxa_fio_b, body.fatura_uc_geradora,
-      body.tarifa_com_imposto, body.valor_pago_fatura, body.taxas_ilum_publica,
-      body.total_bruto_gerador, body.total_liquido_gerador, body.total_simulado_copel,
-      body.economia_real, body.total_receber_cliente, body.spread_lucro,
-      body.arquivo_url, body.recibo_url
-    ];
-    
-    const result = await pool.query(query, values);
-    res.json(result.rows[0]);
+
+    // Mapeamento completo dos campos
+    const payload = {
+      vinculoid: body.VinculoID,
+      mesreferencia: body.MesReferencia,
+      energiacompensada: body.EnergiaCompensada,
+      
+      // Novos campos
+      consumo_rede: body.ConsumoRede,
+      tarifa_kwh: body.TarifaKwh,
+      total_bruto: body.TotalBruto,
+      tusd_fio_b: body.TusdFioB,
+      total_fio_b: body.TotalFioB,
+      valor_fatura_geradora: body.ValorFaturaGeradora,
+      // O 'spread' aqui será o Total Líquido a Pagar (Lucro da Usina/Empresa)
+      spread: body.Spread, 
+
+      // Campos Consumidor
+      tarifa_com_imposto: body.TarifaComImposto,
+      iluminacao_publica: body.IluminacaoPublica,
+      outras_taxas: body.OutrasTaxas,
+      valor_pago_fatura: body.ValorPagoFatura,
+      economia_gerada: body.EconomiaGerada,
+      valorrecebido: body.ValorRecebido, // Total a Receber do cliente
+
+      arquivourl: body.ArquivoURL,
+      recibourl: body.ReciboURL
+    };
+
+    const { data, error } = await supabase
+      .from('fechamentos')
+      .insert([payload])
+      .select()
+      .single();
+
+    if (error) throw error;
+    res.status(201).json(data);
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Erro ao salvar', detalhe: error.message });
+    console.error('Erro ao criar:', error);
+    res.status(500).json({ error: error.message });
   }
 });
 
+// ATUALIZAR
+router.put('/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const body = req.body;
+
+    const payload = {
+      mesreferencia: body.MesReferencia,
+      energiacompensada: body.EnergiaCompensada,
+      
+      // Novos campos
+      consumo_rede: body.ConsumoRede,
+      tarifa_kwh: body.TarifaKwh,
+      total_bruto: body.TotalBruto,
+      tusd_fio_b: body.TusdFioB,
+      total_fio_b: body.TotalFioB,
+      valor_fatura_geradora: body.ValorFaturaGeradora,
+      spread: body.Spread, 
+
+      tarifa_com_imposto: body.TarifaComImposto,
+      iluminacao_publica: body.IluminacaoPublica,
+      outras_taxas: body.OutrasTaxas,
+      valor_pago_fatura: body.ValorPagoFatura,
+      economia_gerada: body.EconomiaGerada,
+      valorrecebido: body.ValorRecebido,
+
+      updated_at: new Date()
+    };
+
+    if (body.ArquivoURL !== undefined) payload.arquivourl = body.ArquivoURL;
+    if (body.ReciboURL !== undefined) payload.recibourl = body.ReciboURL;
+
+    let { data, error } = await supabase
+      .from('fechamentos')
+      .update(payload)
+      .eq('fechamentoid', id)
+      .select()
+      .single();
+
+    if (error && error.message.includes('updated_at')) {
+       delete payload.updated_at; 
+       const retry = await supabase.from('fechamentos').update(payload).eq('fechamentoid', id).select().single();
+       data = retry.data;
+       error = retry.error;
+    }
+
+    if (error) throw error;
+    res.json(data);
+  } catch (error) {
+    console.error('Erro backend:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// EXCLUIR
 router.delete('/:id', async (req, res) => {
   try {
-    await pool.query('DELETE FROM financeiro_novo WHERE id = $1', [req.params.id]);
-    res.json({ success: true });
+    const { error } = await supabase.from('fechamentos').delete().eq('fechamentoid', req.params.id);
+    if (error) throw error;
+    res.json({ message: 'Sucesso' });
   } catch (error) {
-    res.status(500).json({ error: 'Erro ao excluir' });
+    res.status(500).json({ error: error.message });
   }
 });
-
-// A rota de UPDATE (PUT) pode ser atualizada depois se precisar editar, 
-// por enquanto foque em CRIAR (POST) e LISTAR (GET) para testar.
 
 export default router;

@@ -1,51 +1,72 @@
-// src/lib/api.ts
+import axios from 'axios';
 
-// --- CONFIGURAÇÃO DE URL ---
-const BASE_URL_RENDER = 'https://api-gestao-solar.onrender.com'; 
-const API_URL = import.meta.env.PROD ? `${BASE_URL_RENDER}/api` : 'http://localhost:3000/api';
+// Verifica se está rodando local ou em produção
+const isLocal = window.location.hostname === 'localhost';
+const API_BASE = isLocal 
+  ? 'http://localhost:3001/api' 
+  : 'https://api-gestao-solar.onrender.com/api';
 
-async function request(endpoint: string, options: RequestInit = {}) {
-  const headers = { 'Content-Type': 'application/json', ...options.headers };
-  try {
-    const res = await fetch(`${API_URL}${endpoint}`, { ...options, headers });
-    if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.detalhe || err.error || 'Erro na API');
-    }
-    if (res.status === 204) return null;
-    return res.json();
-  } catch (error) {
-    console.error(error);
-    throw error;
-  }
-}
-
-function createCrud(resource: string) {
-  return {
-    list: () => request(`/${resource}`),
-    get: (id: number | string) => request(`/${resource}/${id}`),
-    create: (data: any) => request(`/${resource}`, { method: 'POST', body: JSON.stringify(data) }),
-    update: (id: number | string, data: any) => request(`/${resource}/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
-    delete: (id: number | string) => request(`/${resource}/${id}`, { method: 'DELETE' }),
-  };
-}
+const axiosInstance = axios.create({
+  baseURL: API_BASE,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
 
 export const api = {
-  consumidores: createCrud('consumidores'),
-  usinas: createCrud('usinas'),
-  vinculos: createCrud('vinculos'),
-  recibos: createCrud('recibos'),
-  concessionarias: createCrud('concessionarias'),
-  propostas: createCrud('propostas'),
+  usinas: {
+    list: () => axiosInstance.get('/usinas').then((res: any) => res.data),
+    get: (id: number) => axiosInstance.get(`/usinas/${id}`).then((res: any) => res.data),
+    // Busca os vínculos de uma usina específica
+    vinculos: (id: number) => axiosInstance.get(`/usinas/${id}/vinculos`).then((res: any) => res.data),
+    create: (data: any) => axiosInstance.post('/usinas', data).then((res: any) => res.data),
+    update: (id: number, data: any) => axiosInstance.put(`/usinas/${id}`, data).then((res: any) => res.data),
+    delete: (id: number) => axiosInstance.delete(`/usinas/${id}`).then((res: any) => res.data),
+  },
+  consumidores: {
+    list: () => axiosInstance.get('/consumidores').then((res: any) => res.data),
+    get: (id: number) => axiosInstance.get(`/consumidores/${id}`).then((res: any) => res.data),
+    create: (data: any) => axiosInstance.post('/consumidores', data).then((res: any) => res.data),
+    update: (id: number, data: any) => axiosInstance.put(`/consumidores/${id}`, data).then((res: any) => res.data),
+    delete: (id: number) => axiosInstance.delete(`/consumidores/${id}`).then((res: any) => res.data),
+  },
+  vinculos: {
+    list: () => axiosInstance.get('/vinculos').then((res: any) => res.data),
+    get: (id: number) => axiosInstance.get(`/vinculos/${id}`).then((res: any) => res.data),
+    create: (data: any) => axiosInstance.post('/vinculos', data).then((res: any) => res.data),
+    update: (id: number, data: any) => axiosInstance.put(`/vinculos/${id}`, data).then((res: any) => res.data),
+    delete: (id: number) => axiosInstance.delete(`/vinculos/${id}`).then((res: any) => res.data),
+  },
+  status: {
+    list: () => axiosInstance.get('/status').then((res: any) => res.data),
+  },
+  entidades: {
+    list: () => axiosInstance.get('/entidades').then((res: any) => res.data),
+    create: (data: any) => axiosInstance.post('/entidades', data).then((res: any) => res.data),
+    update: (id: number, data: any) => axiosInstance.put(`/entidades/${id}`, data).then((res: any) => res.data),
+    delete: (id: number) => axiosInstance.delete(`/entidades/${id}`).then((res: any) => res.data),
+  },
   
-  // NOVA CONFIGURAÇÃO FINANCEIRA
-  financeiro: {
-    list: (vinculoId: number | string) => request(`/financeiro/${vinculoId}`), 
-    create: (data: any) => request('/financeiro', { method: 'POST', body: JSON.stringify(data) }),
-    update: (id: number | string, data: any) => request(`/financeiro/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
-    delete: (id: number | string) => request(`/financeiro/${id}`, { method: 'DELETE' }),
+  // Rota chamada de 'fechamentos'
+  fechamentos: {
+    list: (vinculoId: number) => axiosInstance.get(`/fechamentos/${vinculoId}`).then((res: any) => res.data),
+    create: (data: any) => axiosInstance.post('/fechamentos', data).then((res: any) => res.data),
+    update: (id: number, data: any) => axiosInstance.put(`/fechamentos/${id}`, data).then((res: any) => res.data),
+    delete: (id: number) => axiosInstance.delete(`/fechamentos/${id}`).then((res: any) => res.data),
   },
 
-  custom: (endpoint: string, method: 'GET' | 'POST' | 'PUT' | 'DELETE' = 'GET', body?: any) => 
-    request(endpoint, { method, body: body ? JSON.stringify(body) : undefined }),
+  // ADICIONADO: Alias 'financeiro' apontando para as mesmas rotas de fechamentos
+  // Isso resolve o erro se você estiver chamando api.financeiro...
+  financeiro: {
+    list: (vinculoId: number) => axiosInstance.get(`/fechamentos/${vinculoId}`).then((res: any) => res.data),
+    create: (data: any) => axiosInstance.post('/fechamentos', data).then((res: any) => res.data),
+    update: (id: number, data: any) => axiosInstance.put(`/fechamentos/${id}`, data).then((res: any) => res.data),
+    delete: (id: number) => axiosInstance.delete(`/fechamentos/${id}`).then((res: any) => res.data),
+  },
+  
+  // Helpers genéricos
+  get: (url: string) => axiosInstance.get(url).then((res: any) => res.data),
+  post: (url: string, data: any) => axiosInstance.post(url, data).then((res: any) => res.data),
+  put: (url: string, data: any) => axiosInstance.put(url, data).then((res: any) => res.data),
+  delete: (url: string) => axiosInstance.delete(url).then((res: any) => res.data),
 };

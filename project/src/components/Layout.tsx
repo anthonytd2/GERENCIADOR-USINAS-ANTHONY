@@ -1,17 +1,17 @@
-import { Outlet } from 'react-router-dom';
-import Sidebar from './Sidebar'; // <--- Aqui está a mágica: importamos o arquivo certo!
+import { ReactNode } from 'react';
+import Sidebar from './Sidebar';
 
-export default function Layout() {
+// Definimos que o Layout aceita 'children' (filhos)
+interface LayoutProps {
+  children: ReactNode;
+}
+
+export default function Layout({ children }: LayoutProps) {
   return (
     <div className="flex min-h-screen bg-gray-50">
-      {/* Chamamos o componente Sidebar que tem o Simulador e Recibos */}
       <Sidebar />
-      
-      {/* Área Principal (Com margem esquerda para não ficar embaixo do menu fixo) */}
-      <main className="flex-1 ml-64 p-8 transition-all duration-300">
-        <div className="max-w-7xl mx-auto">
-          <Outlet />
-        </div>
+      <main className="flex-1 p-8 overflow-y-auto">
+        {children}
       </main>
     </div>
   );

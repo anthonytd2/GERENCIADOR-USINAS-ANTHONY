@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Layout from './components/Layout';
 import Dashboard from './pages/Dashboard';
 
@@ -14,43 +14,54 @@ import DetalheUsina from './pages/usinas/DetalheUsina';
 
 // Vínculos
 import ListaVinculos from './pages/vinculos/ListaVinculos';
-import FormularioVinculo from './pages/vinculos/FormularioVinculo';
 import DetalheVinculo from './pages/vinculos/DetalheVinculo';
-import FinanceiroVinculo from './pages/vinculos/FinanceiroVinculo'; // <--- AQUI: Import da nova tela
+import FinanceiroVinculo from './pages/vinculos/FinanceiroVinculo';
 
+// Recibos
 import GerenciadorRecibos from './pages/recibos/GerenciadorRecibos';
-import NovoSimulador from './pages/propostas/NovoSimulador';
+
+// Financeiro
+import FechamentoMensal from './pages/financeiro/FechamentoMensal';
+
+// --- AQUI ESTAVA FALTANDO O IMPORT ---
+import NovoSimulador from './pages/propostas/NovoSimulador'; 
 
 function App() {
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<Layout />}>
-          <Route index element={<Dashboard />} />
+    <Router>
+      <Layout>
+        <Routes>
+          <Route path="/" element={<Dashboard />} />
           
-          <Route path="consumidores" element={<ListaConsumidores />} />
-          <Route path="consumidores/novo" element={<FormularioConsumidor />} />
-          <Route path="consumidores/:id" element={<DetalheConsumidor />} />
-          <Route path="consumidores/:id/editar" element={<FormularioConsumidor />} />
-          
-          <Route path="usinas" element={<ListaUsinas />} />
-          <Route path="usinas/novo" element={<FormularioUsina />} />
-          <Route path="usinas/:id" element={<DetalheUsina />} />
-          <Route path="usinas/:id/editar" element={<FormularioUsina />} />
-          
-          <Route path="vinculos" element={<ListaVinculos />} />
-          <Route path="vinculos/novo" element={<FormularioVinculo />} />
-          <Route path="vinculos/:id" element={<DetalheVinculo />} />
-          
-          {/* A ROTA CERTA É ESSA AQUI: */}
-          <Route path="vinculos/:id/financeiro" element={<FinanceiroVinculo />} />
+          {/* Rotas de Consumidores */}
+          <Route path="/consumidores" element={<ListaConsumidores />} />
+          <Route path="/consumidores/novo" element={<FormularioConsumidor />} />
+          <Route path="/consumidores/:id/editar" element={<FormularioConsumidor />} />
+          <Route path="/consumidores/:id" element={<DetalheConsumidor />} />
 
-          <Route path="recibos" element={<GerenciadorRecibos />} />
-          <Route path="simulador" element={<NovoSimulador />} />
+          {/* Rotas de Usinas */}
+          <Route path="/usinas" element={<ListaUsinas />} />
+          <Route path="/usinas/novo" element={<FormularioUsina />} />
+          <Route path="/usinas/:id/editar" element={<FormularioUsina />} />
+          <Route path="/usinas/:id" element={<DetalheUsina />} />
+
+          {/* Rotas de Vínculos */}
+          <Route path="/vinculos" element={<ListaVinculos />} />
+          <Route path="/vinculos/:id" element={<DetalheVinculo />} />
+          <Route path="/vinculos/:id/financeiro" element={<FinanceiroVinculo />} />
+
+          {/* Rotas de Recibos */}
+          <Route path="/recibos" element={<GerenciadorRecibos />} />
+
+          {/* Rotas Financeiras */}
+          <Route path="/financeiro/fechamento" element={<FechamentoMensal />} />
+
+          {/* --- AQUI ESTAVA FALTANDO A ROTA --- */}
+          <Route path="/simulacoes" element={<NovoSimulador />} />
           
-        </Route>
-      </Routes>
-    </BrowserRouter>
+        </Routes>
+      </Layout>
+    </Router>
   );
 }
 

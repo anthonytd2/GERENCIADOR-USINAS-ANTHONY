@@ -1,77 +1,33 @@
 import express from 'express';
 import { supabase } from '../db.js';
+import { usinaSchema } from '../validators/schemas.js'; // Importa a regra de validação
 
 const router = express.Router();
 
-// LISTAR TODAS (OTIMIZADO)
+// LISTAR
 router.get('/', async (req, res) => {
   try {
+    // Busca usinas e já traz o nome da concessionária junto (join)
     const { data, error } = await supabase
-      .from('usinas') 
-      .select(`
-        UsinaID,
-        NomeProprietario,
-        Potencia,
-        Tipo,
-        ValorKWBruto,
-        GeracaoEstimada,
-        vinculos ( VinculoID, StatusID )
-      `) 
+      .from('usinas')
+      .select('*, concessionarias(nome)')
       .order('NomeProprietario');
 
     if (error) throw error;
-
-    const usinasFormatadas = data.map(u => {
-      const temVinculoAtivo = u.vinculos && u.vinculos.some(v => [1, 2].includes(v.StatusID));
-      return {
-        id: u.UsinaID,
-        nome: u.NomeProprietario,
-        potencia: u.Potencia,
-        tipo: u.Tipo,
-        valor_kw: u.ValorKWBruto,
-        geracao: u.GeracaoEstimada,
-        is_locada: temVinculoAtivo
-      };
-    });
-
-    res.json(usinasFormatadas);
+    res.json(data);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
-// --- BUSCAR UMA (CORREÇÃO DO ERRO 500) ---
+// BUSCAR UMA (Detalhe)
 router.get('/:id', async (req, res) => {
   try {
     const { data, error } = await supabase
       .from('usinas')
       .select('*')
-      .eq('UsinaID', req.params.id)
-      .maybeSingle(); // <--- MUDANÇA: maybeSingle não explode se não achar
-
-    if (error) throw error;
-    
-    // Se não achou, retorna 404 bonitinho em vez de travar
-    if (!data) return res.status(404).json({ error: 'Usina não encontrada' });
-    
-    res.json(data);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// BUSCAR VÍNCULOS DESTA USINA
-router.get('/:id/vinculos', async (req, res) => {
-  try {
-    const { data, error } = await supabase
-      .from('vinculos')
-      .select(`
-        VinculoID,
-        StatusID,
-        consumidores ( Nome ),
-        status ( Descricao )
-      `)
-      .eq('UsinaID', req.params.id);
+      .eq('id', req.params.id) // Atenção: Usinas geralmente usam 'id' minúsculo
+      .single();
 
     if (error) throw error;
     res.json(data);
@@ -80,38 +36,65 @@ router.get('/:id/vinculos', async (req, res) => {
   }
 });
 
-// CRIAR
+// CRIAR (COM VALIDAÇÃO)
 router.post('/', async (req, res) => {
   try {
-    const { data, error } = await supabase.from('usinas').insert([req.body]).select().single();
+    // 1. Validação com Zod
+    const dadosLimpos = usinaSchema.parse(req.body);
+
+    // 2. Salvar no banco
+    const { data, error } = await supabase
+      .from('usinas')
+      .insert([dadosLimpos])
+      .select()
+      .single();
+
     if (error) throw error;
     res.status(201).json(data);
+
   } catch (error) {
+    if (error.issues) {
+      const mensagens = error.issues.map(i => `${i.path[0]}: ${i.message}`).join(' | ');
+      return res.status(400).json({ error: mensagens });
+    }
     res.status(500).json({ error: error.message });
   }
 });
 
-// ATUALIZAR
+// ATUALIZAR (COM VALIDAÇÃO)
 router.put('/:id', async (req, res) => {
   try {
-    const { data, error } = await supabase.from('usinas').update(req.body).eq('UsinaID', req.params.id).select().single();
+    const dadosLimpos = usinaSchema.partial().parse(req.body);
+
+    const { data, error } = await supabase
+      .from('usinas')
+      .update(dadosLimpos)
+      .eq('id', req.params.id)
+      .select()
+      .single();
+
     if (error) throw error;
     res.json(data);
+
   } catch (error) {
+    if (error.issues) {
+      const mensagens = error.issues.map(i => `${i.path[0]}: ${i.message}`).join(' | ');
+      return res.status(400).json({ error: mensagens });
+    }
     res.status(500).json({ error: error.message });
   }
 });
 
-// --- EXCLUIR (Também adicionando proteção de cascata aqui) ---
+// EXCLUIR
 router.delete('/:id', async (req, res) => {
   try {
-    // 1. Limpa vínculos antes
-    await supabase.from('vinculos').delete().eq('UsinaID', req.params.id);
+    const { error } = await supabase
+      .from('usinas')
+      .delete()
+      .eq('id', req.params.id);
 
-    // 2. Deleta Usina
-    const { error } = await supabase.from('usinas').delete().eq('UsinaID', req.params.id);
     if (error) throw error;
-    res.status(204).send();
+    res.json({ message: 'Usina excluída com sucesso' });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

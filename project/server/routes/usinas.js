@@ -6,38 +6,22 @@ const router = express.Router();
 
 // --- ROTA DE DIAGNÓSTICO E LISTAGEM ---
 router.get('/', async (req, res) => {
-  // 1. Verificação de Segurança da Conexão
-  if (!supabase) {
-    console.error("❌ ERRO CRÍTICO: Cliente Supabase é NULL.");
-    return res.status(500).json({ 
-      erro: "ERRO DE CONFIGURAÇÃO NO RENDER",
-      detalhe: "As variáveis SUPABASE_URL ou SUPABASE_ANON_KEY não foram encontradas. Verifique a aba 'Environment' no painel do Render."
-    });
-  }
-
   try {
-    console.log("✅ Conexão Supabase OK. Tentando buscar usinas...");
-    
-    // 2. Tenta buscar as usinas
+    // CORREÇÃO: Usar 'NomeProprietario' (Maiúsculo) porque o banco foi criado assim
     const { data, error } = await supabase
-      .from('usinas')
+      .from('Usinas') // Tente 'Usinas' com Maiúscula também, por segurança
       .select('*')
-      .order('nomeproprietario');
+      .order('NomeProprietario'); 
 
-    if (error) {
-      console.error("❌ Erro no Banco de Dados:", error);
-      throw error;
-    }
-
-    console.log(`📦 Sucesso! ${data.length} usinas encontradas.`);
+    if (error) throw error;
     res.json(data);
-
   } catch (error) {
-    // Retorna a mensagem real do erro para o navegador
+    // Se falhar com Maiúscula, tentamos listar as colunas para você ver o nome real
+    console.error("Erro ao listar usinas:", error);
     res.status(500).json({ 
       erro: "Erro ao consultar banco de dados",
       mensagem_tecnica: error.message,
-      dica: error.code === '42P01' ? "A tabela 'usinas' não existe no banco." : "Verifique os logs do servidor."
+      dica: "Verifique se a tabela é 'Usinas' ou 'usinas' no Supabase."
     });
   }
 });
@@ -45,12 +29,10 @@ router.get('/', async (req, res) => {
 // BUSCAR UMA USINA
 router.get('/:id', async (req, res) => {
   try {
-    if (!supabase) throw new Error("Cliente Supabase não inicializado");
-
     const { data, error } = await supabase
-      .from('usinas')
+      .from('Usinas')
       .select('*')
-      .eq('usinaid', req.params.id)
+      .eq('UsinaID', req.params.id) // CORREÇÃO: UsinaID
       .single();
 
     if (error) throw error;
@@ -63,12 +45,12 @@ router.get('/:id', async (req, res) => {
 // LISTAR VÍNCULOS
 router.get('/:id/vinculos', async (req, res) => {
   try {
-    if (!supabase) throw new Error("Cliente Supabase não inicializado");
-
+    // Nota: Se a tabela Vinculos também foi criada com maiúsculas, ajuste aqui:
+    // .from('Vinculos').select('*, Consumidores(Nome), Status(Descricao)')
     const { data, error } = await supabase
-      .from('vinculos')
-      .select('*, consumidores(nome), status(descricao)') 
-      .eq('usinaid', req.params.id);
+      .from('Vinculos') 
+      .select('*, Consumidores(Nome), Status(Descricao)') 
+      .eq('UsinaID', req.params.id);
 
     if (error) throw error;
     res.json(data);
@@ -80,13 +62,13 @@ router.get('/:id/vinculos', async (req, res) => {
 // CRIAR
 router.post('/', async (req, res) => {
   try {
-    if (!supabase) throw new Error("Cliente Supabase não inicializado");
     const dadosLimpos = usinaSchema.parse(req.body);
     const { data, error } = await supabase
-      .from('usinas')
+      .from('Usinas')
       .insert([dadosLimpos])
       .select()
       .single();
+
     if (error) throw error;
     res.status(201).json(data);
   } catch (error) {
@@ -98,14 +80,14 @@ router.post('/', async (req, res) => {
 // ATUALIZAR
 router.put('/:id', async (req, res) => {
   try {
-    if (!supabase) throw new Error("Cliente Supabase não inicializado");
     const dadosLimpos = usinaSchema.partial().parse(req.body);
     const { data, error } = await supabase
-      .from('usinas')
+      .from('Usinas')
       .update(dadosLimpos)
-      .eq('usinaid', req.params.id)
+      .eq('UsinaID', req.params.id)
       .select()
       .single();
+
     if (error) throw error;
     res.json(data);
   } catch (error) {
@@ -116,11 +98,10 @@ router.put('/:id', async (req, res) => {
 // EXCLUIR
 router.delete('/:id', async (req, res) => {
   try {
-    if (!supabase) throw new Error("Cliente Supabase não inicializado");
     const { error } = await supabase
-      .from('usinas')
+      .from('Usinas')
       .delete()
-      .eq('usinaid', req.params.id);
+      .eq('UsinaID', req.params.id);
     if (error) throw error;
     res.json({ message: 'Usina excluída' });
   } catch (error) {

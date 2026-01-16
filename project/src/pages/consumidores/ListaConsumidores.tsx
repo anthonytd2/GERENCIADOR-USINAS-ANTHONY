@@ -1,14 +1,14 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../../lib/api';
-import { Plus, Edit, Trash2, User, Search, Percent, DollarSign } from 'lucide-react';
+import { Plus, Edit, Trash2, Search, Percent, DollarSign } from 'lucide-react';
 
 interface Consumidor {
   ConsumidorID: number;
   Nome: string;
   MediaConsumo: number;
   PercentualDesconto: number;
-  TipoDesconto?: string; // Campo novo que diz se é 'porcentagem' ou 'valor_fixo'
+  TipoDesconto?: string;
   Vendedor?: string;
 }
 
@@ -33,7 +33,6 @@ export default function ListaConsumidores() {
     loadConsumidores();
   };
 
-  // Filtro de busca
   const consumidoresFiltrados = consumidores.filter(c => 
     c.Nome.toLowerCase().includes(busca.toLowerCase())
   );
@@ -56,7 +55,6 @@ export default function ListaConsumidores() {
         </Link>
       </div>
 
-      {/* Barra de Busca */}
       <div className="mb-6 relative">
         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
           <Search className="h-5 w-5 text-gray-400" />
@@ -89,16 +87,27 @@ export default function ListaConsumidores() {
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {consumidoresFiltrados.map((c) => (
-                  <tr key={c.ConsumidorID} className="hover:bg-slate-50 transition-colors">
+                  <tr key={c.ConsumidorID} className="hover:bg-slate-50 transition-colors group">
+                    
+                    {/* --- AQUI: AVATAR AZUL COM INICIAL --- */}
                     <td className="px-6 py-4">
-                      <Link to={`/consumidores/${c.ConsumidorID}/editar`} className="font-semibold text-blue-600 hover:text-blue-800 hover:underline flex items-center gap-2">
-                        <User className="w-4 h-4 text-gray-400" />
-                        {c.Nome}
+                      <Link to={`/consumidores/${c.ConsumidorID}/editar`} className="flex items-center gap-4">
+                        <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold group-hover:bg-blue-200 transition-colors">
+                          {c.Nome.charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                          <div className="font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">
+                            {c.Nome}
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            ID: {c.ConsumidorID}
+                          </div>
+                        </div>
                       </Link>
                     </td>
+                    {/* ------------------------------------- */}
+
                     <td className="px-6 py-4 text-gray-600">{c.MediaConsumo} kWh</td>
-                    
-                    {/* AQUI ESTÁ A CORREÇÃO VISUAL */}
                     <td className="px-6 py-4">
                       {c.TipoDesconto === 'valor_fixo' ? (
                         <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-sm font-medium bg-green-100 text-green-800">
@@ -112,7 +121,6 @@ export default function ListaConsumidores() {
                         </span>
                       )}
                     </td>
-
                     <td className="px-6 py-4 text-gray-500">{c.Vendedor || '-'}</td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex justify-end gap-2">

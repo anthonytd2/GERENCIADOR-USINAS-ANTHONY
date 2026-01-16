@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../../lib/api';
-import { Plus, Edit, Trash2, Zap, CheckCircle, XCircle } from 'lucide-react';
+import { Plus, Edit, Trash2, CheckCircle, XCircle } from 'lucide-react';
 
 interface Usina {
   UsinaID: number;
@@ -10,7 +10,6 @@ interface Usina {
   Tipo: string;
   ValorKWBruto: number;
   GeracaoEstimada: number;
-  // Aceita tanto Maiúsculo quanto Minúsculo para evitar erros
   Vinculos?: { VinculoID: number }[];
   vinculos?: { VinculoID: number }[];
 }
@@ -63,38 +62,49 @@ export default function ListaUsinas() {
             <table className="min-w-full divide-y divide-gray-100">
               <thead className="bg-slate-50">
                 <tr>
-                  <th className="px-6 text-left">Proprietário</th>
-                  <th className="px-6 text-left">Potência</th>
-                  <th className="px-6 text-left">Tipo</th>
-                  <th className="px-6 text-left">Geração Est.</th>
-                  <th className="px-6 text-center">Status</th>
-                  <th className="px-6 text-right">Ações</th>
+                  <th className="px-6 text-left py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Proprietário</th>
+                  <th className="px-6 text-left py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Potência</th>
+                  <th className="px-6 text-left py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Tipo</th>
+                  <th className="px-6 text-left py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Geração Est.</th>
+                  <th className="px-6 text-center py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Status</th>
+                  <th className="px-6 text-right py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Ações</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {usinas.map((u) => {
-                  // LÓGICA BLINDADA: Verifica se existe lista de vínculos (Maiúsculo ou Minúsculo)
                   const listaVinculos = u.Vinculos || u.vinculos || [];
                   const isLocada = listaVinculos.length > 0;
 
                   return (
-                    <tr key={u.UsinaID} className="hover:bg-slate-50 transition-colors">
-                      <td className="px-6">
-                        <Link to={`/usinas/${u.UsinaID}`} className="font-semibold text-blue-600 hover:text-blue-800 hover:underline flex items-center gap-2">
-                          <Zap className="w-4 h-4 text-gray-400" />
-                          {u.NomeProprietario}
+                    <tr key={u.UsinaID} className="hover:bg-slate-50 transition-colors group">
+                      
+                      {/* --- AQUI: AVATAR AMARELO (ENERGIA) COM INICIAL --- */}
+                      <td className="px-6 py-4">
+                        <Link to={`/usinas/${u.UsinaID}`} className="flex items-center gap-4">
+                          <div className="h-10 w-10 rounded-full bg-yellow-100 flex items-center justify-center text-yellow-700 font-bold group-hover:bg-yellow-200 transition-colors">
+                            {u.NomeProprietario.charAt(0).toUpperCase()}
+                          </div>
+                          <div>
+                            <div className="font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">
+                              {u.NomeProprietario}
+                            </div>
+                            <div className="text-xs text-gray-500">
+                              ID: {u.UsinaID}
+                            </div>
+                          </div>
                         </Link>
                       </td>
-                      <td className="px-6 text-gray-600">{u.Potencia} kWp</td>
-                      <td className="px-6">
+                      {/* ------------------------------------------------ */}
+
+                      <td className="px-6 py-4 text-gray-600">{u.Potencia} kWp</td>
+                      <td className="px-6 py-4">
                         <span className="px-2 py-1 bg-gray-100 rounded text-sm text-gray-600 font-medium">
                           {u.Tipo}
                         </span>
                       </td>
-                      <td className="px-6 text-gray-600">{u.GeracaoEstimada} kWh</td>
+                      <td className="px-6 py-4 text-gray-600">{u.GeracaoEstimada} kWh</td>
                       
-                      {/* LÓGICA DE CORES INVERTIDA */}
-                      <td className="px-6 text-center">
+                      <td className="px-6 py-4 text-center">
                         {isLocada ? (
                           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-green-100 text-green-700 font-bold text-xs uppercase tracking-wide border border-green-200">
                             <CheckCircle className="w-3 h-3" /> Locada
@@ -106,7 +116,7 @@ export default function ListaUsinas() {
                         )}
                       </td>
 
-                      <td className="px-6 text-right">
+                      <td className="px-6 py-4 text-right">
                         <div className="flex justify-end gap-2">
                           <Link to={`/usinas/${u.UsinaID}/editar`} className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg transition-colors">
                             <Edit className="w-5 h-5" />

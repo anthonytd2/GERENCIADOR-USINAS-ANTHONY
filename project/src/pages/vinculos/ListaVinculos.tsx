@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Search, Edit, Trash2, Link as LinkIcon, AlertCircle, CheckCircle, Clock, XCircle } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, AlertCircle, CheckCircle, Clock, XCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { api } from '../../lib/api';
 import FormularioVinculo from './FormularioVinculo';
@@ -61,7 +61,6 @@ const ListaVinculos = () => {
     }
   };
 
-  // Filtro de busca (igual Consumidores)
   const vinculosFiltrados = vinculos.filter(v => 
     v.consumidor_nome.toLowerCase().includes(busca.toLowerCase()) ||
     v.usina_nome.toLowerCase().includes(busca.toLowerCase())
@@ -88,7 +87,6 @@ const ListaVinculos = () => {
 
   return (
     <div>
-      {/* CABEÇALHO IDÊNTICO A USINAS/CONSUMIDORES */}
       <div className="flex justify-between items-center mb-8">
         <div>
           <h2 className="text-3xl font-bold text-gray-900">Vínculos</h2>
@@ -110,7 +108,6 @@ const ListaVinculos = () => {
         </div>
       )}
 
-      {/* BARRA DE BUSCA (IDÊNTICA A CONSUMIDORES) */}
       <div className="mb-6 relative">
         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
           <Search className="h-5 w-5 text-gray-400" />
@@ -124,7 +121,6 @@ const ListaVinculos = () => {
         />
       </div>
 
-      {/* TABELA IDÊNTICA */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
         {vinculosFiltrados.length === 0 ? (
           <div className="p-10 text-center text-gray-500">
@@ -144,18 +140,28 @@ const ListaVinculos = () => {
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {vinculosFiltrados.map((vinculo) => (
-                  <tr key={vinculo.id} className="hover:bg-slate-50 transition-colors">
+                  <tr key={vinculo.id} className="hover:bg-slate-50 transition-colors group">
                     
-                    {/* COLUNA CONSUMIDOR - Estilo: Ícone + Negrito + Link Azul */}
+                    {/* --- AQUI: AVATAR ROXO/ÍNDIGO PARA VÍNCULOS --- */}
                     <td className="px-6 py-4">
                       <Link 
                         to={`/vinculos/${vinculo.id}`} 
-                        className="font-semibold text-blue-600 hover:text-blue-800 hover:underline flex items-center gap-2"
+                        className="flex items-center gap-4"
                       >
-                        <LinkIcon className="w-4 h-4 text-gray-400" />
-                        {vinculo.consumidor_nome}
+                        <div className="h-10 w-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold group-hover:bg-indigo-200 transition-colors">
+                          {vinculo.consumidor_nome.charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                          <div className="font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">
+                            {vinculo.consumidor_nome}
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            Vínculo #{vinculo.id}
+                          </div>
+                        </div>
                       </Link>
                     </td>
+                    {/* ---------------------------------------------- */}
 
                     <td className="px-6 py-4 text-gray-600">
                       {vinculo.usina_nome}
@@ -165,7 +171,6 @@ const ListaVinculos = () => {
                       {vinculo.percentual}%
                     </td>
 
-                    {/* COLUNA STATUS - Estilo: Badge Arredondado com Ícone */}
                     <td className="px-6 py-4 text-center">
                       {vinculo.status_nome === 'Ativo' ? (
                         <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-green-100 text-green-700 font-bold text-xs uppercase tracking-wide border border-green-200">

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { api } from '../lib/api'; 
+import { api } from '../lib/api';
 import { Users, Zap, Link as LinkIcon } from 'lucide-react';
 
 export default function Dashboard() {
@@ -12,8 +12,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // AQUI ESTÁ O SEGREDO: Chama a rota '/dashboard/stats' que criamos no backend.
-    // Ela retorna apenas 3 números, em vez de baixar o banco todo.
+    // CHAMA A ROTA OTIMIZADA DO BACKEND
     api.get('/dashboard/stats')
       .then((data: any) => {
         setStats({
@@ -28,7 +27,7 @@ export default function Dashboard() {
       .finally(() => setLoading(false));
   }, []);
 
-  if (loading) return <div className="p-8 text-gray-500">Carregando painel...</div>;
+  if (loading) return <div className="p-8 text-gray-500 text-center">Carregando painel...</div>;
 
   return (
     <div>

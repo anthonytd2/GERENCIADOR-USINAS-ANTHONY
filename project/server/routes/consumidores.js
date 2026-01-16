@@ -1,12 +1,17 @@
 import express from 'express';
 import { supabase } from '../db.js';
-import { consumidorSchema } from '../validators/schemas.js'; // IMPORTAR O SCHEMA
+import { consumidorSchema } from '../validators/schemas.js'; // Importa as regras de validação
 
 const router = express.Router();
-// LISTAR
+
+// LISTAR TODOS OS CONSUMIDORES
 router.get('/', async (req, res) => {
   try {
-    const { data, error } = await supabase.from('consumidores').select('*').order('Nome');
+    const { data, error } = await supabase
+      .from('consumidores')
+      .select('*')
+      .order('Nome');
+
     if (error) throw error;
     res.json(data);
   } catch (error) {
@@ -14,93 +19,88 @@ router.get('/', async (req, res) => {
   }
 });
 
-// LISTAR UM
+// BUSCAR UM CONSUMIDOR (Detalhes)
 router.get('/:id', async (req, res) => {
   try {
     const { data, error } = await supabase
       .from('consumidores')
       .select('*')
-      .eq('ConsumidorID', req.params.id)
-      .maybeSingle(); // Usamos maybeSingle para não dar erro 500 se não achar
+      .eq('ConsumidorID', req.params.id) // Atenção: Seu banco usa ConsumidorID
+      .single();
 
     if (error) throw error;
-    if (!data) return res.status(404).json({ error: 'Consumidor não encontrado' });
-    
     res.json(data);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
-// CRIAR (COM VALIDAÇÃO)
+// CRIAR NOVO CONSUMIDOR (COM VALIDAÇÃO)
 router.post('/', async (req, res) => {
   try {
-    // 1. O Zod analisa os dados. Se falhar, ele joga um erro automático.
-    const dadosValidados = consumidorSchema.parse(req.body);
+    // 1. BLINDAGEM: O Zod verifica se os dados estão corretos
+    // Se estiver errado, ele trava aqui e joga pro 'catch'
+    const dadosLimpos = consumidorSchema.parse(req.body);
 
-    // 2. Se passou, usamos dadosValidados (que já estão limpos/formatados)
+    // 2. Se passou na validação, salva no banco
     const { data, error } = await supabase
       .from('consumidores')
-      .insert([dadosValidados])
+      .insert([dadosLimpos])
       .select()
       .single();
 
     if (error) throw error;
     res.status(201).json(data);
+
   } catch (error) {
-    // Se for erro de validação do Zod, retorna 400 (Bad Request)
+    // Tratamento de erro específico para Validação
     if (error.issues) {
-      return res.status(400).json({ error: error.issues.map(i => i.message).join(', ') });
+      // Cria uma mensagem amigável: "Nome: obrigatório | Email: inválido"
+      const mensagens = error.issues.map(i => `${i.path[0]}: ${i.message}`).join(' | ');
+      return res.status(400).json({ error: mensagens });
     }
+    
+    // Erro genérico do servidor
     res.status(500).json({ error: error.message });
   }
 });
 
-// ATUALIZAR (COM VALIDAÇÃO PARCIAL)
+// ATUALIZAR CONSUMIDOR (COM VALIDAÇÃO PARCIAL)
 router.put('/:id', async (req, res) => {
   try {
-    // partial() permite enviar só o nome, ou só o telefone, sem exigir tudo
-    const dadosValidados = consumidorSchema.partial().parse(req.body);
+    // .partial() permite validar apenas os campos enviados (ex: mudar só o telefone)
+    const dadosLimpos = consumidorSchema.partial().parse(req.body);
 
     const { data, error } = await supabase
       .from('consumidores')
-      .update(dadosValidados)
+      .update(dadosLimpos)
       .eq('ConsumidorID', req.params.id)
       .select()
       .single();
 
     if (error) throw error;
     res.json(data);
+
   } catch (error) {
     if (error.issues) {
-      return res.status(400).json({ error: error.issues.map(i => i.message).join(', ') });
+      const mensagens = error.issues.map(i => `${i.path[0]}: ${i.message}`).join(' | ');
+      return res.status(400).json({ error: mensagens });
     }
     res.status(500).json({ error: error.message });
   }
 });
 
-// --- CORREÇÃO DO DELETE (Cascata Manual) ---
+// EXCLUIR CONSUMIDOR
 router.delete('/:id', async (req, res) => {
   try {
-    // 1. Primeiro, removemos todos os vínculos deste consumidor
-    const { error: errorVinculos } = await supabase
-      .from('vinculos') // Nome da tabela em minúsculo (padrão Supabase)
-      .delete()
-      .eq('ConsumidorID', req.params.id);
-
-    if (errorVinculos) throw errorVinculos;
-
-    // 2. Agora podemos excluir o consumidor sem o banco reclamar
     const { error } = await supabase
       .from('consumidores')
       .delete()
       .eq('ConsumidorID', req.params.id);
 
     if (error) throw error;
-    
-    res.json({ message: 'Consumidor e seus vínculos excluídos com sucesso' });
+    res.json({ message: 'Consumidor excluído com sucesso' });
   } catch (error) {
-    console.error('Erro ao excluir:', error);
     res.status(500).json({ error: error.message });
   }
 });

@@ -9,7 +9,7 @@ import vinculosRoutes from './routes/vinculos.js';
 import statusRoutes from './routes/status.js';
 import entidadesRoutes from './routes/entidades.js';
 import fechamentosRoutes from './routes/fechamentos.js'; // <--- ADICIONE ISSO
-
+import dashboardRoutes from './routes/dashboard.js'; // <--- ADICIONAR IMPORT
 const app = express();
 const port = process.env.PORT || 3001;
 
@@ -33,6 +33,9 @@ app.use('/api/fechamentos', fechamentosRoutes); // <--- ADICIONE ISSO
 app.use((req, res) => {
   res.status(404).json({ error: 'Rota não encontrada' });
 });
+
+app.use('/api/entidades', entidadesRoutes);
+app.use('/api/dashboard', dashboardRoutes); // <--- ADICIONAR USO DA ROTA
 
 app.listen(port, () => {
   console.log(`Servidor rodando na porta ${port}`);

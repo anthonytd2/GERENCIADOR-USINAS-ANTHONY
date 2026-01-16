@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
-import { api } from '../lib/api';
+import { api } from '../lib/api'; // Mantemos o import, mas vamos usar fetch direto ou adicionar no api.ts
 import { Users, Zap, Link as LinkIcon } from 'lucide-react';
+import axios from 'axios';
 
 export default function Dashboard() {
   const [stats, setStats] = useState({
@@ -12,20 +13,22 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Busca os dados para preencher os cards
-    Promise.all([
-      api.consumidores.list().catch(() => []),
-      api.usinas.list().catch(() => []),
-      api.vinculos.list().catch(() => [])
-    ]).then(([consumidores, usinas, vinculos]) => {
-      
-      setStats({
-        totalConsumidores: consumidores.length || 0,
-        totalUsinas: usinas.length || 0,
-        totalVinculos: vinculos.length || 0
-      });
+    // Verifica se é local ou produção (mesma lógica do seu api.ts)
+    const isLocal = window.location.hostname === 'localhost';
+    const API_BASE = isLocal 
+      ? 'http://localhost:3001/api' 
+      : 'https://api-gestao-solar.onrender.com/api';
 
-    }).finally(() => setLoading(false));
+    // Chama a NOVA rota leve
+    axios.get(`${API_BASE}/dashboard/stats`)
+      .then(response => {
+        setStats(response.data);
+      })
+      .catch(err => {
+        console.error("Erro ao carregar stats", err);
+        // Fallback silencioso (opcional)
+      })
+      .finally(() => setLoading(false));
   }, []);
 
   if (loading) return <div className="p-8 text-gray-500">Carregando painel...</div>;
@@ -34,7 +37,6 @@ export default function Dashboard() {
     <div>
       <h1 className="text-2xl font-bold text-[#0B1E3F] mb-6">Visão Geral</h1>
 
-      {/* MUDANÇA AQUI: Alterado para 'grid-cols-3' para ficar centralizado */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         
         {/* CARD CONSUMIDORES */}
@@ -72,7 +74,6 @@ export default function Dashboard() {
 
       </div>
 
-      {/* ÁREA DE BOAS VINDAS */}
       <div className="mt-8 bg-gradient-to-r from-[#0B1E3F] to-[#1e40af] rounded-2xl p-8 text-white shadow-lg">
         <h2 className="text-2xl font-bold mb-2">Bem-vindo ao Gestão Solar Locações</h2>
         <p className="text-blue-100 max-w-2xl">

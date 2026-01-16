@@ -3,13 +3,29 @@ import { supabase } from '../db.js';
 
 const router = express.Router();
 
-// LISTAR
+// LISTAR TODAS
 router.get('/', async (req, res) => {
   try {
     const { data, error } = await supabase
       .from('propostas')
       .select('*')
       .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    res.json(data);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// --- NOVO: BUSCAR UMA POR ID (Para editar) ---
+router.get('/:id', async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('propostas')
+      .select('*')
+      .eq('id', req.params.id)
+      .single();
 
     if (error) throw error;
     res.json(data);
@@ -60,7 +76,7 @@ router.put('/:id', async (req, res) => {
   }
 });
 
-// --- NOVO: EXCLUIR ---
+// EXCLUIR
 router.delete('/:id', async (req, res) => {
   try {
     const { error } = await supabase

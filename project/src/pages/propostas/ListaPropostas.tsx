@@ -1,7 +1,19 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../../lib/api';
-import { Plus, FileText, CheckCircle, XCircle, Clock, Search, DollarSign, TrendingUp, MessageCircle, Trash2 } from 'lucide-react';
+import { 
+  Plus, 
+  FileText, 
+  CheckCircle, 
+  XCircle, 
+  Clock, 
+  Search, 
+  DollarSign, 
+  TrendingUp, 
+  MessageCircle, 
+  Trash2, 
+  ExternalLink 
+} from 'lucide-react';
 import Skeleton from '../../components/Skeleton';
 
 interface Proposta {
@@ -11,6 +23,7 @@ interface Proposta {
   created_at: string;
   dados_simulacao: {
     consumoKwh: number;
+    economiaRealCliente?: number;
     economiaMensal?: number;
   };
 }
@@ -20,7 +33,7 @@ export default function ListaPropostas() {
   const [loading, setLoading] = useState(true);
   const [busca, setBusca] = useState('');
 
-  // KPIs
+  // KPIs (Indicadores para o Chefe)
   const [totalPotencial, setTotalPotencial] = useState(0);
   const [taxaConversao, setTaxaConversao] = useState(0);
 
@@ -31,9 +44,9 @@ export default function ListaPropostas() {
       const lista = Array.isArray(data) ? data : (data.data || []);
       setPropostas(lista);
 
-      // Recalcula KPIs
+      // CÁLCULO DE INDICADORES (Mágica para o chefe)
       const total = lista.reduce((acc: number, p: any) => {
-        // Tenta pegar valor da economia salva ou estima
+        // Tenta pegar do JSON salvo ou usa um valor estimado se não tiver
         const economia = p.dados_simulacao?.economiaRealCliente || (p.dados_simulacao?.consumoKwh * 0.95) || 0; 
         return acc + economia;
       }, 0);
@@ -57,20 +70,19 @@ export default function ListaPropostas() {
     if(!confirm(`Mudar status para ${novoStatus}?`)) return;
     try {
         await api.propostas.update(id, { status: novoStatus });
-        loadPropostas();
+        loadPropostas(); // Recarrega para atualizar KPIs
     } catch (e) {
         alert("Erro ao atualizar status");
     }
   };
 
-  // --- NOVA FUNÇÃO DE EXCLUIR ---
   const handleDelete = async (id: number) => {
     if(!confirm('Tem certeza que deseja excluir esta proposta?')) return;
     try {
       await api.propostas.delete(id);
-      // Remove da lista visualmente na hora (mais rápido)
+      // Remove da lista visualmente para ser rápido
       setPropostas(prev => prev.filter(p => p.id !== id));
-      loadPropostas(); // Recarrega para garantir KPIs
+      loadPropostas(); // Recarrega KPIs
     } catch (error) {
       alert('Erro ao excluir proposta.');
     }
@@ -98,6 +110,7 @@ export default function ListaPropostas() {
         </Link>
       </div>
 
+      {/* --- KPI CARDS (VISÃO DO DONO) --- */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm flex items-center gap-4">
           <div className="p-3 bg-blue-100 text-blue-700 rounded-lg">
@@ -113,7 +126,7 @@ export default function ListaPropostas() {
             <DollarSign className="w-6 h-6" />
           </div>
           <div>
-            <p className="text-sm text-gray-500 font-medium">Potencial Mensal</p>
+            <p className="text-sm text-gray-500 font-medium">Potencial Mensal (Est.)</p>
             <p className="text-2xl font-bold text-gray-900">{formatMoney(totalPotencial)}</p>
           </div>
         </div>
@@ -128,6 +141,7 @@ export default function ListaPropostas() {
         </div>
       </div>
 
+      {/* --- FILTRO E BUSCA --- */}
       <div className="mb-6 relative">
         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
           <Search className="h-5 w-5 text-gray-400" />
@@ -141,6 +155,7 @@ export default function ListaPropostas() {
         />
       </div>
 
+      {/* --- TABELA DE OPORTUNIDADES --- */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
         {loading ? (
            <div className="p-6 space-y-4">
@@ -176,7 +191,6 @@ export default function ListaPropostas() {
                   <tr key={p.id} className="hover:bg-slate-50 transition-colors">
                     <td className="px-6 py-4">
                         <div className="font-semibold text-gray-900">{p.nome_cliente_prospect}</div>
-                        {/* ID REMOVIDO DAQUI */}
                     </td>
                     <td className="px-6 py-4 text-gray-600 text-sm">
                         {new Date(p.created_at).toLocaleDateString()}
@@ -199,6 +213,17 @@ export default function ListaPropostas() {
                     </td>
                     <td className="px-6 py-4 text-right">
                        <div className="flex justify-end gap-2">
+                          
+                          {/* BOTÃO ABRIR / EDITAR */}
+                          <Link 
+                            to={`/simulacoes/editar/${p.id}`}
+                            className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg"
+                            title="Abrir Detalhes / Recalcular"
+                          >
+                            <ExternalLink className="w-5 h-5" />
+                          </Link>
+
+                          {/* BOTÃO FECHAR VENDA */}
                           {p.status !== 'Fechada' && (
                               <button 
                                 onClick={() => handleStatusChange(p.id, 'Fechada')}
@@ -209,6 +234,7 @@ export default function ListaPropostas() {
                               </button>
                           )}
                           
+                          {/* BOTÃO WHATSAPP */}
                           <button 
                             className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg"
                             title="Cobrar no WhatsApp"
@@ -217,7 +243,7 @@ export default function ListaPropostas() {
                             <MessageCircle className="w-5 h-5" />
                           </button>
 
-                          {/* BOTÃO DE EXCLUIR */}
+                          {/* BOTÃO EXCLUIR */}
                           <button 
                             onClick={() => handleDelete(p.id)}
                             className="p-2 text-red-500 hover:bg-red-50 rounded-lg"

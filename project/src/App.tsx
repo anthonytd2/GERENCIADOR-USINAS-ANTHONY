@@ -58,10 +58,11 @@ function App() {
           <Route path="/financeiro/fechamento" element={<FechamentoMensal />} />
 
           {/* --- ROTAS DO CRM --- */}
-          {/* A rota principal '/simulacoes' agora abre a LISTA (Pipeline) */}
+{/* --- ROTAS DO CRM --- */}
           <Route path="/simulacoes" element={<ListaPropostas />} />
-          {/* A rota '/simulacoes/novo' abre o CALCULADORA */}
           <Route path="/simulacoes/novo" element={<NovoSimulador />} />
+          {/* NOVA ROTA DE EDIÇÃO */}
+          <Route path="/simulacoes/editar/:id" element={<NovoSimulador />} />
           
         </Routes>
       </Layout>

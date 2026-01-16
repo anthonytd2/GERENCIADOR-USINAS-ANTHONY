@@ -3,13 +3,13 @@ import { supabase } from '../db.js';
 
 const router = express.Router();
 
-// LISTAR PROPOSTAS (Pipeline)
+// LISTAR
 router.get('/', async (req, res) => {
   try {
     const { data, error } = await supabase
       .from('propostas')
       .select('*')
-      .order('created_at', { ascending: false }); // Mais recentes primeiro
+      .order('created_at', { ascending: false });
 
     if (error) throw error;
     res.json(data);
@@ -18,7 +18,7 @@ router.get('/', async (req, res) => {
   }
 });
 
-// CRIAR NOVA PROPOSTA (Salvar do Simulador)
+// CRIAR
 router.post('/', async (req, res) => {
   try {
     const { consumidor_id, nome_cliente_prospect, concessionaria_id, dados_simulacao, status } = req.body;
@@ -38,12 +38,11 @@ router.post('/', async (req, res) => {
     if (error) throw error;
     res.status(201).json(data);
   } catch (error) {
-    console.error('Erro ao salvar proposta:', error);
     res.status(500).json({ error: error.message });
   }
 });
 
-// ATUALIZAR STATUS (Mover no Pipeline)
+// ATUALIZAR STATUS
 router.put('/:id', async (req, res) => {
   try {
     const { status } = req.body;
@@ -56,6 +55,21 @@ router.put('/:id', async (req, res) => {
 
     if (error) throw error;
     res.json(data);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// --- NOVO: EXCLUIR ---
+router.delete('/:id', async (req, res) => {
+  try {
+    const { error } = await supabase
+      .from('propostas')
+      .delete()
+      .eq('id', req.params.id);
+
+    if (error) throw error;
+    res.json({ message: 'Proposta excluída com sucesso' });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

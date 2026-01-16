@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../../lib/api';
-import { Plus, FileText, CheckCircle, XCircle, Clock, Search, DollarSign, TrendingUp, MessageCircle } from 'lucide-react';
+import { Plus, FileText, CheckCircle, XCircle, Clock, Search, DollarSign, TrendingUp, MessageCircle, Trash2 } from 'lucide-react';
 import Skeleton from '../../components/Skeleton';
 
 interface Proposta {
@@ -9,14 +9,10 @@ interface Proposta {
   nome_cliente_prospect: string;
   status: 'Rascunho' | 'Enviada' | 'Fechada' | 'Perdida';
   created_at: string;
-  // O backend salva o JSON completo da simulação. 
-  // Vamos assumir que você consegue ler 'economiaMensal' ou 'valorProposta' dele
   dados_simulacao: {
     consumoKwh: number;
-    // Adicione outros campos se o backend retornar
+    economiaMensal?: number;
   };
-  // Se o backend já retornar valores calculados:
-  valor_economia_mensal?: number; 
 }
 
 export default function ListaPropostas() {
@@ -24,24 +20,21 @@ export default function ListaPropostas() {
   const [loading, setLoading] = useState(true);
   const [busca, setBusca] = useState('');
 
-  // KPIs (Indicadores para o Chefe)
+  // KPIs
   const [totalPotencial, setTotalPotencial] = useState(0);
   const [taxaConversao, setTaxaConversao] = useState(0);
 
   const loadPropostas = async () => {
     setLoading(true);
     try {
-      // Chama a API (certifique-se que o backend retorna a lista)
       const data = await api.propostas.list().catch(() => []);
       const lista = Array.isArray(data) ? data : (data.data || []);
-      
       setPropostas(lista);
 
-      // CÁLCULO DE INDICADORES (Mágica para o chefe)
-      // Aqui estamos simulando um cálculo. O ideal é que venha do backend ou do JSON da simulação
+      // Recalcula KPIs
       const total = lista.reduce((acc: number, p: any) => {
-        // Tenta pegar do JSON salvo ou usa um valor fictício se não tiver
-        const economia = p.dados_simulacao?.economia_mensal || (p.dados_simulacao?.consumoKwh * 0.95) || 0; 
+        // Tenta pegar valor da economia salva ou estima
+        const economia = p.dados_simulacao?.economiaRealCliente || (p.dados_simulacao?.consumoKwh * 0.95) || 0; 
         return acc + economia;
       }, 0);
       setTotalPotencial(total);
@@ -64,9 +57,22 @@ export default function ListaPropostas() {
     if(!confirm(`Mudar status para ${novoStatus}?`)) return;
     try {
         await api.propostas.update(id, { status: novoStatus });
-        loadPropostas(); // Recarrega para atualizar KPIs
+        loadPropostas();
     } catch (e) {
         alert("Erro ao atualizar status");
+    }
+  };
+
+  // --- NOVA FUNÇÃO DE EXCLUIR ---
+  const handleDelete = async (id: number) => {
+    if(!confirm('Tem certeza que deseja excluir esta proposta?')) return;
+    try {
+      await api.propostas.delete(id);
+      // Remove da lista visualmente na hora (mais rápido)
+      setPropostas(prev => prev.filter(p => p.id !== id));
+      loadPropostas(); // Recarrega para garantir KPIs
+    } catch (error) {
+      alert('Erro ao excluir proposta.');
     }
   };
 
@@ -92,7 +98,6 @@ export default function ListaPropostas() {
         </Link>
       </div>
 
-      {/* --- KPI CARDS (VISÃO DO DONO) --- */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm flex items-center gap-4">
           <div className="p-3 bg-blue-100 text-blue-700 rounded-lg">
@@ -108,7 +113,7 @@ export default function ListaPropostas() {
             <DollarSign className="w-6 h-6" />
           </div>
           <div>
-            <p className="text-sm text-gray-500 font-medium">Potencial Mensal (Est.)</p>
+            <p className="text-sm text-gray-500 font-medium">Potencial Mensal</p>
             <p className="text-2xl font-bold text-gray-900">{formatMoney(totalPotencial)}</p>
           </div>
         </div>
@@ -123,7 +128,6 @@ export default function ListaPropostas() {
         </div>
       </div>
 
-      {/* --- FILTRO E BUSCA --- */}
       <div className="mb-6 relative">
         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
           <Search className="h-5 w-5 text-gray-400" />
@@ -137,7 +141,6 @@ export default function ListaPropostas() {
         />
       </div>
 
-      {/* --- TABELA DE OPORTUNIDADES --- */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
         {loading ? (
            <div className="p-6 space-y-4">
@@ -173,7 +176,7 @@ export default function ListaPropostas() {
                   <tr key={p.id} className="hover:bg-slate-50 transition-colors">
                     <td className="px-6 py-4">
                         <div className="font-semibold text-gray-900">{p.nome_cliente_prospect}</div>
-                        <div className="text-xs text-gray-500">ID: {p.id}</div>
+                        {/* ID REMOVIDO DAQUI */}
                     </td>
                     <td className="px-6 py-4 text-gray-600 text-sm">
                         {new Date(p.created_at).toLocaleDateString()}
@@ -196,7 +199,6 @@ export default function ListaPropostas() {
                     </td>
                     <td className="px-6 py-4 text-right">
                        <div className="flex justify-end gap-2">
-                          {/* AÇÃO RÁPIDA: FECHAR NEGÓCIO */}
                           {p.status !== 'Fechada' && (
                               <button 
                                 onClick={() => handleStatusChange(p.id, 'Fechada')}
@@ -207,13 +209,21 @@ export default function ListaPropostas() {
                               </button>
                           )}
                           
-                          {/* AÇÃO RÁPIDA: WHATSAPP FOLLOW-UP */}
                           <button 
                             className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg"
                             title="Cobrar no WhatsApp"
                             onClick={() => window.open(`https://wa.me/?text=Olá ${p.nome_cliente_prospect}, conseguimos avaliar a proposta de energia solar?`, '_blank')}
                           >
                             <MessageCircle className="w-5 h-5" />
+                          </button>
+
+                          {/* BOTÃO DE EXCLUIR */}
+                          <button 
+                            onClick={() => handleDelete(p.id)}
+                            className="p-2 text-red-500 hover:bg-red-50 rounded-lg"
+                            title="Excluir Proposta"
+                          >
+                            <Trash2 className="w-5 h-5" />
                           </button>
                        </div>
                     </td>

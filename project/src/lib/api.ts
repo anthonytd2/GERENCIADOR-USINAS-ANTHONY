@@ -54,11 +54,12 @@ export const api = {
     delete: (id: number) => axiosInstance.delete(`/concessionarias/${id}`).then((res: any) => res.data),
   },
 
-  // --- ADICIONADO: Propostas (Necessário para salvar simulação) ---
-  propostas: {
+propostas: {
     list: () => axiosInstance.get('/propostas').then((res: any) => res.data),
     create: (data: any) => axiosInstance.post('/propostas', data).then((res: any) => res.data),
     update: (id: number, data: any) => axiosInstance.put(`/propostas/${id}`, data).then((res: any) => res.data),
+    // Nova linha para excluir:
+    delete: (id: number) => axiosInstance.delete(`/propostas/${id}`).then((res: any) => res.data),
   },
 
   fechamentos: {

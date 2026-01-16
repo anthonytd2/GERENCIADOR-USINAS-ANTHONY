@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../../lib/api';
-import { Plus, Edit, Trash2, Search, Percent, DollarSign } from 'lucide-react';
+import { Plus, Edit, Trash2, Search, Percent, DollarSign, Zap } from 'lucide-react';
 
 interface Consumidor {
   ConsumidorID: number;
@@ -33,6 +33,13 @@ export default function ListaConsumidores() {
     loadConsumidores();
   };
 
+  const formatMoeda = (valor: number) => {
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL'
+    }).format(valor);
+  };
+
   const consumidoresFiltrados = consumidores.filter(c => 
     c.Nome.toLowerCase().includes(busca.toLowerCase())
   );
@@ -62,7 +69,7 @@ export default function ListaConsumidores() {
         <input
           type="text"
           placeholder="Buscar por nome..."
-          className="pl-10 w-full md:w-1/3 rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500"
+          className="pl-10 w-full md:w-1/3 rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500 py-2 shadow-sm"
           value={busca}
           onChange={(e) => setBusca(e.target.value)}
         />
@@ -88,8 +95,6 @@ export default function ListaConsumidores() {
               <tbody className="divide-y divide-gray-100">
                 {consumidoresFiltrados.map((c) => (
                   <tr key={c.ConsumidorID} className="hover:bg-slate-50 transition-colors group">
-                    
-                    {/* --- AQUI: AVATAR AZUL COM INICIAL --- */}
                     <td className="px-6 py-4">
                       <Link to={`/consumidores/${c.ConsumidorID}/editar`} className="flex items-center gap-4">
                         <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold group-hover:bg-blue-200 transition-colors">
@@ -105,22 +110,29 @@ export default function ListaConsumidores() {
                         </div>
                       </Link>
                     </td>
-                    {/* ------------------------------------- */}
-
-                    <td className="px-6 py-4 text-gray-600">{c.MediaConsumo} kWh</td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-2 text-gray-600">
+                        <Zap className="w-4 h-4 text-yellow-500" />
+                        <span className="font-medium">{c.MediaConsumo.toLocaleString('pt-BR')} kWh</span>
+                      </div>
+                    </td>
+                    
+                    {/* --- BADGES E FORMATAÇÃO MONETÁRIA --- */}
                     <td className="px-6 py-4">
                       {c.TipoDesconto === 'valor_fixo' ? (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-sm font-medium bg-green-100 text-green-800">
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
                           <DollarSign className="w-3 h-3" />
-                          R$ {Number(c.PercentualDesconto).toFixed(2)} / kWh
+                          {formatMoeda(Number(c.PercentualDesconto))} / kWh
                         </span>
                       ) : (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium bg-blue-50 text-blue-700 border border-blue-200">
                           <Percent className="w-3 h-3" />
                           {c.PercentualDesconto}% Desc.
                         </span>
                       )}
                     </td>
+                    {/* ------------------------------------- */}
+
                     <td className="px-6 py-4 text-gray-500">{c.Vendedor || '-'}</td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex justify-end gap-2">

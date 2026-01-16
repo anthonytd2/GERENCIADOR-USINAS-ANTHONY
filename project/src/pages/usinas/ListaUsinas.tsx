@@ -34,6 +34,13 @@ export default function ListaUsinas() {
     loadUsinas();
   };
 
+  const formatMoeda = (valor: number) => {
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL'
+    }).format(valor);
+  };
+
   if (loading) return <div className="text-center py-10 text-lg text-gray-500">Carregando usinas...</div>;
 
   return (
@@ -64,8 +71,8 @@ export default function ListaUsinas() {
                 <tr>
                   <th className="px-6 text-left py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Proprietário</th>
                   <th className="px-6 text-left py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Potência</th>
-                  <th className="px-6 text-left py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Tipo</th>
                   <th className="px-6 text-left py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Geração Est.</th>
+                  <th className="px-6 text-left py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Valor kW</th>
                   <th className="px-6 text-center py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Status</th>
                   <th className="px-6 text-right py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Ações</th>
                 </tr>
@@ -77,8 +84,6 @@ export default function ListaUsinas() {
 
                   return (
                     <tr key={u.UsinaID} className="hover:bg-slate-50 transition-colors group">
-                      
-                      {/* --- AQUI: AVATAR AMARELO (ENERGIA) COM INICIAL --- */}
                       <td className="px-6 py-4">
                         <Link to={`/usinas/${u.UsinaID}`} className="flex items-center gap-4">
                           <div className="h-10 w-10 rounded-full bg-yellow-100 flex items-center justify-center text-yellow-700 font-bold group-hover:bg-yellow-200 transition-colors">
@@ -89,24 +94,23 @@ export default function ListaUsinas() {
                               {u.NomeProprietario}
                             </div>
                             <div className="text-xs text-gray-500">
-                              ID: {u.UsinaID}
+                              {u.Tipo}
                             </div>
                           </div>
                         </Link>
                       </td>
-                      {/* ------------------------------------------------ */}
-
                       <td className="px-6 py-4 text-gray-600">{u.Potencia} kWp</td>
-                      <td className="px-6 py-4">
-                        <span className="px-2 py-1 bg-gray-100 rounded text-sm text-gray-600 font-medium">
-                          {u.Tipo}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-gray-600">{u.GeracaoEstimada} kWh</td>
+                      <td className="px-6 py-4 text-gray-600">{u.GeracaoEstimada.toLocaleString('pt-BR')} kWh</td>
                       
+                      {/* --- COLUNA FINANCEIRA NOVA --- */}
+                      <td className="px-6 py-4 font-medium text-emerald-700 bg-emerald-50/30">
+                        {formatMoeda(u.ValorKWBruto || 0)}
+                      </td>
+                      {/* ------------------------------- */}
+
                       <td className="px-6 py-4 text-center">
                         {isLocada ? (
-                          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-green-100 text-green-700 font-bold text-xs uppercase tracking-wide border border-green-200">
+                          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-100 text-emerald-700 font-bold text-xs uppercase tracking-wide border border-emerald-200">
                             <CheckCircle className="w-3 h-3" /> Locada
                           </span>
                         ) : (

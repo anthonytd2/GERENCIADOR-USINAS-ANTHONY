@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../../lib/api';
-import { Plus, Edit, Trash2, CheckCircle, XCircle } from 'lucide-react';
+import { Plus, Edit, Trash2, CheckCircle, XCircle, Filter, ArrowUpDown } from 'lucide-react';
+import Skeleton from '../../components/Skeleton'; // Seu novo componente
 
 interface Usina {
   id: number;
@@ -16,34 +17,40 @@ interface Usina {
 export default function ListaUsinas() {
   const [usinas, setUsinas] = useState<Usina[]>([]);
   const [loading, setLoading] = useState(true);
+  
+  // ESTRATÉGIA: Estado para Filtros Rápidos
+  const [filtro, setFiltro] = useState<'todos' | 'disponiveis' | 'locadas'>('todos');
 
   const loadUsinas = () => {
+    setLoading(true); // Garante que o Skeleton apareça no reload
     api.usinas.list()
       .then((data: any) => {
         const listaBruta = Array.isArray(data) ? data : (data.data || []);
         
-        // --- ADAPTADOR INTELIGENTE (CORREÇÃO DO ERRO) ---
-        // Converte os dados automaticamente, não importa se vêm do Backend Novo ou Velho
+        // Adaptador Inteligente (Mantido para segurança)
         const listaNormalizada = listaBruta.map((item: any) => {
-          // Verifica se tem vínculos (compatível com estrutura antiga e nova)
           const vinculos = item.Vinculos || item.vinculos || [];
-          const temVinculoAtivo = vinculos.length > 0; // Simplificação para garantir funcionamento
-
+          const temVinculoAtivo = vinculos.length > 0;
           return {
             id: item.id || item.UsinaID,
-            nome: item.nome || item.NomeProprietario || 'Sem Nome', // Fallback para evitar o erro do charAt
+            nome: item.nome || item.NomeProprietario || 'Sem Nome',
             tipo: item.tipo || item.Tipo || 'N/A',
             potencia: item.potencia || item.Potencia || 0,
             geracao: item.geracao || item.GeracaoEstimada || 0,
             valor_kw: item.valor_kw || item.ValorKWBruto || 0,
-            // Se 'is_locada' vier do back, usa. Se não, calcula na hora.
             is_locada: item.is_locada !== undefined ? item.is_locada : temVinculoAtivo
           };
         });
 
+        // ESTRATÉGIA: Ordenação Inteligente (Disponíveis Primeiro para Vender)
+        listaNormalizada.sort((a: Usina, b: Usina) => {
+          if (a.is_locada === b.is_locada) return 0;
+          return a.is_locada ? 1 : -1; // Disponíveis (false) vêm antes
+        });
+
         setUsinas(listaNormalizada);
       })
-      .catch(err => console.error("Erro ao carregar usinas:", err))
+      .catch(console.error)
       .finally(() => setLoading(false));
   };
 
@@ -58,35 +65,93 @@ export default function ListaUsinas() {
   };
 
   const formatMoeda = (valor: number) => {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL'
-    }).format(valor);
+    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(valor);
   };
 
-  if (loading) return <div className="text-center py-10 text-lg text-gray-500">Carregando usinas...</div>;
+  // Lógica de Filtragem Visual
+  const usinasFiltradas = usinas.filter(u => {
+    if (filtro === 'disponiveis') return !u.is_locada;
+    if (filtro === 'locadas') return u.is_locada;
+    return true;
+  });
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-8">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
         <div>
-          <h2 className="text-3xl font-bold text-gray-900">Usinas</h2>
+          <h2 className="text-3xl font-bold text-brand-dark">Usinas</h2>
           <p className="text-gray-500 mt-1">Gerencie suas unidades geradoras</p>
         </div>
         <Link
           to="/usinas/novo"
-          className="flex items-center gap-2 px-5 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 shadow-lg shadow-blue-900/20 transition-all hover:-translate-y-1"
+          className="flex items-center gap-2 px-5 py-3 bg-brand-DEFAULT text-white rounded-xl hover:bg-brand-dark shadow-lg shadow-blue-900/20 transition-all hover:-translate-y-1"
         >
           <Plus className="w-5 h-5" />
           <span>Nova Usina</span>
         </Link>
       </div>
 
+      {/* ESTRATÉGIA: Barra de Filtros Rápidos */}
+      <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
+        <button 
+          onClick={() => setFiltro('todos')}
+          className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${filtro === 'todos' ? 'bg-gray-900 text-white' : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200'}`}
+        >
+          Todas
+        </button>
+        <button 
+          onClick={() => setFiltro('disponiveis')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${filtro === 'disponiveis' ? 'bg-red-100 text-red-700 border border-red-200' : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200'}`}
+        >
+          <XCircle className="w-4 h-4" /> Disponíveis
+        </button>
+        <button 
+          onClick={() => setFiltro('locadas')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${filtro === 'locadas' ? 'bg-emerald-100 text-emerald-700 border border-emerald-200' : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200'}`}
+        >
+          <CheckCircle className="w-4 h-4" /> Locadas
+        </button>
+      </div>
+
       <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-        {usinas.length === 0 ? (
-          <div className="p-10 text-center text-gray-500">
-            Nenhuma usina cadastrada.
+        
+        {/* VISUAL: Skeleton Loading (Efeito Carregando Profissional) */}
+        {loading ? (
+          <div className="p-6 space-y-4">
+            {[1, 2, 3].map(i => (
+              <div key={i} className="flex justify-between items-center">
+                <div className="flex items-center gap-4">
+                  <Skeleton className="h-10 w-10 rounded-full" />
+                  <div className="space-y-2">
+                    <Skeleton className="h-4 w-48" />
+                    <Skeleton className="h-3 w-24" />
+                  </div>
+                </div>
+                <Skeleton className="h-8 w-24 rounded-full" />
+              </div>
+            ))}
           </div>
+        ) : usinasFiltradas.length === 0 ? (
+          
+          /* VISUAL: Empty State (Estado Vazio Ilustrado) */
+          <div className="p-12 text-center flex flex-col items-center justify-center">
+            <div className="h-16 w-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+              <Filter className="h-8 w-8 text-gray-400" />
+            </div>
+            <h3 className="text-lg font-semibold text-gray-900">Nenhuma usina encontrada</h3>
+            <p className="text-gray-500 max-w-sm mt-1 mb-6">
+              Não encontramos usinas com o filtro selecionado. Tente mudar o filtro ou cadastre uma nova.
+            </p>
+            {filtro !== 'todos' && (
+              <button 
+                onClick={() => setFiltro('todos')}
+                className="text-brand-DEFAULT font-medium hover:underline"
+              >
+                Limpar filtros
+              </button>
+            )}
+          </div>
+
         ) : (
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-100">
@@ -101,31 +166,26 @@ export default function ListaUsinas() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {usinas.map((u) => (
+                {usinasFiltradas.map((u) => (
                   <tr key={u.id} className="hover:bg-slate-50 transition-colors group">
                     <td className="px-6 py-4">
                       <Link to={`/usinas/${u.id}`} className="flex items-center gap-4">
                         <div className="h-10 w-10 rounded-full bg-yellow-100 flex items-center justify-center text-yellow-700 font-bold group-hover:bg-yellow-200 transition-colors">
-                          {/* PROTEÇÃO CONTRA ERRO DE STRING VAZIA */}
                           {(u.nome || '?').charAt(0).toUpperCase()}
                         </div>
                         <div>
                           <div className="font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">
                             {u.nome}
                           </div>
-                          <div className="text-xs text-gray-500">
-                            {u.tipo}
-                          </div>
+                          <div className="text-xs text-gray-500">{u.tipo}</div>
                         </div>
                       </Link>
                     </td>
                     <td className="px-6 py-4 text-gray-600">{u.potencia} kWp</td>
                     <td className="px-6 py-4 text-gray-600">{u.geracao.toLocaleString('pt-BR')} kWh</td>
-                    
                     <td className="px-6 py-4 font-medium text-emerald-700 bg-emerald-50/30">
                       {formatMoeda(u.valor_kw || 0)}
                     </td>
-
                     <td className="px-6 py-4 text-center">
                       {u.is_locada ? (
                         <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-100 text-emerald-700 font-bold text-xs uppercase tracking-wide border border-emerald-200">
@@ -137,13 +197,12 @@ export default function ListaUsinas() {
                         </span>
                       )}
                     </td>
-
                     <td className="px-6 py-4 text-right">
                       <div className="flex justify-end gap-2">
-                        <Link to={`/usinas/${u.id}/editar`} className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg transition-colors">
+                        <Link to={`/usinas/${u.id}/editar`} className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg">
                           <Edit className="w-5 h-5" />
                         </Link>
-                        <button onClick={() => handleDelete(u.id)} className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors">
+                        <button onClick={() => handleDelete(u.id)} className="p-2 text-red-500 hover:bg-red-50 rounded-lg">
                           <Trash2 className="w-5 h-5" />
                         </button>
                       </div>

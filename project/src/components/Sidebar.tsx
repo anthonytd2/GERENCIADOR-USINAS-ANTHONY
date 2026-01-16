@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Sun, Users, Link as LinkIcon, FileText, Settings, LogOut } from 'lucide-react';
+import { LayoutDashboard, Sun, Users, Link as LinkIcon, FileText, Calculator, LogOut } from 'lucide-react';
 
 export default function Sidebar() {
   const location = useLocation();
@@ -14,7 +14,8 @@ export default function Sidebar() {
     { icon: Sun, label: 'Usinas', path: '/usinas' },
     { icon: LinkIcon, label: 'Vínculos', path: '/vinculos' },
     { icon: FileText, label: 'Recibos', path: '/recibos' },
-    { icon: Settings, label: 'Configurações', path: '/configuracoes' },
+    // Trocado de volta: Configurações -> Simulações
+    { icon: Calculator, label: 'Simulações', path: '/simulacoes' },
   ];
 
   return (

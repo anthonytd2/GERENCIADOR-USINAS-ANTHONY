@@ -1,10 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { api } from '../../lib/api';
-import { ArrowLeft, Edit, Trash2, User, Zap, MapPin, Phone, Mail, FileText, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Edit, Trash2, User, Zap, MapPin, Phone, Mail, FileText } from 'lucide-react';
 import Skeleton from '../../components/Skeleton';
-// Importação direta
-import GerenciadorDocumentos from '../../components/GerenciadorDocumentos'; 
+import GerenciadorDocumentos from '../../components/GerenciadorDocumentos'; // <--- O IMPORT NOVO
 
 interface Consumidor {
   ConsumidorID: number;
@@ -32,8 +31,6 @@ export default function DetalheConsumidor() {
   const navigate = useNavigate();
   const [consumidor, setConsumidor] = useState<Consumidor | null>(null);
   const [loading, setLoading] = useState(true);
-
-  console.log(">>> RENDERIZANDO TELA DETALHE CONSUMIDOR. ID:", id); // LOG DE DEBUG
 
   useEffect(() => {
     if (!id) return;
@@ -112,15 +109,31 @@ export default function DetalheConsumidor() {
 
       {/* GRID DE INFORMAÇÕES */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        
         {/* CARD 1: CONTATO */}
         <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
           <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
             <User className="w-5 h-5 text-blue-500" /> Dados Pessoais
           </h3>
           <div className="space-y-3 text-sm">
-            <div><p className="text-gray-500 text-xs">Documento</p><p className="font-medium text-gray-900">{consumidor.Documento || 'Não informado'}</p></div>
-            <div><p className="text-gray-500 text-xs">Email</p><div className="flex items-center gap-2"><Mail className="w-3 h-3 text-gray-400" /><p className="font-medium text-gray-900 truncate">{consumidor.Email || 'Não informado'}</p></div></div>
-            <div><p className="text-gray-500 text-xs">Telefone</p><div className="flex items-center gap-2"><Phone className="w-3 h-3 text-gray-400" /><p className="font-medium text-gray-900">{consumidor.Telefone || 'Não informado'}</p></div></div>
+            <div>
+              <p className="text-gray-500 text-xs">Documento (CPF/CNPJ)</p>
+              <p className="font-medium text-gray-900">{consumidor.Documento || 'Não informado'}</p>
+            </div>
+            <div>
+              <p className="text-gray-500 text-xs">Email</p>
+              <div className="flex items-center gap-2">
+                <Mail className="w-3 h-3 text-gray-400" />
+                <p className="font-medium text-gray-900 truncate">{consumidor.Email || 'Não informado'}</p>
+              </div>
+            </div>
+            <div>
+              <p className="text-gray-500 text-xs">Telefone</p>
+              <div className="flex items-center gap-2">
+                <Phone className="w-3 h-3 text-gray-400" />
+                <p className="font-medium text-gray-900">{consumidor.Telefone || 'Não informado'}</p>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -130,11 +143,23 @@ export default function DetalheConsumidor() {
             <Zap className="w-5 h-5 text-yellow-500" /> Dados Energéticos
           </h3>
           <div className="space-y-3 text-sm">
-            <div className="flex justify-between border-b pb-2"><span className="text-gray-500">UC</span><span className="font-bold text-gray-900">{consumidor.UnidadeConsumidora || 'N/A'}</span></div>
-            <div className="flex justify-between border-b pb-2"><span className="text-gray-500">Média</span><span className="font-bold text-gray-900">{consumidor.MediaConsumo} kWh</span></div>
+            <div className="flex justify-between border-b pb-2">
+              <span className="text-gray-500">Unidade Consumidora</span>
+              <span className="font-bold text-gray-900">{consumidor.UnidadeConsumidora || 'N/A'}</span>
+            </div>
+            <div className="flex justify-between border-b pb-2">
+              <span className="text-gray-500">Média Consumo</span>
+              <span className="font-bold text-gray-900">{consumidor.MediaConsumo} kWh</span>
+            </div>
             <div className="flex justify-between pt-1">
-               <div className="text-center w-1/2 border-r pr-2"><p className="text-xs text-gray-500">Tensão</p><p className="font-medium">{consumidor.Tensao || 'N/A'}</p></div>
-               <div className="text-center w-1/2 pl-2"><p className="text-xs text-gray-500">Fase</p><p className="font-medium">{consumidor.Fasico || 'N/A'}</p></div>
+               <div className="text-center w-1/2 border-r pr-2">
+                 <p className="text-xs text-gray-500">Tensão</p>
+                 <p className="font-medium">{consumidor.Tensao || 'N/A'}</p>
+               </div>
+               <div className="text-center w-1/2 pl-2">
+                 <p className="text-xs text-gray-500">Fase</p>
+                 <p className="font-medium">{consumidor.Fasico || 'N/A'}</p>
+               </div>
             </div>
           </div>
         </div>
@@ -157,18 +182,10 @@ export default function DetalheConsumidor() {
         </div>
       </div>
 
-      {/* --- ÁREA DO COFRE DE DOCUMENTOS (DEBUG) --- */}
-      <div className="mt-8 p-4 bg-yellow-50 border-4 border-red-500 rounded-xl">
-         <h2 className="text-red-600 font-bold flex items-center gap-2 mb-4">
-            <AlertTriangle className="w-6 h-6"/>
-            ZONA DE DOCUMENTOS (MODO DEBUG)
-         </h2>
-         <p className="mb-4 text-sm text-gray-700">Se você está vendo este quadrado amarelo, o arquivo DetalheConsumidor.tsx foi atualizado com sucesso.</p>
-         
-         {/* Renderização do componente */}
-         <div className="bg-white p-2 border border-gray-300 rounded">
-            <GerenciadorDocumentos tipoEntidade="consumidor" entidadeId={Number(id)} />
-         </div>
+      {/* --- ÁREA DO COFRE DE DOCUMENTOS --- */}
+      {/* Aqui inserimos o componente que criamos */}
+      <div className="mt-8">
+         <GerenciadorDocumentos tipoEntidade="consumidor" entidadeId={Number(id)} />
       </div>
 
     </div>

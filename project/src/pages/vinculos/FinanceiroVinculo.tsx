@@ -2,178 +2,140 @@ import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { api } from '../../lib/api';
 import { supabaseClient } from '../../lib/supabaseClient'; 
-
-import { 
-  ArrowLeft, FileText, Upload, Trash2, DollarSign, Download, 
-  Edit2, Save, X, CheckCircle, Calculator
-} from 'lucide-react';
-
-interface Fechamento {
-  fechamentoid: number;
-  mesreferencia: string;
-  energiacompensada: number;
-  valorrecebido: number;
-  valorpago: number;
-  spread: number;
-  tarifa_energia?: number; // Novo
-  custo_fio_b?: number;    // Novo
-  impostos_taxas?: number; // Novo
-  arquivourl?: string;
-  recibourl?: string;
-}
+import { ArrowLeft, FileText, DollarSign, Edit2, X, CheckCircle, Calculator, Trash2 } from 'lucide-react';
 
 export default function FinanceiroVinculo() {
   const { id } = useParams();
   
-  const [fechamentos, setFechamentos] = useState<Fechamento[]>([]);
+  const [lista, setLista] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [uploading, setUploading] = useState(false);
-  
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
+  const [uploading, setUploading] = useState(false);
 
-  const [formData, setFormData] = useState({
-    mesreferencia: '',
-    energiacompensada: '',
-    tarifa_energia: '', // Novo: Preço do kW
-    custo_fio_b: '',    // Novo: Custo Fio B
-    impostos_taxas: '', // Novo: Ilum. Pub + Taxas
-    valorrecebido: '',
-    valorpago: '',      // Agora calculado automaticamente
+  // Formulário padronizado
+  const [form, setForm] = useState({
+    mes_referencia: '',
+    energia: '',
+    tarifa: '',
+    recebido: '',
+    pago: '',
     spread: '',
+    fio_b: '',
+    taxas: '',
     arquivo: null as File | null,
     recibo: null as File | null,
-    arquivourl_existente: null as string | null,
-    recibourl_existente: null as string | null
+    arquivo_url_existente: null as string | null,
+    recibo_url_existente: null as string | null
   });
 
-  const carregarDados = async () => {
+  const carregar = async () => {
     try {
       setLoading(true);
-      const dados = await api.fechamentos.list(Number(id));
-      setFechamentos(dados || []);
-    } catch (e: any) {
+      const dados = await api.financeiro.list(Number(id));
+      setLista(dados || []);
+    } catch (e) {
       console.error(e);
-      if (e.message && !e.message.includes('JSON')) {
-         alert('Aviso: Não foi possível carregar o histórico financeiro.');
-      }
+      alert('Erro ao carregar dados. Tente novamente.');
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => { if (id) carregarDados(); }, [id]);
+  useEffect(() => { if (id) carregar(); }, [id]);
 
-  // --- CÉREBRO DA PLANILHA (CÁLCULOS AUTOMÁTICOS) ---
+  // --- CÁLCULOS AUTOMÁTICOS ---
   useEffect(() => {
-    const energia = parseFloat(formData.energiacompensada) || 0;
-    const tarifa = parseFloat(formData.tarifa_energia) || 0;
-    const fioB = parseFloat(formData.custo_fio_b) || 0;
-    const taxas = parseFloat(formData.impostos_taxas) || 0;
+    const energia = parseFloat(form.energia) || 0;
+    const tarifa = parseFloat(form.tarifa) || 0;
+    const fioB = parseFloat(form.fio_b) || 0;
+    const taxas = parseFloat(form.taxas) || 0;
     
-    // 1. Calcula o Total Bruto (Gerador)
-    const totalBruto = energia * tarifa;
+    // 1. Bruto
+    const bruto = energia * tarifa;
 
-    // 2. Calcula o Líquido a Pagar (Desconta Fio B e Taxas)
-    // Se o usuário não digitou manualmente um valor pago, sugerimos o calculado
-    if (!editingId) { // Só sugere em novos lançamentos para não sobrescrever edições
-        const liquidoSugerido = totalBruto - fioB - taxas;
-        // Atualiza o campo 'valorpago' apenas se ele estiver vazio ou se estivermos digitando os custos
-        // (Lógica simplificada: sempre atualiza o sugerido para facilitar)
-        if (totalBruto > 0) {
-            setFormData(prev => ({ 
-                ...prev, 
-                valorpago: liquidoSugerido > 0 ? liquidoSugerido.toFixed(2) : '0.00' 
-            }));
-        }
+    // 2. Sugestão de Pagamento (Bruto - Custos)
+    if (!editingId && bruto > 0) {
+        const liquido = bruto - fioB - taxas;
+        setForm(prev => ({ ...prev, pago: liquido > 0 ? liquido.toFixed(2) : '0.00' }));
     }
+  }, [form.energia, form.tarifa, form.fio_b, form.taxas]);
 
-  }, [formData.energiacompensada, formData.tarifa_energia, formData.custo_fio_b, formData.impostos_taxas]);
-
-  // Calcula o Spread Final (Recebido - Pago)
   useEffect(() => {
-    const recebido = parseFloat(formData.valorrecebido) || 0;
-    const pago = parseFloat(formData.valorpago) || 0;
-    setFormData(prev => ({ ...prev, spread: (recebido - pago).toFixed(2) }));
-  }, [formData.valorrecebido, formData.valorpago]);
-  // --------------------------------------------------
+    const rec = parseFloat(form.recebido) || 0;
+    const pag = parseFloat(form.pago) || 0;
+    setForm(prev => ({ ...prev, spread: (rec - pag).toFixed(2) }));
+  }, [form.recebido, form.pago]);
 
-  const uploadArquivo = async (file: File, bucket: string) => {
-    const nome = `${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.]/g, '_')}`;
-    const { error } = await supabaseClient.storage.from(bucket).upload(nome, file);
-    if (error) throw error;
-    const { data } = supabaseClient.storage.from(bucket).getPublicUrl(nome);
-    return data.publicUrl;
-  };
-
+  // --- SALVAR ---
   const handleSalvar = async (e: React.FormEvent) => {
     e.preventDefault();
     setUploading(true);
     try {
-      let urlArq = formData.arquivourl_existente;
-      let urlRec = formData.recibourl_existente;
-      if (formData.arquivo) urlArq = await uploadArquivo(formData.arquivo, 'documentos');
-      if (formData.recibo) urlRec = await uploadArquivo(formData.recibo, 'comprovantes');
-
-      const payload = {
-        MesReferencia: formData.mesreferencia,
-        EnergiaCompensada: Number(formData.energiacompensada),
-        valorrecebido: Number(formData.valorrecebido),
-        valorpago: Number(formData.valorpago),
-        spread: Number(formData.spread),
-        // Novos Campos
-        tarifa_energia: Number(formData.tarifa_energia),
-        custo_fio_b: Number(formData.custo_fio_b),
-        impostos_taxas: Number(formData.impostos_taxas),
-        
-        ArquivoURL: urlArq,
-        ReciboURL: urlRec,
-        VinculoID: Number(id)
+      // Uploads
+      const upload = async (file: File) => {
+        const nome = `${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.]/g, '')}`;
+        const { error } = await supabaseClient.storage.from('documentos').upload(nome, file);
+        if (error) throw error;
+        return supabaseClient.storage.from('documentos').getPublicUrl(nome).data.publicUrl;
       };
 
-      if (editingId) await api.fechamentos.update(editingId, payload);
-      else await api.fechamentos.create(payload);
+      let urlArq = form.arquivo_url_existente;
+      let urlRec = form.recibo_url_existente;
+
+      if (form.arquivo) urlArq = await upload(form.arquivo);
+      if (form.recibo) urlRec = await upload(form.recibo);
+
+      const payload = {
+        vinculo_id: Number(id),
+        mes_referencia: form.mes_referencia,
+        energia: Number(form.energia),
+        tarifa: Number(form.tarifa),
+        recebido: Number(form.recebido),
+        pago: Number(form.pago),
+        spread: Number(form.spread),
+        fio_b: Number(form.fio_b),
+        taxas: Number(form.taxas),
+        arquivo_url: urlArq,
+        recibo_url: urlRec
+      };
+
+      if (editingId) await api.financeiro.update(editingId, payload);
+      else await api.financeiro.create(payload);
 
       setShowForm(false);
       setEditingId(null);
-      // Reseta o form
-      setFormData({ 
-        mesreferencia: '', energiacompensada: '', tarifa_energia: '', custo_fio_b: '', impostos_taxas: '',
-        valorrecebido: '', valorpago: '', spread: '', 
-        arquivo: null, recibo: null, arquivourl_existente: null, recibourl_existente: null 
-      });
-      carregarDados();
+      setForm({ mes_referencia: '', energia: '', tarifa: '', recebido: '', pago: '', spread: '', fio_b: '', taxas: '', arquivo: null, recibo: null, arquivo_url_existente: null, recibo_url_existente: null });
+      carregar();
       alert('Salvo com sucesso!');
-    } catch (error: any) {
-      alert('Erro ao salvar: ' + error.message);
+    } catch (e: any) {
+      alert('Erro ao salvar: ' + e.message);
     } finally {
       setUploading(false);
     }
   };
 
-  const handleExcluir = async (fid: number) => {
-    if (confirm('Excluir lançamento?')) {
-      await api.fechamentos.delete(fid);
-      carregarDados();
+  const handleExcluir = async (itemId: number) => {
+    if (confirm('Excluir?')) {
+      await api.financeiro.delete(itemId);
+      carregar();
     }
   };
 
-  const handleEditar = (item: Fechamento) => {
-    setEditingId(item.fechamentoid);
-    setFormData({
-      mesreferencia: item.mesreferencia ? item.mesreferencia.split('T')[0] : '',
-      energiacompensada: String(item.energiacompensada),
-      // Carrega os novos campos
-      tarifa_energia: item.tarifa_energia ? String(item.tarifa_energia) : '',
-      custo_fio_b: item.custo_fio_b ? String(item.custo_fio_b) : '',
-      impostos_taxas: item.impostos_taxas ? String(item.impostos_taxas) : '',
-      
-      valorrecebido: String(item.valorrecebido),
-      valorpago: String(item.valorpago),
+  const handleEditar = (item: any) => {
+    setEditingId(item.id);
+    setForm({
+      mes_referencia: item.mes_referencia ? item.mes_referencia.split('T')[0] : '',
+      energia: String(item.energia),
+      tarifa: String(item.tarifa),
+      recebido: String(item.recebido),
+      pago: String(item.pago),
       spread: String(item.spread),
+      fio_b: String(item.fio_b),
+      taxas: String(item.taxas),
       arquivo: null, recibo: null,
-      arquivourl_existente: item.arquivourl || null,
-      recibourl_existente: item.recibourl || null
+      arquivo_url_existente: item.arquivo_url,
+      recibo_url_existente: item.recibo_url
     });
     setShowForm(true);
   };
@@ -191,115 +153,89 @@ export default function FinanceiroVinculo() {
       {showForm && (
         <div className="bg-white p-6 rounded-xl shadow-md border border-blue-100 animate-fade-in">
           <div className="flex justify-between mb-4 border-b pb-2">
-            <h3 className="font-bold text-lg flex gap-2"><Calculator size={20} className="text-blue-600"/> Calculadora de Repasse</h3>
+            <h3 className="font-bold text-lg flex gap-2"><Calculator size={20} className="text-blue-600"/> Dados do Mês</h3>
             <button onClick={() => setShowForm(false)}><X/></button>
           </div>
           
           <form onSubmit={handleSalvar} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            
-            {/* Bloco 1: Dados Básicos */}
-            <div className="lg:col-span-1">
+            <div>
               <label className="text-xs font-bold text-gray-500 uppercase">Mês Ref.</label>
-              <input required type="date" className="w-full border rounded p-2" value={formData.mesreferencia} onChange={e => setFormData({...formData, mesreferencia: e.target.value})} />
+              <input required type="date" className="w-full border rounded p-2" value={form.mes_referencia} onChange={e => setForm({...form, mes_referencia: e.target.value})} />
             </div>
-            
-            <div className="lg:col-span-1">
+            <div>
               <label className="text-xs font-bold text-gray-500 uppercase">Energia (kWh)</label>
-              <input required type="number" className="w-full border rounded p-2 font-bold" placeholder="0" value={formData.energiacompensada} onChange={e => setFormData({...formData, energiacompensada: e.target.value})} />
+              <input required type="number" className="w-full border rounded p-2" value={form.energia} onChange={e => setForm({...form, energia: e.target.value})} />
             </div>
-
-            <div className="lg:col-span-1">
-              <label className="text-xs font-bold text-gray-500 uppercase">Tarifa (R$/kWh)</label>
-              <input required type="number" step="0.0001" className="w-full border rounded p-2" placeholder="0.0000" value={formData.tarifa_energia} onChange={e => setFormData({...formData, tarifa_energia: e.target.value})} />
+            <div>
+              <label className="text-xs font-bold text-gray-500 uppercase">Tarifa (R$)</label>
+              <input required type="number" step="0.0001" className="w-full border rounded p-2" value={form.tarifa} onChange={e => setForm({...form, tarifa: e.target.value})} />
             </div>
             
-            {/* Display do Bruto (Apenas Visual) */}
-            <div className="lg:col-span-1 bg-gray-50 rounded p-2 border flex flex-col justify-center">
-               <span className="text-xs text-gray-400 uppercase">Total Bruto (Estimado)</span>
-               <span className="font-bold text-gray-700">R$ {((parseFloat(formData.energiacompensada)||0) * (parseFloat(formData.tarifa_energia)||0)).toFixed(2)}</span>
+            {/* Custos */}
+            <div>
+              <label className="text-xs font-bold text-red-500 uppercase">Fio B (R$)</label>
+              <input type="number" step="0.01" className="w-full border rounded p-2 text-red-700" value={form.fio_b} onChange={e => setForm({...form, fio_b: e.target.value})} />
+            </div>
+            <div>
+              <label className="text-xs font-bold text-red-500 uppercase">Taxas (R$)</label>
+              <input type="number" step="0.01" className="w-full border rounded p-2 text-red-700" value={form.taxas} onChange={e => setForm({...form, taxas: e.target.value})} />
             </div>
 
-            {/* Bloco 2: Descontos do Gerador */}
-            <div className="lg:col-span-1">
-              <label className="text-xs font-bold text-red-500 uppercase">Custo Fio B (R$)</label>
-              <input type="number" step="0.01" className="w-full border rounded p-2 text-red-700" placeholder="0.00" value={formData.custo_fio_b} onChange={e => setFormData({...formData, custo_fio_b: e.target.value})} />
+            {/* Resultado */}
+            <div>
+              <label className="text-xs font-bold text-red-700 uppercase">Pago (R$)</label>
+              <input required type="number" step="0.01" className="w-full border rounded p-2 bg-red-50 font-bold text-red-700" value={form.pago} onChange={e => setForm({...form, pago: e.target.value})} />
+            </div>
+            <div>
+              <label className="text-xs font-bold text-green-700 uppercase">Recebido (R$)</label>
+              <input required type="number" step="0.01" className="w-full border rounded p-2 bg-green-50 font-bold text-green-700" value={form.recebido} onChange={e => setForm({...form, recebido: e.target.value})} />
             </div>
 
-            <div className="lg:col-span-1">
-              <label className="text-xs font-bold text-red-500 uppercase">Impostos/Taxas (R$)</label>
-              <input type="number" step="0.01" className="w-full border rounded p-2 text-red-700" placeholder="0.00" value={formData.impostos_taxas} onChange={e => setFormData({...formData, impostos_taxas: e.target.value})} />
-            </div>
-
-            {/* Bloco 3: Resultados Finais */}
-            <div className="lg:col-span-1">
-              <label className="text-xs font-bold text-red-700 uppercase">A Pagar (Gerador)</label>
-              <input required type="number" step="0.01" className="w-full border-2 border-red-100 rounded p-2 text-red-700 font-bold bg-red-50" 
-                value={formData.valorpago} onChange={e => setFormData({...formData, valorpago: e.target.value})} />
-              <p className="text-[10px] text-gray-400 mt-1">*Calculado automaticamente</p>
-            </div>
-
-            <div className="lg:col-span-1">
-              <label className="text-xs font-bold text-green-700 uppercase">A Receber (Cliente)</label>
-              <input required type="number" step="0.01" className="w-full border-2 border-green-100 rounded p-2 text-green-700 font-bold bg-green-50" 
-                placeholder="0.00" value={formData.valorrecebido} onChange={e => setFormData({...formData, valorrecebido: e.target.value})} />
-            </div>
-
-            {/* Resultado Final */}
-            <div className="lg:col-span-4 bg-blue-50 p-4 rounded-xl border border-blue-200 flex justify-between items-center mt-2">
-              <div>
-                <span className="text-sm font-bold text-blue-800 block">LUCRO FINAL (SPREAD)</span>
-                <span className="text-xs text-blue-600">Recebido - Pago</span>
-              </div>
-              <span className="text-2xl font-bold text-blue-900">R$ {formData.spread || '0.00'}</span>
+            <div className="lg:col-span-4 bg-blue-50 p-4 rounded-xl flex justify-between items-center border border-blue-200">
+               <span className="font-bold text-blue-900">LUCRO (SPREAD)</span>
+               <span className="text-2xl font-bold text-blue-900">R$ {form.spread || '0.00'}</span>
             </div>
 
             {/* Uploads */}
-            <div className="lg:col-span-2 border p-2 rounded border-dashed mt-2">
+            <div className="lg:col-span-2 border p-2 rounded border-dashed">
               <label className="block text-sm mb-1">Fatura</label>
-              {formData.arquivourl_existente ? <span className="text-green-600 text-sm flex gap-2 items-center"><CheckCircle size={14}/> Anexado <button type="button" onClick={() => setFormData({...formData, arquivourl_existente: null})} className="text-red-500 font-bold ml-2">X</button></span> : <input type="file" onChange={e => setFormData({...formData, arquivo: e.target.files?.[0] || null})} />}
+              {form.arquivo_url_existente ? <span className="text-green-600 text-sm flex gap-2"><CheckCircle size={14}/> Anexado <button type="button" onClick={() => setForm({...form, arquivo_url_existente: null})} className="text-red-500">X</button></span> : <input type="file" onChange={e => setForm({...form, arquivo: e.target.files?.[0] || null})} />}
             </div>
-            <div className="lg:col-span-2 border p-2 rounded border-dashed mt-2">
-              <label className="block text-sm mb-1">Comprovante</label>
-              {formData.recibourl_existente ? <span className="text-green-600 text-sm flex gap-2 items-center"><CheckCircle size={14}/> Anexado <button type="button" onClick={() => setFormData({...formData, recibourl_existente: null})} className="text-red-500 font-bold ml-2">X</button></span> : <input type="file" onChange={e => setFormData({...formData, recibo: e.target.files?.[0] || null})} />}
+            <div className="lg:col-span-2 border p-2 rounded border-dashed">
+               <label className="block text-sm mb-1">Comprovante</label>
+               {form.recibo_url_existente ? <span className="text-green-600 text-sm flex gap-2"><CheckCircle size={14}/> Anexado <button type="button" onClick={() => setForm({...form, recibo_url_existente: null})} className="text-red-500">X</button></span> : <input type="file" onChange={e => setForm({...form, recibo: e.target.files?.[0] || null})} />}
             </div>
 
-            <div className="lg:col-span-4 flex justify-end gap-2 mt-4">
+            <div className="lg:col-span-4 flex justify-end gap-2 mt-2">
               <button type="button" onClick={() => setShowForm(false)} className="px-4 py-2 bg-gray-100 rounded">Cancelar</button>
-              <button type="submit" disabled={uploading} className="px-6 py-2 bg-blue-600 text-white rounded shadow">{uploading ? 'Salvando...' : 'Salvar'}</button>
+              <button type="submit" disabled={uploading} className="px-6 py-2 bg-blue-600 text-white rounded">{uploading ? 'Salvando...' : 'Salvar'}</button>
             </div>
           </form>
         </div>
       )}
 
+      {/* Tabela */}
       <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
         <table className="w-full text-sm text-left">
-          <thead className="bg-gray-50 border-b text-gray-500">
-            <tr>
-              <th className="p-4">Mês</th>
-              <th className="p-4">Energia</th>
-              <th className="p-4 hidden md:table-cell">Tarifa</th>
-              <th className="p-4 text-green-600">Recebido</th>
-              <th className="p-4 text-red-600">Pago</th>
-              <th className="p-4 text-blue-600 font-bold">Spread</th>
-              <th className="p-4">Ações</th>
-            </tr>
+          <thead className="bg-gray-50 border-b">
+            <tr><th className="p-4">Mês</th><th className="p-4">Energia</th><th className="p-4">Tarifa</th><th className="p-4">Recebido</th><th className="p-4">Pago</th><th className="p-4">Spread</th><th className="p-4">Ações</th></tr>
           </thead>
-          <tbody className="divide-y divide-gray-100">
-            {fechamentos.map(f => (
-              <tr key={f.fechamentoid} className="hover:bg-gray-50">
-                <td className="p-4">{new Date(f.mesreferencia).toLocaleDateString('pt-BR', {timeZone: 'UTC'})}</td>
-                <td className="p-4 font-medium">{f.energiacompensada} kWh</td>
-                <td className="p-4 hidden md:table-cell text-gray-400">R$ {f.tarifa_energia}</td>
-                <td className="p-4 text-green-600">R$ {Number(f.valorrecebido).toFixed(2)}</td>
-                <td className="p-4 text-red-600">R$ {Number(f.valorpago).toFixed(2)}</td>
-                <td className="p-4 text-blue-600 font-bold bg-blue-50/20">R$ {Number(f.spread).toFixed(2)}</td>
+          <tbody>
+            {lista.map(item => (
+              <tr key={item.id} className="border-b hover:bg-gray-50">
+                <td className="p-4">{new Date(item.mes_referencia).toLocaleDateString('pt-BR', {timeZone:'UTC'})}</td>
+                <td className="p-4">{item.energia} kWh</td>
+                <td className="p-4">R$ {item.tarifa}</td>
+                <td className="p-4 text-green-600">R$ {Number(item.recebido).toFixed(2)}</td>
+                <td className="p-4 text-red-600">R$ {Number(item.pago).toFixed(2)}</td>
+                <td className="p-4 text-blue-600 font-bold">R$ {Number(item.spread).toFixed(2)}</td>
                 <td className="p-4 flex gap-2">
-                  <button onClick={() => handleEditar(f)} className="text-blue-500 hover:bg-blue-50 p-1 rounded"><Edit2 size={16}/></button>
-                  <button onClick={() => handleExcluir(f.fechamentoid)} className="text-red-500 hover:bg-red-50 p-1 rounded"><Trash2 size={16}/></button>
+                  <button onClick={() => handleEditar(item)} className="text-blue-500"><Edit2 size={16}/></button>
+                  <button onClick={() => handleExcluir(item.id)} className="text-red-500"><Trash2 size={16}/></button>
                 </td>
               </tr>
             ))}
-            {!loading && fechamentos.length === 0 && <tr><td colSpan={7} className="p-8 text-center text-gray-400">Nenhum registro.</td></tr>}
+            {!loading && lista.length === 0 && <tr><td colSpan={7} className="p-8 text-center text-gray-400">Nenhum registro.</td></tr>}
           </tbody>
         </table>
       </div>

@@ -3,34 +3,57 @@ import { supabase } from '../db.js';
 
 const router = express.Router();
 
-// LISTAR TODAS (COM STATUS DE VÍNCULO)
+// LISTAR TODAS (OTIMIZADO)
 router.get('/', async (req, res) => {
   try {
-    // CORRIGIDO: Tabelas em minúsculo (usinas e vinculos)
     const { data, error } = await supabase
       .from('usinas') 
-      .select('*, vinculos(VinculoID)') 
+      .select(`
+        UsinaID,
+        NomeProprietario,
+        Potencia,
+        Tipo,
+        ValorKWBruto,
+        GeracaoEstimada,
+        vinculos ( VinculoID, StatusID )
+      `) 
       .order('NomeProprietario');
 
     if (error) throw error;
-    res.json(data);
+
+    const usinasFormatadas = data.map(u => {
+      const temVinculoAtivo = u.vinculos && u.vinculos.some(v => [1, 2].includes(v.StatusID));
+      return {
+        id: u.UsinaID,
+        nome: u.NomeProprietario,
+        potencia: u.Potencia,
+        tipo: u.Tipo,
+        valor_kw: u.ValorKWBruto,
+        geracao: u.GeracaoEstimada,
+        is_locada: temVinculoAtivo
+      };
+    });
+
+    res.json(usinasFormatadas);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
-// BUSCAR UMA (DETALHES)
+// --- BUSCAR UMA (CORREÇÃO DO ERRO 500) ---
 router.get('/:id', async (req, res) => {
   try {
-    // CORRIGIDO: usinas
     const { data, error } = await supabase
       .from('usinas')
       .select('*')
-      .eq('UsinaID', req.params.id) // ATENÇÃO: Verifique se a coluna chama 'UsinaID' ou 'id' no banco
-      .single();
+      .eq('UsinaID', req.params.id)
+      .maybeSingle(); // <--- MUDANÇA: maybeSingle não explode se não achar
 
     if (error) throw error;
+    
+    // Se não achou, retorna 404 bonitinho em vez de travar
     if (!data) return res.status(404).json({ error: 'Usina não encontrada' });
+    
     res.json(data);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -40,7 +63,6 @@ router.get('/:id', async (req, res) => {
 // BUSCAR VÍNCULOS DESTA USINA
 router.get('/:id/vinculos', async (req, res) => {
   try {
-    // CORRIGIDO: vinculos, consumidores e status em minúsculo
     const { data, error } = await supabase
       .from('vinculos')
       .select(`
@@ -61,13 +83,7 @@ router.get('/:id/vinculos', async (req, res) => {
 // CRIAR
 router.post('/', async (req, res) => {
   try {
-    // CORRIGIDO: usinas
-    const { data, error } = await supabase
-      .from('usinas')
-      .insert([req.body])
-      .select()
-      .single();
-
+    const { data, error } = await supabase.from('usinas').insert([req.body]).select().single();
     if (error) throw error;
     res.status(201).json(data);
   } catch (error) {
@@ -78,14 +94,7 @@ router.post('/', async (req, res) => {
 // ATUALIZAR
 router.put('/:id', async (req, res) => {
   try {
-    // CORRIGIDO: usinas
-    const { data, error } = await supabase
-      .from('usinas')
-      .update(req.body)
-      .eq('UsinaID', req.params.id)
-      .select()
-      .single();
-
+    const { data, error } = await supabase.from('usinas').update(req.body).eq('UsinaID', req.params.id).select().single();
     if (error) throw error;
     res.json(data);
   } catch (error) {
@@ -93,15 +102,14 @@ router.put('/:id', async (req, res) => {
   }
 });
 
-// EXCLUIR
+// --- EXCLUIR (Também adicionando proteção de cascata aqui) ---
 router.delete('/:id', async (req, res) => {
   try {
-    // CORRIGIDO: usinas
-    const { error } = await supabase
-      .from('usinas')
-      .delete()
-      .eq('UsinaID', req.params.id);
+    // 1. Limpa vínculos antes
+    await supabase.from('vinculos').delete().eq('UsinaID', req.params.id);
 
+    // 2. Deleta Usina
+    const { error } = await supabase.from('usinas').delete().eq('UsinaID', req.params.id);
     if (error) throw error;
     res.status(204).send();
   } catch (error) {

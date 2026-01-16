@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom';
 import { api } from '../../lib/api';
 import { Plus, Edit, Trash2, CheckCircle, XCircle } from 'lucide-react';
 
-// Interface Otimizada (Alinhada com o Backend Rápido)
 interface Usina {
   id: number;
   nome: string;
@@ -11,7 +10,7 @@ interface Usina {
   tipo: string;
   valor_kw: number;
   geracao: number;
-  is_locada: boolean; // O backend já manda isso pronto!
+  is_locada: boolean;
 }
 
 export default function ListaUsinas() {
@@ -21,11 +20,30 @@ export default function ListaUsinas() {
   const loadUsinas = () => {
     api.usinas.list()
       .then((data: any) => {
-        // Garante compatibilidade caso a API retorne {data: [...]} ou direto [...]
-        const lista = Array.isArray(data) ? data : (data.data || []);
-        setUsinas(lista);
+        const listaBruta = Array.isArray(data) ? data : (data.data || []);
+        
+        // --- ADAPTADOR INTELIGENTE (CORREÇÃO DO ERRO) ---
+        // Converte os dados automaticamente, não importa se vêm do Backend Novo ou Velho
+        const listaNormalizada = listaBruta.map((item: any) => {
+          // Verifica se tem vínculos (compatível com estrutura antiga e nova)
+          const vinculos = item.Vinculos || item.vinculos || [];
+          const temVinculoAtivo = vinculos.length > 0; // Simplificação para garantir funcionamento
+
+          return {
+            id: item.id || item.UsinaID,
+            nome: item.nome || item.NomeProprietario || 'Sem Nome', // Fallback para evitar o erro do charAt
+            tipo: item.tipo || item.Tipo || 'N/A',
+            potencia: item.potencia || item.Potencia || 0,
+            geracao: item.geracao || item.GeracaoEstimada || 0,
+            valor_kw: item.valor_kw || item.ValorKWBruto || 0,
+            // Se 'is_locada' vier do back, usa. Se não, calcula na hora.
+            is_locada: item.is_locada !== undefined ? item.is_locada : temVinculoAtivo
+          };
+        });
+
+        setUsinas(listaNormalizada);
       })
-      .catch(err => console.error(err))
+      .catch(err => console.error("Erro ao carregar usinas:", err))
       .finally(() => setLoading(false));
   };
 
@@ -88,7 +106,8 @@ export default function ListaUsinas() {
                     <td className="px-6 py-4">
                       <Link to={`/usinas/${u.id}`} className="flex items-center gap-4">
                         <div className="h-10 w-10 rounded-full bg-yellow-100 flex items-center justify-center text-yellow-700 font-bold group-hover:bg-yellow-200 transition-colors">
-                          {u.nome.charAt(0).toUpperCase()}
+                          {/* PROTEÇÃO CONTRA ERRO DE STRING VAZIA */}
+                          {(u.nome || '?').charAt(0).toUpperCase()}
                         </div>
                         <div>
                           <div className="font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">
@@ -103,12 +122,10 @@ export default function ListaUsinas() {
                     <td className="px-6 py-4 text-gray-600">{u.potencia} kWp</td>
                     <td className="px-6 py-4 text-gray-600">{u.geracao.toLocaleString('pt-BR')} kWh</td>
                     
-                    {/* --- COLUNA FINANCEIRA --- */}
                     <td className="px-6 py-4 font-medium text-emerald-700 bg-emerald-50/30">
                       {formatMoeda(u.valor_kw || 0)}
                     </td>
 
-                    {/* --- STATUS (Lido direto do is_locada) --- */}
                     <td className="px-6 py-4 text-center">
                       {u.is_locada ? (
                         <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-100 text-emerald-700 font-bold text-xs uppercase tracking-wide border border-emerald-200">

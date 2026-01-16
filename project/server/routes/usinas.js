@@ -4,24 +4,21 @@ import { usinaSchema } from '../validators/schemas.js';
 
 const router = express.Router();
 
-// --- ROTA DE DIAGNÓSTICO E LISTAGEM ---
+// LISTAR TODAS AS USINAS
 router.get('/', async (req, res) => {
   try {
-    // CORREÇÃO: Usar 'NomeProprietario' (Maiúsculo) porque o banco foi criado assim
+    // USAR NOMES EM MINÚSCULO (Regra do Postgres/Supabase)
     const { data, error } = await supabase
-      .from('Usinas') // Tente 'Usinas' com Maiúscula também, por segurança
+      .from('usinas') // nome da tabela em minúsculo
       .select('*')
-      .order('NomeProprietario'); 
+      .order('nomeproprietario'); // coluna em minúsculo
 
     if (error) throw error;
     res.json(data);
   } catch (error) {
-    // Se falhar com Maiúscula, tentamos listar as colunas para você ver o nome real
-    console.error("Erro ao listar usinas:", error);
     res.status(500).json({ 
       erro: "Erro ao consultar banco de dados",
-      mensagem_tecnica: error.message,
-      dica: "Verifique se a tabela é 'Usinas' ou 'usinas' no Supabase."
+      mensagem_tecnica: error.message
     });
   }
 });
@@ -30,9 +27,9 @@ router.get('/', async (req, res) => {
 router.get('/:id', async (req, res) => {
   try {
     const { data, error } = await supabase
-      .from('Usinas')
+      .from('usinas')
       .select('*')
-      .eq('UsinaID', req.params.id) // CORREÇÃO: UsinaID
+      .eq('usinaid', req.params.id) // coluna id em minúsculo
       .single();
 
     if (error) throw error;
@@ -45,12 +42,11 @@ router.get('/:id', async (req, res) => {
 // LISTAR VÍNCULOS
 router.get('/:id/vinculos', async (req, res) => {
   try {
-    // Nota: Se a tabela Vinculos também foi criada com maiúsculas, ajuste aqui:
-    // .from('Vinculos').select('*, Consumidores(Nome), Status(Descricao)')
+    // Ajustado para os nomes que o Postgres usa internamente
     const { data, error } = await supabase
-      .from('Vinculos') 
-      .select('*, Consumidores(Nome), Status(Descricao)') 
-      .eq('UsinaID', req.params.id);
+      .from('vinculos')
+      .select('*, consumidores(nome), status(descricao)') 
+      .eq('usinaid', req.params.id);
 
     if (error) throw error;
     res.json(data);
@@ -64,16 +60,14 @@ router.post('/', async (req, res) => {
   try {
     const dadosLimpos = usinaSchema.parse(req.body);
     const { data, error } = await supabase
-      .from('Usinas')
+      .from('usinas')
       .insert([dadosLimpos])
       .select()
       .single();
-
     if (error) throw error;
     res.status(201).json(data);
   } catch (error) {
-    const msg = error.issues ? error.issues.map(i => i.message).join(' | ') : error.message;
-    res.status(500).json({ error: msg });
+    res.status(500).json({ error: error.message });
   }
 });
 
@@ -82,12 +76,11 @@ router.put('/:id', async (req, res) => {
   try {
     const dadosLimpos = usinaSchema.partial().parse(req.body);
     const { data, error } = await supabase
-      .from('Usinas')
+      .from('usinas')
       .update(dadosLimpos)
-      .eq('UsinaID', req.params.id)
+      .eq('usinaid', req.params.id)
       .select()
       .single();
-
     if (error) throw error;
     res.json(data);
   } catch (error) {
@@ -99,9 +92,9 @@ router.put('/:id', async (req, res) => {
 router.delete('/:id', async (req, res) => {
   try {
     const { error } = await supabase
-      .from('Usinas')
+      .from('usinas')
       .delete()
-      .eq('UsinaID', req.params.id);
+      .eq('usinaid', req.params.id);
     if (error) throw error;
     res.json({ message: 'Usina excluída' });
   } catch (error) {

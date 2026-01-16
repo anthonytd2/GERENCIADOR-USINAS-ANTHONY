@@ -1,74 +1,138 @@
 import express from 'express';
-import { pool } from '../db.js';
+import { supabase } from '../db.js';
 
 const router = express.Router();
 
-// 1. LISTAR (Com mensagem de erro detalhada)
-router.get('/:id', async (req, res) => {
-  const { id } = req.params;
+// LISTAR
+router.get('/:vinculoId', async (req, res) => {
   try {
-    // Busca usando 'vinculoid' minúsculo
-    const result = await pool.query(
-      'SELECT * FROM fechamentos WHERE vinculoid = $1 ORDER BY mesreferencia DESC',
-      [id]
-    );
-    res.json(result.rows);
+    const { data, error } = await supabase
+      .from('fechamentos')
+      .select('*')
+      .eq('vinculoid', req.params.vinculoId)
+      .order('mesreferencia', { ascending: false });
+
+    if (error) throw error;
+    res.json(data);
   } catch (error) {
-    console.error("ERRO NO BACKEND:", error);
-    // AQUI: Mandamos o motivo real do erro para o navegador
-    res.status(500).json({ 
-      error: 'Erro ao buscar fechamentos', 
-      motivo_real: error.message 
-    });
+    res.status(500).json({ error: error.message });
   }
 });
 
-// 2. CRIAR
+// CRIAR (POST) - Corrigido para salvar o Spread
 router.post('/', async (req, res) => {
   try {
-    const { MesReferencia, EnergiaCompensada, ValorRecebido, ValorPago, Spread, ArquivoURL, ReciboURL, VinculoID } = req.body;
-    const query = `
-      INSERT INTO fechamentos 
-      (mesreferencia, energiacompensada, valorrecebido, valorpago, spread, arquivourl, recibourl, vinculoid)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-      RETURNING *
-    `;
-    const values = [MesReferencia, EnergiaCompensada, ValorRecebido, ValorPago, Spread, ArquivoURL, ReciboURL, VinculoID];
-    const result = await pool.query(query, values);
-    res.json(result.rows[0]);
+    const body = req.body;
+    console.log('Dados recebidos no POST:', body); // Para ajudar a debugar
+
+    // Mapeia os dados garantindo que o Spread seja pego independente da letra maiúscula/minúscula
+    const payload = {
+      vinculoid: body.VinculoID || body.vinculoid,
+      mesreferencia: body.MesReferencia || body.mesreferencia,
+      energiacompensada: body.EnergiaCompensada || body.energiacompensada,
+      
+      // Novos campos detalhados
+      consumo_rede: body.ConsumoRede || body.consumo_rede,
+      tarifa_kwh: body.TarifaKwh || body.tarifa_kwh,
+      total_bruto: body.TotalBruto || body.total_bruto,
+      tusd_fio_b: body.TusdFioB || body.tusd_fio_b,
+      total_fio_b: body.TotalFioB || body.total_fio_b,
+      valor_fatura_geradora: body.ValorFaturaGeradora || body.valor_fatura_geradora,
+      
+      // O CAMPO DO SPREAD (LUCRO)
+      spread: body.Spread !== undefined ? body.Spread : body.spread,
+
+      // Campos Consumidor
+      tarifa_com_imposto: body.TarifaComImposto || body.tarifa_com_imposto,
+      iluminacao_publica: body.IluminacaoPublica || body.iluminacao_publica,
+      outras_taxas: body.OutrasTaxas || body.outras_taxas,
+      valor_pago_fatura: body.ValorPagoFatura || body.valor_pago_fatura,
+      economia_gerada: body.EconomiaGerada || body.economia_gerada,
+      valorrecebido: body.ValorRecebido || body.valorrecebido,
+
+      arquivourl: body.ArquivoURL || body.arquivourl,
+      recibourl: body.ReciboURL || body.recibourl
+    };
+
+    const { data, error } = await supabase
+      .from('fechamentos')
+      .insert([payload])
+      .select()
+      .single();
+
+    if (error) throw error;
+    res.status(201).json(data);
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Erro ao criar', motivo_real: error.message });
+    console.error('Erro ao criar fechamento:', error);
+    res.status(500).json({ error: error.message });
   }
 });
 
-// 3. ATUALIZAR
+// ATUALIZAR (PUT)
 router.put('/:id', async (req, res) => {
   try {
-    const { MesReferencia, EnergiaCompensada, ValorRecebido, ValorPago, Spread, ArquivoURL, ReciboURL } = req.body;
-    const query = `
-      UPDATE fechamentos 
-      SET mesreferencia = $1, energiacompensada = $2, valorrecebido = $3, valorpago = $4, spread = $5, arquivourl = $6, recibourl = $7
-      WHERE fechamentoid = $8
-      RETURNING *
-    `;
-    const values = [MesReferencia, EnergiaCompensada, ValorRecebido, ValorPago, Spread, ArquivoURL, ReciboURL, req.params.id];
-    const result = await pool.query(query, values);
-    res.json(result.rows[0]);
+    const { id } = req.params;
+    const body = req.body;
+
+    const payload = {
+      mesreferencia: body.MesReferencia || body.mesreferencia,
+      energiacompensada: body.EnergiaCompensada || body.energiacompensada,
+      
+      consumo_rede: body.ConsumoRede || body.consumo_rede,
+      tarifa_kwh: body.TarifaKwh || body.tarifa_kwh,
+      total_bruto: body.TotalBruto || body.total_bruto,
+      tusd_fio_b: body.TusdFioB || body.tusd_fio_b,
+      total_fio_b: body.TotalFioB || body.total_fio_b,
+      valor_fatura_geradora: body.ValorFaturaGeradora || body.valor_fatura_geradora,
+      
+      // GARANTE O SPREAD NA EDIÇÃO
+      spread: body.Spread !== undefined ? body.Spread : body.spread,
+
+      tarifa_com_imposto: body.TarifaComImposto || body.tarifa_com_imposto,
+      iluminacao_publica: body.IluminacaoPublica || body.iluminacao_publica,
+      outras_taxas: body.OutrasTaxas || body.outras_taxas,
+      valor_pago_fatura: body.ValorPagoFatura || body.valor_pago_fatura,
+      economia_gerada: body.EconomiaGerada || body.economia_gerada,
+      valorrecebido: body.ValorRecebido || body.valorrecebido,
+
+      updated_at: new Date()
+    };
+
+    // Só atualiza URLs se enviadas
+    if (body.ArquivoURL !== undefined) payload.arquivourl = body.ArquivoURL;
+    if (body.ReciboURL !== undefined) payload.recibourl = body.ReciboURL;
+
+    let { data, error } = await supabase
+      .from('fechamentos')
+      .update(payload)
+      .eq('fechamentoid', id)
+      .select()
+      .single();
+
+    // Fallback caso updated_at não exista
+    if (error && error.message.includes('updated_at')) {
+       delete payload.updated_at; 
+       const retry = await supabase.from('fechamentos').update(payload).eq('fechamentoid', id).select().single();
+       data = retry.data;
+       error = retry.error;
+    }
+
+    if (error) throw error;
+    res.json(data);
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Erro ao atualizar', motivo_real: error.message });
+    console.error('Erro backend:', error);
+    res.status(500).json({ error: error.message });
   }
 });
 
-// 4. EXCLUIR
+// EXCLUIR
 router.delete('/:id', async (req, res) => {
   try {
-    await pool.query('DELETE FROM fechamentos WHERE fechamentoid = $1', [req.params.id]);
-    res.json({ success: true });
+    const { error } = await supabase.from('fechamentos').delete().eq('fechamentoid', req.params.id);
+    if (error) throw error;
+    res.json({ message: 'Sucesso' });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Erro ao excluir', motivo_real: error.message });
+    res.status(500).json({ error: error.message });
   }
 });
 

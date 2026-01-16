@@ -1,108 +1,193 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { api } from '../../lib/api';
-import { ArrowLeft, Edit, Trash2, Zap, Calendar, User } from 'lucide-react';
-import GerenciadorDocumentos from '../../components/GerenciadorDocumentos';
+import { ArrowLeft, Edit, Trash2, User, Zap, MapPin, Phone, Mail, FileText } from 'lucide-react';
+import Skeleton from '../../components/Skeleton';
+import GerenciadorDocumentos from '../../components/GerenciadorDocumentos'; // <--- O IMPORT NOVO
+
+interface Consumidor {
+  ConsumidorID: number;
+  Nome: string;
+  Email?: string;
+  Telefone?: string;
+  Documento?: string;
+  UnidadeConsumidora?: string;
+  Tensao?: string;
+  Fasico?: string;
+  PercentualDesconto: number;
+  MediaConsumo: number;
+  Endereco?: {
+    Logradouro: string;
+    Numero: string;
+    Bairro: string;
+    Cidade: string;
+    UF: string;
+    CEP: string;
+  };
+}
+
 export default function DetalheConsumidor() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [consumidor, setConsumidor] = useState<any>(null);
+  const [consumidor, setConsumidor] = useState<Consumidor | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (id) {
-      api.consumidores.get(Number(id))
-        .then(setConsumidor)
-        .finally(() => setLoading(false));
-    }
-  }, [id]);
+    if (!id) return;
+    api.consumidores.get(Number(id))
+      .then((data: any) => setConsumidor(data))
+      .catch((err: any) => {
+        console.error(err);
+        alert('Erro ao carregar consumidor');
+        navigate('/consumidores');
+      })
+      .finally(() => setLoading(false));
+  }, [id, navigate]);
 
   const handleDelete = async () => {
-    if (!id || !confirm('Excluir este consumidor?')) return;
-    await api.consumidores.delete(Number(id));
-    navigate('/consumidores');
+    if (!confirm('Tem certeza que deseja excluir este consumidor?')) return;
+    try {
+      await api.consumidores.delete(Number(id));
+      alert('Consumidor excluído com sucesso!');
+      navigate('/consumidores');
+    } catch (error) {
+      alert('Erro ao excluir consumidor');
+    }
   };
 
-  if (loading) return <div className="p-8 text-center text-gray-500">Carregando perfil...</div>;
-  if (!consumidor) return <div className="p-8 text-center">Não encontrado</div>;
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <Skeleton className="h-10 w-1/3" />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+           <Skeleton className="h-40" />
+           <Skeleton className="h-40" />
+           <Skeleton className="h-40" />
+        </div>
+      </div>
+    );
+  }
+
+  if (!consumidor) return <div>Consumidor não encontrado.</div>;
 
   return (
-    <div>
-      <div className="mb-8">
-        <Link to="/consumidores" className="inline-flex items-center gap-2 text-gray-500 hover:text-gray-900 mb-4 transition-colors">
-          <ArrowLeft className="w-5 h-5" /> Voltar
-        </Link>
-        
-        <div className="flex justify-between items-start">
+    <div className="max-w-6xl mx-auto pb-20">
+      
+      {/* CABEÇALHO */}
+      <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center gap-4">
+          <Link to="/consumidores" className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+            <ArrowLeft className="w-6 h-6 text-gray-600" />
+          </Link>
           <div>
-            <h1 className="text-4xl font-bold text-gray-900 mb-2">{consumidor.Nome}</h1>
-            <div className="flex items-center gap-4">
-              <span className="px-4 py-1.5 bg-blue-100 text-blue-700 font-semibold rounded-full text-sm">
-                Cliente Ativo
-              </span>
-              <span className="text-gray-500">ID: #{consumidor.ConsumidorID}</span>
-            </div>
-          </div>
-          
-          <div className="flex gap-3">
-            <Link to={`/consumidores/${id}/editar`} className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium shadow-sm">
-              <Edit className="w-4 h-4 inline mr-2" /> Editar
-            </Link>
-            <button onClick={handleDelete} className="px-4 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 font-medium">
-              <Trash2 className="w-4 h-4 inline mr-2" /> Excluir
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* Card Principal */}
-        <div className="md:col-span-2 bg-white p-8 rounded-2xl shadow-sm border border-gray-200">
-          <h3 className="text-lg font-bold text-gray-900 mb-6 flex items-center gap-2">
-            <Zap className="w-5 h-5 text-blue-600" /> Dados de Energia
-          </h3>
-          
-          <div className="grid grid-cols-2 gap-8">
-            <div>
-              <p className="text-sm text-gray-500 mb-1">Média de Consumo</p>
-              <p className="text-3xl font-bold text-gray-900">{consumidor.MediaConsumo} <span className="text-sm text-gray-400 font-normal">kWh</span></p>
-            </div>
-            <div>
-              <p className="text-sm text-gray-500 mb-1">Desconto Aplicado</p>
-              <p className="text-3xl font-bold text-green-600">{consumidor.PercentualDesconto}%</p>
+            <h1 className="text-3xl font-bold text-gray-900">{consumidor.Nome}</h1>
+            <div className="flex items-center gap-2 text-gray-500 text-sm mt-1">
+              <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded font-medium">Ativo</span>
+              <span>•</span>
+              <span>ID: {consumidor.ConsumidorID}</span>
             </div>
           </div>
         </div>
 
-        {/* Card Detalhes */}
-        <div className="bg-slate-50 p-8 rounded-2xl border border-slate-100">
-          <h3 className="text-lg font-bold text-gray-900 mb-6 flex items-center gap-2">
-            <User className="w-5 h-5 text-gray-600" /> Contrato
+        <div className="flex gap-3">
+          <Link
+            to={`/consumidores/${id}/editar`}
+            className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors shadow-sm"
+          >
+            <Edit className="w-4 h-4" />
+            <span>Editar</span>
+          </Link>
+          <button
+            onClick={handleDelete}
+            className="flex items-center gap-2 px-4 py-2 bg-red-50 border border-red-200 text-red-700 rounded-lg hover:bg-red-100 transition-colors shadow-sm"
+          >
+            <Trash2 className="w-4 h-4" />
+            <span>Excluir</span>
+          </button>
+        </div>
+      </div>
+
+      {/* GRID DE INFORMAÇÕES */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        
+        {/* CARD 1: CONTATO */}
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+          <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
+            <User className="w-5 h-5 text-blue-500" /> Dados Pessoais
           </h3>
-          
-          <div className="space-y-4">
+          <div className="space-y-3 text-sm">
             <div>
-              <p className="text-sm text-gray-500">Vendedor</p>
-              <p className="font-medium text-gray-900">{consumidor.Vendedor || 'Não informado'}</p>
+              <p className="text-gray-500 text-xs">Documento (CPF/CNPJ)</p>
+              <p className="font-medium text-gray-900">{consumidor.Documento || 'Não informado'}</p>
             </div>
             <div>
-              <p className="text-sm text-gray-500">Vigência (Anos)</p>
-              <p className="font-medium text-gray-900">{consumidor.TempoContratoAnos || '-'}</p>
-            </div>
-            <div className="pt-4 border-t border-gray-200">
-              <div className="flex items-center gap-2 text-sm text-gray-600 mb-2">
-                <Calendar className="w-4 h-4" /> Início: {consumidor.InicioContrato || '-'}
+              <p className="text-gray-500 text-xs">Email</p>
+              <div className="flex items-center gap-2">
+                <Mail className="w-3 h-3 text-gray-400" />
+                <p className="font-medium text-gray-900 truncate">{consumidor.Email || 'Não informado'}</p>
               </div>
-              <div className="flex items-center gap-2 text-sm text-gray-600">
-                <Calendar className="w-4 h-4" /> Fim: {consumidor.VencimentoContrato || '-'}
+            </div>
+            <div>
+              <p className="text-gray-500 text-xs">Telefone</p>
+              <div className="flex items-center gap-2">
+                <Phone className="w-3 h-3 text-gray-400" />
+                <p className="font-medium text-gray-900">{consumidor.Telefone || 'Não informado'}</p>
               </div>
             </div>
           </div>
         </div>
+
+        {/* CARD 2: ENERGIA */}
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+          <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
+            <Zap className="w-5 h-5 text-yellow-500" /> Dados Energéticos
+          </h3>
+          <div className="space-y-3 text-sm">
+            <div className="flex justify-between border-b pb-2">
+              <span className="text-gray-500">Unidade Consumidora</span>
+              <span className="font-bold text-gray-900">{consumidor.UnidadeConsumidora || 'N/A'}</span>
+            </div>
+            <div className="flex justify-between border-b pb-2">
+              <span className="text-gray-500">Média Consumo</span>
+              <span className="font-bold text-gray-900">{consumidor.MediaConsumo} kWh</span>
+            </div>
+            <div className="flex justify-between pt-1">
+               <div className="text-center w-1/2 border-r pr-2">
+                 <p className="text-xs text-gray-500">Tensão</p>
+                 <p className="font-medium">{consumidor.Tensao || 'N/A'}</p>
+               </div>
+               <div className="text-center w-1/2 pl-2">
+                 <p className="text-xs text-gray-500">Fase</p>
+                 <p className="font-medium">{consumidor.Fasico || 'N/A'}</p>
+               </div>
+            </div>
+          </div>
+        </div>
+
+        {/* CARD 3: ENDEREÇO */}
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+          <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
+            <MapPin className="w-5 h-5 text-green-500" /> Endereço
+          </h3>
+          {consumidor.Endereco ? (
+             <div className="space-y-2 text-sm text-gray-700">
+               <p>{consumidor.Endereco.Logradouro}, {consumidor.Endereco.Numero}</p>
+               <p>{consumidor.Endereco.Bairro}</p>
+               <p>{consumidor.Endereco.Cidade} - {consumidor.Endereco.UF}</p>
+               <p className="text-gray-400 text-xs mt-2">CEP: {consumidor.Endereco.CEP}</p>
+             </div>
+          ) : (
+            <p className="text-gray-400 italic text-sm">Endereço não cadastrado.</p>
+          )}
+        </div>
       </div>
+
+      {/* --- ÁREA DO COFRE DE DOCUMENTOS --- */}
+      {/* Aqui inserimos o componente que criamos */}
       <div className="mt-8">
          <GerenciadorDocumentos tipoEntidade="consumidor" entidadeId={Number(id)} />
       </div>
+
     </div>
   );
 }

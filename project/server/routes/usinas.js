@@ -4,30 +4,53 @@ import { usinaSchema } from '../validators/schemas.js';
 
 const router = express.Router();
 
-// 1. LISTAR TODAS AS USINAS
+// --- ROTA DE DIAGNÓSTICO E LISTAGEM ---
 router.get('/', async (req, res) => {
+  // 1. Verificação de Segurança da Conexão
+  if (!supabase) {
+    console.error("❌ ERRO CRÍTICO: Cliente Supabase é NULL.");
+    return res.status(500).json({ 
+      erro: "ERRO DE CONFIGURAÇÃO NO RENDER",
+      detalhe: "As variáveis SUPABASE_URL ou SUPABASE_ANON_KEY não foram encontradas. Verifique a aba 'Environment' no painel do Render."
+    });
+  }
+
   try {
-    // CORREÇÃO: Usar 'nomeproprietario' em minúsculo na ordenação
+    console.log("✅ Conexão Supabase OK. Tentando buscar usinas...");
+    
+    // 2. Tenta buscar as usinas
     const { data, error } = await supabase
       .from('usinas')
       .select('*')
       .order('nomeproprietario');
 
-    if (error) throw error;
+    if (error) {
+      console.error("❌ Erro no Banco de Dados:", error);
+      throw error;
+    }
+
+    console.log(`📦 Sucesso! ${data.length} usinas encontradas.`);
     res.json(data);
+
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    // Retorna a mensagem real do erro para o navegador
+    res.status(500).json({ 
+      erro: "Erro ao consultar banco de dados",
+      mensagem_tecnica: error.message,
+      dica: error.code === '42P01' ? "A tabela 'usinas' não existe no banco." : "Verifique os logs do servidor."
+    });
   }
 });
 
-// 2. BUSCAR UMA USINA (Detalhe)
+// BUSCAR UMA USINA
 router.get('/:id', async (req, res) => {
   try {
+    if (!supabase) throw new Error("Cliente Supabase não inicializado");
+
     const { data, error } = await supabase
       .from('usinas')
       .select('*')
-      // CORREÇÃO: Usar 'usinaid' em minúsculo
-      .eq('usinaid', req.params.id) 
+      .eq('usinaid', req.params.id)
       .single();
 
     if (error) throw error;
@@ -37,15 +60,11 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// 3. LISTAR VÍNCULOS DA USINA (Onde estava o erro 500)
+// LISTAR VÍNCULOS
 router.get('/:id/vinculos', async (req, res) => {
   try {
-    // CORREÇÃO CRÍTICA:
-    // Tabelas e Colunas dentro do select devem estar em minúsculo para bater com o Postgres:
-    // Consumidores -> consumidores
-    // Nome -> nome
-    // Status -> status
-    // Descricao -> descricao
+    if (!supabase) throw new Error("Cliente Supabase não inicializado");
+
     const { data, error } = await supabase
       .from('vinculos')
       .select('*, consumidores(nome), status(descricao)') 
@@ -54,66 +73,56 @@ router.get('/:id/vinculos', async (req, res) => {
     if (error) throw error;
     res.json(data);
   } catch (error) {
-    console.error("Erro ao buscar vínculos:", error);
     res.status(500).json({ error: error.message });
   }
 });
 
-// 4. CRIAR USINA
+// CRIAR
 router.post('/', async (req, res) => {
   try {
+    if (!supabase) throw new Error("Cliente Supabase não inicializado");
     const dadosLimpos = usinaSchema.parse(req.body);
-
     const { data, error } = await supabase
       .from('usinas')
       .insert([dadosLimpos])
       .select()
       .single();
-
     if (error) throw error;
     res.status(201).json(data);
   } catch (error) {
-    if (error.issues) {
-      const mensagens = error.issues.map(i => `${i.path[0]}: ${i.message}`).join(' | ');
-      return res.status(400).json({ error: mensagens });
-    }
-    res.status(500).json({ error: error.message });
+    const msg = error.issues ? error.issues.map(i => i.message).join(' | ') : error.message;
+    res.status(500).json({ error: msg });
   }
 });
 
-// 5. ATUALIZAR USINA
+// ATUALIZAR
 router.put('/:id', async (req, res) => {
   try {
+    if (!supabase) throw new Error("Cliente Supabase não inicializado");
     const dadosLimpos = usinaSchema.partial().parse(req.body);
-
     const { data, error } = await supabase
       .from('usinas')
       .update(dadosLimpos)
       .eq('usinaid', req.params.id)
       .select()
       .single();
-
     if (error) throw error;
     res.json(data);
   } catch (error) {
-    if (error.issues) {
-      const mensagens = error.issues.map(i => `${i.path[0]}: ${i.message}`).join(' | ');
-      return res.status(400).json({ error: mensagens });
-    }
     res.status(500).json({ error: error.message });
   }
 });
 
-// 6. EXCLUIR USINA
+// EXCLUIR
 router.delete('/:id', async (req, res) => {
   try {
+    if (!supabase) throw new Error("Cliente Supabase não inicializado");
     const { error } = await supabase
       .from('usinas')
       .delete()
       .eq('usinaid', req.params.id);
-
     if (error) throw error;
-    res.json({ message: 'Usina excluída com sucesso' });
+    res.json({ message: 'Usina excluída' });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

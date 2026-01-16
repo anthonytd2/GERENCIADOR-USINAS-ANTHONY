@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom'; // Adicionado useNavigate
 import { api } from '../../lib/api';
-import { ArrowLeft, User, Zap, TrendingUp } from 'lucide-react';
+import { ArrowLeft, User, Zap, TrendingUp, DollarSign } from 'lucide-react'; // DollarSign usado no botão
 
 interface VinculoDetalhado {
   id: number;
@@ -18,6 +18,7 @@ interface VinculoDetalhado {
 
 export default function DetalheVinculo() {
   const { id } = useParams();
+  const navigate = useNavigate(); // Hook para navegação
   const [vinculo, setVinculo] = useState<VinculoDetalhado | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -25,7 +26,6 @@ export default function DetalheVinculo() {
     const carregar = async () => {
       try {
         setLoading(true);
-        // BUSCA APENAS O VÍNCULO. Sem financeiro, sem erro.
         const dados = await api.vinculos.get(Number(id));
         setVinculo(dados);
       } catch (error) {
@@ -58,9 +58,8 @@ export default function DetalheVinculo() {
         </div>
       </div>
 
-      {/* CARDS DE INFORMAÇÃO (Só o essencial) */}
+      {/* CARDS DE INFORMAÇÃO */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* Consumidor */}
         <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
           <div className="flex items-center gap-2 mb-2 text-blue-600 font-semibold">
             <User size={20}/> Consumidor
@@ -69,7 +68,6 @@ export default function DetalheVinculo() {
           <p className="text-sm text-gray-500">{vinculo.consumidor?.Documento || '-'}</p>
         </div>
 
-        {/* Usina */}
         <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
           <div className="flex items-center gap-2 mb-2 text-yellow-600 font-semibold">
             <Zap size={20}/> Usina
@@ -80,7 +78,6 @@ export default function DetalheVinculo() {
           </span>
         </div>
 
-        {/* Status */}
         <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
           <div className="flex items-center gap-2 mb-2 text-green-600 font-semibold">
             <TrendingUp size={20}/> Status
@@ -89,8 +86,20 @@ export default function DetalheVinculo() {
           <p className="text-sm text-gray-400">Desde {new Date(vinculo.DataInicio).toLocaleDateString()}</p>
         </div>
       </div>
-      
-      {/* SEM FINANCEIRO, SEM TABELA, SEM ERRO */}
+
+      {/* AQUI ESTÁ DE VOLTA: O BOTÃO PARA O FINANCEIRO */}
+      <div className="mt-8 bg-blue-50 border border-blue-100 rounded-xl p-8 text-center shadow-sm">
+        <h2 className="text-xl font-bold text-blue-900 mb-2">Financeiro & Cálculos</h2>
+        <p className="text-blue-600 mb-6">Acesse a área de lançamentos, faturas e cálculo de spread.</p>
+        
+        <button 
+          onClick={() => navigate(`/vinculos/${id}/financeiro`)}
+          className="bg-blue-600 text-white px-8 py-3 rounded-lg font-bold hover:bg-blue-700 shadow-lg flex items-center gap-2 mx-auto transition-transform active:scale-95"
+        >
+          <DollarSign size={24} /> 
+          Acessar Histórico Financeiro
+        </button>
+      </div>
     </div>
   );
 }

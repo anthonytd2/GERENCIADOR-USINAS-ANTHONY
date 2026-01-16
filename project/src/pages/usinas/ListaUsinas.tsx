@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../../lib/api';
-import { Plus, Edit, Trash2, CheckCircle, XCircle, Filter, ArrowUpDown } from 'lucide-react';
-import Skeleton from '../../components/Skeleton'; // Seu novo componente
+import { Plus, Edit, Trash2, CheckCircle, XCircle, Filter } from 'lucide-react';
+import Skeleton from '../../components/Skeleton';
 
 interface Usina {
   id: number;
@@ -17,35 +17,46 @@ interface Usina {
 export default function ListaUsinas() {
   const [usinas, setUsinas] = useState<Usina[]>([]);
   const [loading, setLoading] = useState(true);
-  
-  // ESTRATÉGIA: Estado para Filtros Rápidos
   const [filtro, setFiltro] = useState<'todos' | 'disponiveis' | 'locadas'>('todos');
 
   const loadUsinas = () => {
-    setLoading(true); // Garante que o Skeleton apareça no reload
+    setLoading(true);
     api.usinas.list()
       .then((data: any) => {
         const listaBruta = Array.isArray(data) ? data : (data.data || []);
         
-        // Adaptador Inteligente (Mantido para segurança)
+        // --- CORREÇÃO AQUI NO ADAPTADOR ---
         const listaNormalizada = listaBruta.map((item: any) => {
           const vinculos = item.Vinculos || item.vinculos || [];
           const temVinculoAtivo = vinculos.length > 0;
+          
           return {
-            id: item.id || item.UsinaID,
-            nome: item.nome || item.NomeProprietario || 'Sem Nome',
-            tipo: item.tipo || item.Tipo || 'N/A',
-            potencia: item.potencia || item.Potencia || 0,
-            geracao: item.geracao || item.GeracaoEstimada || 0,
-            valor_kw: item.valor_kw || item.ValorKWBruto || 0,
+            // O Banco envia 'usinaid', o código antigo esperava 'UsinaID'
+            id: item.usinaid || item.UsinaID || item.id, 
+            
+            // O Banco envia 'nomeproprietario'
+            nome: item.nomeproprietario || item.NomeProprietario || item.nome || 'Sem Nome', 
+            
+            // O Banco envia 'tipo' (já estava ok, mas reforçamos)
+            tipo: item.tipo || item.Tipo || 'N/A', 
+            
+            // O Banco envia 'potencia'
+            potencia: item.potencia || item.Potencia || 0, 
+            
+            // O Banco envia 'geracaoestimada'
+            geracao: item.geracaoestimada || item.GeracaoEstimada || item.geracao || 0, 
+            
+            // O Banco envia 'valorkwbruto'
+            valor_kw: item.valorkwbruto || item.ValorKWBruto || item.valor_kw || 0, 
+            
             is_locada: item.is_locada !== undefined ? item.is_locada : temVinculoAtivo
           };
         });
 
-        // ESTRATÉGIA: Ordenação Inteligente (Disponíveis Primeiro para Vender)
+        // Ordenação: Disponíveis primeiro
         listaNormalizada.sort((a: Usina, b: Usina) => {
           if (a.is_locada === b.is_locada) return 0;
-          return a.is_locada ? 1 : -1; // Disponíveis (false) vêm antes
+          return a.is_locada ? 1 : -1;
         });
 
         setUsinas(listaNormalizada);
@@ -60,6 +71,11 @@ export default function ListaUsinas() {
 
   const handleDelete = async (id: number) => {
     if (!confirm('Tem certeza que deseja excluir esta usina?')) return;
+    // Garante que o ID é válido antes de deletar
+    if (!id) {
+        alert("Erro: ID da usina inválido.");
+        return;
+    }
     await api.usinas.delete(id);
     loadUsinas();
   };
@@ -68,7 +84,6 @@ export default function ListaUsinas() {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(valor);
   };
 
-  // Lógica de Filtragem Visual
   const usinasFiltradas = usinas.filter(u => {
     if (filtro === 'disponiveis') return !u.is_locada;
     if (filtro === 'locadas') return u.is_locada;
@@ -91,7 +106,6 @@ export default function ListaUsinas() {
         </Link>
       </div>
 
-      {/* ESTRATÉGIA: Barra de Filtros Rápidos */}
       <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
         <button 
           onClick={() => setFiltro('todos')}
@@ -114,8 +128,6 @@ export default function ListaUsinas() {
       </div>
 
       <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-        
-        {/* VISUAL: Skeleton Loading (Efeito Carregando Profissional) */}
         {loading ? (
           <div className="p-6 space-y-4">
             {[1, 2, 3].map(i => (
@@ -132,8 +144,6 @@ export default function ListaUsinas() {
             ))}
           </div>
         ) : usinasFiltradas.length === 0 ? (
-          
-          /* VISUAL: Empty State (Estado Vazio Ilustrado) */
           <div className="p-12 text-center flex flex-col items-center justify-center">
             <div className="h-16 w-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
               <Filter className="h-8 w-8 text-gray-400" />
@@ -151,7 +161,6 @@ export default function ListaUsinas() {
               </button>
             )}
           </div>
-
         ) : (
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-100">

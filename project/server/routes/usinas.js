@@ -7,11 +7,11 @@ const router = express.Router();
 // 1. LISTAR TODAS AS USINAS
 router.get('/', async (req, res) => {
   try {
-    // CORREÇÃO: Removemos a tentativa de buscar concessionárias que não existem
+    // CORREÇÃO: Usar 'nomeproprietario' em minúsculo na ordenação
     const { data, error } = await supabase
       .from('usinas')
       .select('*')
-      .order('NomeProprietario');
+      .order('nomeproprietario');
 
     if (error) throw error;
     res.json(data);
@@ -26,7 +26,7 @@ router.get('/:id', async (req, res) => {
     const { data, error } = await supabase
       .from('usinas')
       .select('*')
-      // CORREÇÃO: Usamos 'usinaid' (como está no banco) em vez de 'id'
+      // CORREÇÃO: Usar 'usinaid' em minúsculo
       .eq('usinaid', req.params.id) 
       .single();
 
@@ -37,14 +37,18 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// 3. NOVO: LISTAR VÍNCULOS DA USINA (Resolve o erro 404)
+// 3. LISTAR VÍNCULOS DA USINA (Onde estava o erro 500)
 router.get('/:id/vinculos', async (req, res) => {
   try {
-    // Busca na tabela 'vinculos' onde o 'usinaid' é igual ao id da URL
-    // Traz também os dados das tabelas 'consumidores' e 'status'
+    // CORREÇÃO CRÍTICA:
+    // Tabelas e Colunas dentro do select devem estar em minúsculo para bater com o Postgres:
+    // Consumidores -> consumidores
+    // Nome -> nome
+    // Status -> status
+    // Descricao -> descricao
     const { data, error } = await supabase
       .from('vinculos')
-      .select('*, Consumidores(Nome), Status(Descricao)') 
+      .select('*, consumidores(nome), status(descricao)') 
       .eq('usinaid', req.params.id);
 
     if (error) throw error;
@@ -85,7 +89,7 @@ router.put('/:id', async (req, res) => {
     const { data, error } = await supabase
       .from('usinas')
       .update(dadosLimpos)
-      .eq('usinaid', req.params.id) // CORREÇÃO: usinaid
+      .eq('usinaid', req.params.id)
       .select()
       .single();
 
@@ -106,7 +110,7 @@ router.delete('/:id', async (req, res) => {
     const { error } = await supabase
       .from('usinas')
       .delete()
-      .eq('usinaid', req.params.id); // CORREÇÃO: usinaid
+      .eq('usinaid', req.params.id);
 
     if (error) throw error;
     res.json({ message: 'Usina excluída com sucesso' });

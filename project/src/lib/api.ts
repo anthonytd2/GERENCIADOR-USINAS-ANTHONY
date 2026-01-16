@@ -17,7 +17,6 @@ export const api = {
   usinas: {
     list: () => axiosInstance.get('/usinas').then((res: any) => res.data),
     get: (id: number) => axiosInstance.get(`/usinas/${id}`).then((res: any) => res.data),
-    // Busca os vínculos de uma usina específica
     vinculos: (id: number) => axiosInstance.get(`/usinas/${id}/vinculos`).then((res: any) => res.data),
     create: (data: any) => axiosInstance.post('/usinas', data).then((res: any) => res.data),
     update: (id: number, data: any) => axiosInstance.put(`/usinas/${id}`, data).then((res: any) => res.data),
@@ -47,7 +46,21 @@ export const api = {
     delete: (id: number) => axiosInstance.delete(`/entidades/${id}`).then((res: any) => res.data),
   },
   
-  // Rota chamada de 'fechamentos'
+  // --- ADICIONADO: Concessionárias (Correção do Erro) ---
+  concessionarias: {
+    list: () => axiosInstance.get('/concessionarias').then((res: any) => res.data),
+    create: (data: any) => axiosInstance.post('/concessionarias', data).then((res: any) => res.data),
+    update: (id: number, data: any) => axiosInstance.put(`/concessionarias/${id}`, data).then((res: any) => res.data),
+    delete: (id: number) => axiosInstance.delete(`/concessionarias/${id}`).then((res: any) => res.data),
+  },
+
+  // --- ADICIONADO: Propostas (Necessário para salvar simulação) ---
+  propostas: {
+    list: () => axiosInstance.get('/propostas').then((res: any) => res.data),
+    create: (data: any) => axiosInstance.post('/propostas', data).then((res: any) => res.data),
+    update: (id: number, data: any) => axiosInstance.put(`/propostas/${id}`, data).then((res: any) => res.data),
+  },
+
   fechamentos: {
     list: (vinculoId: number) => axiosInstance.get(`/fechamentos/${vinculoId}`).then((res: any) => res.data),
     create: (data: any) => axiosInstance.post('/fechamentos', data).then((res: any) => res.data),
@@ -55,8 +68,6 @@ export const api = {
     delete: (id: number) => axiosInstance.delete(`/fechamentos/${id}`).then((res: any) => res.data),
   },
 
-  // ADICIONADO: Alias 'financeiro' apontando para as mesmas rotas de fechamentos
-  // Isso resolve o erro se você estiver chamando api.financeiro...
   financeiro: {
     list: (vinculoId: number) => axiosInstance.get(`/fechamentos/${vinculoId}`).then((res: any) => res.data),
     create: (data: any) => axiosInstance.post('/fechamentos', data).then((res: any) => res.data),
@@ -64,7 +75,6 @@ export const api = {
     delete: (id: number) => axiosInstance.delete(`/fechamentos/${id}`).then((res: any) => res.data),
   },
   
-  // Helpers genéricos
   get: (url: string) => axiosInstance.get(url).then((res: any) => res.data),
   post: (url: string, data: any) => axiosInstance.post(url, data).then((res: any) => res.data),
   put: (url: string, data: any) => axiosInstance.put(url, data).then((res: any) => res.data),

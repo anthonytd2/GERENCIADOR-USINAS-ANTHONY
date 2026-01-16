@@ -12,7 +12,7 @@ import concessionariasRoutes from './routes/concessionarias.js';
 import statusRoutes from './routes/status.js';
 import entidadesRoutes from './routes/entidades.js';
 import dashboardRoutes from './routes/dashboard.js';
-
+import documentosRoutes from './routes/documentos.js';
 // --- NOVOS IMPORTS (Conectando o que faltava) ---
 import fechamentosRoutes from './routes/fechamentos.js';
 // Se você não tiver um arquivo 'recibos.js', pode usar o financeiroRoutes ou criar um.
@@ -34,7 +34,7 @@ app.use('/api/concessionarias', concessionariasRoutes);
 app.use('/api/status', statusRoutes);
 app.use('/api/entidades', entidadesRoutes);
 app.use('/api/dashboard', dashboardRoutes);
-
+app.use('/api/documentos', documentosRoutes);
 // --- NOVA ROTA REGISTRADA ---
 app.use('/api/fechamentos', fechamentosRoutes); 
 

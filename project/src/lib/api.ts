@@ -70,6 +70,12 @@ propostas: {
     delete: (id: number) => axiosInstance.delete(`/fechamentos/${id}`).then((res: any) => res.data),
   },
 
+  documentos: {
+    list: (tipo: string, id: number) => axiosInstance.get(`/documentos/${tipo}/${id}`).then((res: any) => res.data),
+    create: (data: any) => axiosInstance.post('/documentos', data).then((res: any) => res.data),
+    delete: (id: number) => axiosInstance.delete(`/documentos/${id}`).then((res: any) => res.data),
+  },
+
   financeiro: {
     list: (vinculoId: number) => axiosInstance.get(`/fechamentos/${vinculoId}`).then((res: any) => res.data),
     create: (data: any) => axiosInstance.post('/fechamentos', data).then((res: any) => res.data),

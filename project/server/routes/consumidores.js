@@ -1,8 +1,8 @@
 import express from 'express';
 import { supabase } from '../db.js';
+import { consumidorSchema } from '../validators/schemas.js'; // IMPORTAR O SCHEMA
 
 const router = express.Router();
-
 // LISTAR
 router.get('/', async (req, res) => {
   try {
@@ -32,29 +32,49 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// CRIAR
+// CRIAR (COM VALIDAÇÃO)
 router.post('/', async (req, res) => {
   try {
-    const { data, error } = await supabase.from('consumidores').insert([req.body]).select().single();
+    // 1. O Zod analisa os dados. Se falhar, ele joga um erro automático.
+    const dadosValidados = consumidorSchema.parse(req.body);
+
+    // 2. Se passou, usamos dadosValidados (que já estão limpos/formatados)
+    const { data, error } = await supabase
+      .from('consumidores')
+      .insert([dadosValidados])
+      .select()
+      .single();
+
     if (error) throw error;
     res.status(201).json(data);
   } catch (error) {
+    // Se for erro de validação do Zod, retorna 400 (Bad Request)
+    if (error.issues) {
+      return res.status(400).json({ error: error.issues.map(i => i.message).join(', ') });
+    }
     res.status(500).json({ error: error.message });
   }
 });
 
-// ATUALIZAR
+// ATUALIZAR (COM VALIDAÇÃO PARCIAL)
 router.put('/:id', async (req, res) => {
   try {
+    // partial() permite enviar só o nome, ou só o telefone, sem exigir tudo
+    const dadosValidados = consumidorSchema.partial().parse(req.body);
+
     const { data, error } = await supabase
       .from('consumidores')
-      .update(req.body)
+      .update(dadosValidados)
       .eq('ConsumidorID', req.params.id)
-      .select().single();
+      .select()
+      .single();
 
     if (error) throw error;
     res.json(data);
   } catch (error) {
+    if (error.issues) {
+      return res.status(400).json({ error: error.issues.map(i => i.message).join(', ') });
+    }
     res.status(500).json({ error: error.message });
   }
 });

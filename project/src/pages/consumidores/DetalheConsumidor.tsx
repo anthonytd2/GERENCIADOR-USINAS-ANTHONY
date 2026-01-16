@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { api } from '../../lib/api';
 import { ArrowLeft, Edit, Trash2, Zap, Calendar, User } from 'lucide-react';
-
+import GerenciadorDocumentos from '../../components/GerenciadorDocumentos';
 export default function DetalheConsumidor() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -99,6 +99,9 @@ export default function DetalheConsumidor() {
             </div>
           </div>
         </div>
+      </div>
+      <div className="mt-8">
+         <GerenciadorDocumentos tipoEntidade="consumidor" entidadeId={Number(id)} />
       </div>
     </div>
   );

@@ -23,7 +23,8 @@ import GerenciadorRecibos from './pages/recibos/GerenciadorRecibos';
 // Financeiro
 import FechamentoMensal from './pages/financeiro/FechamentoMensal';
 
-// --- AQUI ESTAVA FALTANDO O IMPORT ---
+// --- MÓDULO COMERCIAL (NOVOS IMPORTS) ---
+import ListaPropostas from './pages/propostas/ListaPropostas';
 import NovoSimulador from './pages/propostas/NovoSimulador'; 
 
 function App() {
@@ -56,8 +57,11 @@ function App() {
           {/* Rotas Financeiras */}
           <Route path="/financeiro/fechamento" element={<FechamentoMensal />} />
 
-          {/* --- AQUI ESTAVA FALTANDO A ROTA --- */}
-          <Route path="/simulacoes" element={<NovoSimulador />} />
+          {/* --- ROTAS DO CRM --- */}
+          {/* A rota principal '/simulacoes' agora abre a LISTA (Pipeline) */}
+          <Route path="/simulacoes" element={<ListaPropostas />} />
+          {/* A rota '/simulacoes/novo' abre o CALCULADORA */}
+          <Route path="/simulacoes/novo" element={<NovoSimulador />} />
           
         </Routes>
       </Layout>

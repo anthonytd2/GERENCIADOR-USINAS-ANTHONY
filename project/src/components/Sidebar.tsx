@@ -5,7 +5,9 @@ export default function Sidebar() {
   const location = useLocation();
 
   const isActive = (path: string) => {
-    return location.pathname === path;
+    // Verifica se o caminho atual começa com o path do menu (ex: /simulacoes/novo ativa /simulacoes)
+    if (path === '/' && location.pathname !== '/') return false;
+    return location.pathname.startsWith(path);
   };
 
   const menuItems = [
@@ -14,7 +16,7 @@ export default function Sidebar() {
     { icon: Sun, label: 'Usinas', path: '/usinas' },
     { icon: LinkIcon, label: 'Vínculos', path: '/vinculos' },
     { icon: FileText, label: 'Recibos', path: '/recibos' },
-    // Trocado de volta: Configurações -> Simulações
+    // Aponta para a lista de propostas, que tem o botão para criar nova
     { icon: Calculator, label: 'Simulações', path: '/simulacoes' },
   ];
 

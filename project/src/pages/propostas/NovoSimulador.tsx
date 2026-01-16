@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom'; // ADICIONADO
 import { api } from '../../lib/api';
 import { calcularEconomia, DadosSimulacao } from '../../utils/calculadoraSolar';
 import { Save, Calculator, FileText, User, Zap, CheckCircle } from 'lucide-react';
@@ -6,6 +7,7 @@ import { Save, Calculator, FileText, User, Zap, CheckCircle } from 'lucide-react
 import html2pdf from 'html2pdf.js';
 
 export default function NovoSimulador() {
+  const navigate = useNavigate(); // HOOK DE NAVEGAÇÃO
   const [loading, setLoading] = useState(true);
   const [tipoCliente, setTipoCliente] = useState<'base' | 'prospect'>('base');
   
@@ -94,6 +96,7 @@ export default function NovoSimulador() {
     setResultado(calcularEconomia(dados));
   };
 
+  // --- NOVA FUNÇÃO DE SALVAR COM REDIRECIONAMENTO ---
   const salvarProposta = async (status: string) => {
     if (!resultado) return alert("Calcule antes de salvar!");
     try {
@@ -101,12 +104,17 @@ export default function NovoSimulador() {
           consumidor_id: tipoCliente === 'base' && clienteSelecionadoId ? Number(clienteSelecionadoId) : null,
           nome_cliente_prospect: form.nome,
           concessionaria_id: form.concessionaria_id ? Number(form.concessionaria_id) : null,
-          dados_simulacao: form,
+          dados_simulacao: { ...form, ...resultado }, 
           status: status,
         });
-        alert(`Sucesso! Proposta ${status}.`);
+        
+        // Pergunta se quer ir para o CRM
+        if(confirm(`Proposta salva com sucesso como ${status}! Deseja ir para o Pipeline de Vendas?`)) {
+            navigate('/simulacoes');
+        }
     } catch (error) {
-        alert("Erro ao salvar.");
+        console.error(error);
+        alert("Erro ao salvar proposta. Verifique se o backend está rodando.");
     }
   };
 
@@ -126,7 +134,7 @@ export default function NovoSimulador() {
   const fmt = (v: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v);
   const fmtP = (v: number) => new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 1 }).format(v) + '%';
 
-  if (loading) return <div className="p-10 text-center">Carregando...</div>;
+  if (loading) return <div className="p-10 text-center">Carregando simulador...</div>;
 
   return (
     <div className="max-w-7xl mx-auto pb-20">
@@ -191,7 +199,7 @@ export default function NovoSimulador() {
                 <div><label className="block text-[10px] font-bold text-gray-600 mb-0.5">Outros (R$)</label><input type="number" step="0.01" name="valorOutros" value={form.valorOutros} onChange={handleInputChange} className="w-full p-2 border rounded text-sm" /></div>
               </div>
 
-              {/* IMPOSTOS COM LABEL FIXO */}
+              {/* IMPOSTOS */}
               <div className="pt-3 border-t">
                 <p className="text-xs font-bold mb-2 text-gray-700">Impostos (Digite o valor em R$)</p>
                 <div className="grid grid-cols-3 gap-2">
@@ -279,52 +287,44 @@ export default function NovoSimulador() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
-                    {/* TUSD */}
                     <tr>
                       <td className="px-6 py-3 text-gray-600">TUSD (Uso do Sistema)</td>
                       <td className="px-6 py-3 text-right">{fmt(resultado.dadosOriginais.valorTusd)}</td>
                       <td className="px-6 py-3 text-right text-orange-600 font-medium">{fmt(resultado.detalhes.novoTusd)} *</td>
                     </tr>
-                    {/* TE */}
                     <tr>
                       <td className="px-6 py-3 text-gray-600">TE (Energia)</td>
                       <td className="px-6 py-3 text-right">{fmt(resultado.dadosOriginais.valorTe)}</td>
                       <td className="px-6 py-3 text-right text-green-600 font-bold">0,00 (Compensado)</td>
                     </tr>
-                    {/* BANDEIRA */}
                     <tr>
                       <td className="px-6 py-3 text-gray-600">Bandeira Tarifária</td>
                       <td className="px-6 py-3 text-right">{fmt(resultado.dadosOriginais.valorBandeira)}</td>
                       <td className="px-6 py-3 text-right text-green-600 font-bold">0,00 (Isento)</td>
                     </tr>
-                    {/* ILUMINAÇÃO */}
                     <tr>
                       <td className="px-6 py-3 text-gray-600">Iluminação Pública</td>
                       <td className="px-6 py-3 text-right">{fmt(resultado.dadosOriginais.valorIluminacao)}</td>
                       <td className="px-6 py-3 text-right text-gray-800">{fmt(resultado.dadosOriginais.valorIluminacao)}</td>
                     </tr>
-                    {/* OUTROS */}
                     <tr>
                       <td className="px-6 py-3 text-gray-600">Outros / Multas</td>
                       <td className="px-6 py-3 text-right">{fmt(resultado.dadosOriginais.valorOutros)}</td>
                       <td className="px-6 py-3 text-right text-gray-800">{fmt(resultado.dadosOriginais.valorOutros)}</td>
                     </tr>
                     
-                    {/* SUBTOTAIS DISTRIBUIDORA */}
                     <tr className="bg-gray-50 font-medium text-gray-500">
                       <td className="px-6 py-3 italic">Total Distribuidora</td>
                       <td className="px-6 py-3 text-right">{fmt(resultado.faturaAtual)}</td>
                       <td className="px-6 py-3 text-right">{fmt(resultado.novaFaturaDistribuidora)}</td>
                     </tr>
 
-                    {/* ASSINATURA BIONOVA */}
                     <tr className="bg-blue-50/50 border-t-2 border-blue-100">
                       <td className="px-6 py-4 text-blue-900 font-bold">Assinatura Bionova</td>
                       <td className="px-6 py-4 text-right text-gray-300">-</td>
                       <td className="px-6 py-4 text-right font-bold text-blue-700">{fmt(resultado.pagamentoUsina)}</td>
                     </tr>
 
-                    {/* TOTAL FINAL */}
                     <tr className="bg-gray-100 text-base border-t-2 border-gray-200">
                       <td className="px-6 py-5 font-bold text-gray-900">VOCÊ PAGA NO TOTAL</td>
                       <td className="px-6 py-5 text-right font-bold text-gray-500 line-through decoration-red-400">{fmt(resultado.faturaAtual)}</td>
@@ -352,12 +352,10 @@ export default function NovoSimulador() {
         </div>
       </div>
 
-      {/* --- PDF MODELO EXPANDIDO --- */}
+      {/* --- PDF MODELO (Mantido igual) --- */}
       {resultado && (
         <div className="fixed left-[-9999px]">
            <div ref={pdfTemplateRef} className="w-[210mm] min-h-[297mm] bg-white p-[15mm] font-sans text-gray-800">
-              
-              {/* Cabeçalho */}
               <div className="flex justify-between items-end border-b-2 border-blue-600 pb-6 mb-8">
                  <div>
                     <h1 className="text-4xl font-extrabold text-blue-900 tracking-tight">PROPOSTA COMERCIAL</h1>
@@ -372,7 +370,6 @@ export default function NovoSimulador() {
                  </div>
               </div>
 
-              {/* Card Destaque */}
               <div className="flex gap-4 mb-8">
                  <div className="flex-1 bg-green-50 border border-green-200 rounded-xl p-6 text-center">
                     <p className="text-green-800 font-semibold mb-2">Economia Mensal Estimada</p>
@@ -384,7 +381,6 @@ export default function NovoSimulador() {
                  </div>
               </div>
 
-              {/* Tabela Detalhada PDF */}
               <h3 className="text-lg font-bold text-gray-700 mb-4 border-l-4 border-blue-500 pl-3">Detalhamento de Custos</h3>
               <table className="w-full text-sm mb-8 border-collapse">
                 <thead>

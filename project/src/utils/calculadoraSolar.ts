@@ -1,67 +1,59 @@
-export interface DadosSimulacao {
-  consumoKwh: number;
-  valorTusd: number;      
-  valorTe: number;        
-  valorBandeira: number;  
-  valorIluminacao: number;
-  valorOutros: number;    
-  fioB_Total: number;      
-  fioB_Percentual: number; 
-  valorPis: number;       
-  valorCofins: number;    
-  valorIcms: number;      
-  descontoBionova: number;
+// Interface para o resultado
+export interface KitSolar {
+  potencia: number;
+  modulos: number;
+  inversor: string;
+  areaEstimada: number;
+  geracaoMensalMedia: number;
+  valorEstimado: number;
 }
 
-export function calcularEconomia(dados: DadosSimulacao) {
-  const consumo = dados.consumoKwh > 0 ? dados.consumoKwh : 1;
+export interface ResultadoViabilidade {
+  economiaMensalEstimada: number;
+  economiaAnualEstimada: number;
+  paybackAnos: number;
+  roi: number; // Retorno sobre investimento
+  kitSugestao: KitSolar;
+}
 
-  // 1. Tarifas Unitárias (R$/kWh)
-  const tarifaPisCofins = (dados.valorPis + dados.valorCofins) / consumo;
-  const tarifaIcms = dados.valorIcms / consumo;
-  
-  // 2. Regra Fio B (Lei 14.300)
-  const fioB_Efetivo = dados.fioB_Total * (dados.fioB_Percentual / 100);
-  
-  // 3. Tarifa Irredutível (Obrigatória)
-  const tarifaIrredutivel = tarifaPisCofins + tarifaIcms + fioB_Efetivo;
-  
-  // 4. Novo TUSD (O que sobra na conta da distribuidora referente a energia)
-  const novoTusd = consumo * tarifaIrredutivel;
-  
-  // 5. Economia Bruta (O quanto a usina conseguiu "matar" da conta)
-  const reducaoTusd = dados.valorTusd - novoTusd;
-  const economiaBruta = dados.valorTe + dados.valorBandeira + (reducaoTusd > 0 ? reducaoTusd : 0);
+// Lógica de Cálculo
+export const calcularViabilidade = (consumoMensal: number, valorTarifa: number): ResultadoViabilidade => {
+  // Constantes de mercado (Estimativas)
+  const HORAS_SOL_PICO = 4.5; // Média Brasil
+  const PERDA_SISTEMA = 0.20; // 20% de perdas (calor, cabos, sujeira)
+  const CUSTO_MEDIO_KWP = 3500; // R$ 3.500,00 por kWp instalado
 
-  // 6. Divisão do Lucro
-  const economiaRealCliente = economiaBruta * (dados.descontoBionova / 100);
-  const pagamentoUsina = economiaBruta - economiaRealCliente;
-
-  // 7. Totais Finais
-  const faturaAtual = dados.valorTusd + dados.valorTe + dados.valorBandeira + dados.valorIluminacao + dados.valorOutros;
+  // 1. Dimensionamento do Sistema
+  // Fórmula: Potência = Consumo / (30 dias * Horas Sol * (1 - Perda))
+  const potenciaNecessaria = consumoMensal / (30 * HORAS_SOL_PICO * (1 - PERDA_SISTEMA));
   
-  const novaFaturaDistribuidora = novoTusd + dados.valorIluminacao + dados.valorOutros;
-  const novoCustoTotal = novaFaturaDistribuidora + pagamentoUsina;
+  // Arredonda para um kit comercial (ex: múltiplos de 0.5 kWp)
+  const potenciaKit = Math.ceil(potenciaNecessaria * 2) / 2; 
 
-  // 8. Indicadores Extras
-  const percentualReducaoTotal = faturaAtual > 0 ? (economiaRealCliente / faturaAtual) * 100 : 0;
+  // 2. Geração Estimada
+  const geracaoMensal = potenciaKit * HORAS_SOL_PICO * 30 * (1 - PERDA_SISTEMA);
+
+  // 3. Financeiro
+  const valorInvestimento = potenciaKit * CUSTO_MEDIO_KWP;
+  const economiaMensal = Math.min(geracaoMensal, consumoMensal) * valorTarifa;
+  const economiaAnual = economiaMensal * 12;
+
+  // 4. Indicadores
+  const payback = valorInvestimento / economiaAnual;
+  const roi = ((economiaAnual * 25) - valorInvestimento) / valorInvestimento * 100; // ROI em 25 anos
 
   return {
-    faturaAtual,             
-    novaFaturaDistribuidora, 
-    pagamentoUsina,          
-    novoCustoTotal,          
-    economiaBruta,           
-    economiaRealCliente,     
-    percentualReducaoTotal,
-    
-    // Retornamos os dados originais também para facilitar o relatório
-    dadosOriginais: dados,
-    
-    detalhes: {
-      novoTusd,
-      tarifaIrredutivel,
-      reducaoTusd // Quanto economizou só no TUSD
+    economiaMensalEstimada: economiaMensal,
+    economiaAnualEstimada: economiaAnual,
+    paybackAnos: parseFloat(payback.toFixed(1)),
+    roi: parseFloat(roi.toFixed(1)),
+    kitSugestao: {
+      potencia: parseFloat(potenciaKit.toFixed(2)),
+      modulos: Math.ceil(potenciaKit / 0.55), // Painéis de 550W
+      inversor: `${Math.ceil(potenciaKit)} kW`,
+      areaEstimada: Math.ceil(potenciaKit / 0.55) * 2.5, // 2.5m² por painel
+      geracaoMensalMedia: parseFloat(geracaoMensal.toFixed(0)),
+      valorEstimado: valorInvestimento
     }
   };
-}
+};

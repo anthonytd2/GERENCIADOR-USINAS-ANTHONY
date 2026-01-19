@@ -19,6 +19,7 @@ interface Vinculo {
   vinculo_id: number;
   percentual: number;
   data_inicio: string;
+  data_fim?: string; // Adicionado para verificação de data
   status: { descricao: string };
   usinas: { usina_id: number; nome_proprietario: string; tipo: string };
   consumidores: { consumidor_id: number; nome: string; cidade: string; uf: string };
@@ -39,8 +40,13 @@ export default function ListaVinculos() {
         const lista = Array.isArray(data) ? data : [];
         setVinculos(lista);
 
-        // Calcular KPIs
-        const ativos = lista.filter(v => v.status?.descricao === 'Ativo').length;
+        // Calcular KPIs (Considerando Data)
+        const hoje = new Date();
+        const ativos = lista.filter(v => {
+           const fim = v.data_fim ? new Date(v.data_fim) : null;
+           return !fim || fim >= hoje;
+        }).length;
+
         const somaPercentual = lista.reduce((acc, curr) => acc + (Number(curr.percentual) || 0), 0);
         
         setStats({
@@ -152,8 +158,23 @@ export default function ListaVinculos() {
               </thead>
               <tbody className="divide-y divide-gray-100 bg-white">
                 {filtrados.map((v) => {
-                  const isAtivo = v.status?.descricao === 'Ativo';
-                  const isInativo = v.status?.descricao === 'Encerrado' || v.status?.descricao === 'Inativo';
+                  // --- LÓGICA DE STATUS CORRIGIDA ---
+                  // Se tiver data fim e ela já passou = Vencido
+                  // Se não tem data fim OU data fim é futura = Ativo
+                  const hoje = new Date();
+                  hoje.setHours(0,0,0,0);
+                  
+                  let dataFim = null;
+                  if (v.data_fim) {
+                    dataFim = new Date(v.data_fim);
+                    dataFim.setHours(0,0,0,0);
+                  }
+
+                  const isVencido = dataFim && dataFim < hoje;
+                  const isCancelado = v.status?.descricao === 'Encerrado' || v.status?.descricao === 'Cancelado';
+                  
+                  // Prioridade: Cancelado Manualmente > Vencido por Data > Ativo
+                  const isAtivo = !isVencido && !isCancelado;
                   
                   return (
                     <tr key={v.vinculo_id} className="hover:bg-blue-50/30 transition-colors group">
@@ -178,7 +199,7 @@ export default function ListaVinculos() {
                         </div>
                       </td>
 
-                      {/* COLUNA PERCENTUAL (VISUAL) */}
+                      {/* COLUNA PERCENTUAL */}
                       <td className="px-6 py-4 text-center">
                         <div className="flex flex-col items-center justify-center gap-1">
                           <div className="text-lg font-black text-slate-700">
@@ -215,20 +236,29 @@ export default function ListaVinculos() {
                         </div>
                       </td>
 
-                      {/* COLUNA STATUS (COLORIDA) */}
+                      {/* COLUNA STATUS (LÓGICA VISUAL APLICADA) */}
                       <td className="px-6 py-4 text-center">
                         <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold border uppercase tracking-wide ${
                           isAtivo 
                             ? 'bg-emerald-100 text-emerald-700 border-emerald-200' 
-                            : isInativo
-                            ? 'bg-gray-100 text-gray-500 border-gray-200'
-                            : 'bg-yellow-100 text-yellow-700 border-yellow-200'
+                            : 'bg-gray-100 text-gray-500 border-gray-200'
                         }`}>
-                          {isAtivo && <CheckCircle className="w-3 h-3 mr-1.5" />}
-                          {isInativo && <XCircle className="w-3 h-3 mr-1.5" />}
-                          {!isAtivo && !isInativo && <AlertCircle className="w-3 h-3 mr-1.5" />}
-                          {v.status?.descricao || 'Desconhecido'}
+                          {isAtivo ? (
+                            <>
+                              <CheckCircle className="w-3 h-3 mr-1.5" /> ATIVO
+                            </>
+                          ) : (
+                            <>
+                              <XCircle className="w-3 h-3 mr-1.5" /> 
+                              {isCancelado ? 'CANCELADO' : 'VENCIDO'}
+                            </>
+                          )}
                         </span>
+                        {dataFim && (
+                          <div className="text-[10px] text-gray-400 mt-1">
+                            Até {dataFim.toLocaleDateString('pt-BR')}
+                          </div>
+                        )}
                       </td>
 
                       {/* AÇÕES */}

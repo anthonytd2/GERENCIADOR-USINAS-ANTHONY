@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { api } from '../../lib/api';
-// CORREÇÃO: Adicionado 'User' na importação
+// Adicionei 'User' e removi imports não usados para evitar erros
 import { ArrowLeft, Save, Sun, Calculator, CheckCircle, User } from 'lucide-react';
 import { calcularViabilidade, type ResultadoViabilidade } from '../../utils/calculadoraSolar';
 
@@ -10,7 +10,6 @@ export default function NovoSimulador() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   
-  // Estados do Formulário
   const [cliente, setCliente] = useState('');
   const [telefone, setTelefone] = useState('');
   const [consumo, setConsumo] = useState('');
@@ -18,41 +17,59 @@ export default function NovoSimulador() {
   const [tipoTelhado, setTipoTelhado] = useState('Fibrocimento');
   const [resultado, setResultado] = useState<ResultadoViabilidade | null>(null);
 
-  // Carregar dados se for edição
+  // Função Segura para formatar dinheiro (Evita erro se o valor for undefined)
+  const formatarMoeda = (valor: any) => {
+    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(valor) || 0);
+  };
+
   useEffect(() => {
     if (id && id !== 'novo') {
       api.propostas.get(Number(id)).then(data => {
-        if (data && data.dados_simulacao) {
-          const dados = data.dados_simulacao;
+        if (data) {
+          // Tenta ler os dados de forma segura
+          let dados: any = data.dados_simulacao;
           
-          // 1. Preencher os Inputs (O que foi digitado)
+          // Se vier como texto (string), converte para objeto
+          if (typeof dados === 'string') {
+            try { dados = JSON.parse(dados); } catch (e) { dados = {}; }
+          }
+          if (!dados) dados = {};
+
+          // Normaliza as chaves (Maiúscula/Minúscula)
+          const tel = dados.telefone || dados.Telefone || '';
+          const cons = dados.mediaConsumo || dados.MediaConsumo || 0;
+          const tar = dados.valorTarifa || dados.ValorTarifa || 0.95;
+          const telhado = dados.tipoTelhado || dados.TipoTelhado || 'Fibrocimento';
+          const kit = dados.kitEscolhido || dados.KitEscolhido || null;
+          const eco = dados.economiaMensal || dados.EconomiaMensal || 0;
+          const pay = dados.payback || dados.Payback || 0;
+
+          // Preenche o formulário
           setCliente(data.nome_cliente_prospect || '');
-          setTelefone(dados.telefone || '');
-          setConsumo(String(dados.mediaConsumo || ''));
-          setValorKwh(String(dados.valorTarifa || '0.95'));
-          setTipoTelhado(dados.tipoTelhado || 'Fibrocimento');
+          setTelefone(tel);
+          setConsumo(String(cons || ''));
+          setValorKwh(String(tar));
+          setTipoTelhado(telhado);
           
-          // 2. LÓGICA DE RECUPERAÇÃO INTELIGENTE
-          // Se já existe um kit salvo (proposta fechada), recuperamos ele (Snapshot)
-          if (dados.kitEscolhido) {
+          // Lógica de Resgate:
+          // 1. Se tem Kit salvo, usa ele (Snapshot)
+          if (kit && eco > 0) {
              setResultado({
-               economiaMensalEstimada: dados.economiaMensal || 0,
-               paybackAnos: dados.payback || 0,
-               kitSugestao: dados.kitEscolhido,
-               // Derivados simples (caso não tenham sido salvos)
-               economiaAnualEstimada: (dados.economiaMensal || 0) * 12,
+               economiaMensalEstimada: Number(eco),
+               paybackAnos: Number(pay),
+               kitSugestao: kit,
+               economiaAnualEstimada: Number(eco) * 12,
                roi: 0 
              });
           } 
-          // Se não tiver kit salvo (é um rascunho antigo), recalculamos com base no consumo
-          else if (dados.mediaConsumo) {
-            const calc = calcularViabilidade(
-              Number(dados.mediaConsumo), 
-              Number(dados.valorTarifa || 0.95)
-            );
-            setResultado(calc);
+          // 2. Se não tem Kit mas tem consumo, RECALCULA AGORA
+          else if (cons > 0) {
+            const novoCalculo = calcularViabilidade(Number(cons), Number(tar));
+            setResultado(novoCalculo);
           }
         }
+      }).catch(err => {
+        console.error("Erro ao carregar simulação:", err);
       });
     }
   }, [id]);
@@ -65,7 +82,7 @@ export default function NovoSimulador() {
   };
 
   const handleSalvar = async () => {
-    if (!cliente || !resultado) return alert('Preencha o nome e faça a simulação');
+    if (!cliente || !resultado) return alert('Preencha o nome e calcule primeiro');
     
     setLoading(true);
     try {
@@ -77,7 +94,6 @@ export default function NovoSimulador() {
           mediaConsumo: Number(consumo),
           valorTarifa: Number(valorKwh),
           tipoTelhado,
-          // Salvamos os RESULTADOS também para servirem de "Snapshot"
           economiaMensal: resultado.economiaMensalEstimada,
           payback: resultado.paybackAnos,
           kitEscolhido: resultado.kitSugestao
@@ -98,7 +114,7 @@ export default function NovoSimulador() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
+    <div className="max-w-6xl mx-auto space-y-6">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <Link 
@@ -116,9 +132,9 @@ export default function NovoSimulador() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* FORMULÁRIO */}
-        <div className="md:col-span-1 space-y-6">
+        <div className="lg:col-span-1 space-y-6">
           <form onSubmit={handleSimular} className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 space-y-4">
             <h3 className="font-bold text-gray-800 flex items-center gap-2">
               <User className="w-5 h-5 text-blue-600" /> Dados do Cliente
@@ -178,62 +194,65 @@ export default function NovoSimulador() {
         </div>
 
         {/* RESULTADOS */}
-        <div className="md:col-span-2">
+        <div className="lg:col-span-2 h-full">
           {resultado ? (
-            <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-200 h-full animate-fade-in-down">
-              <div className="flex items-center gap-3 mb-6 pb-4 border-b border-gray-100">
-                <div className="p-3 bg-green-100 text-green-700 rounded-xl">
-                  <CheckCircle className="w-8 h-8" />
+            <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-200 h-full flex flex-col justify-between">
+              <div>
+                <div className="flex items-center gap-3 mb-6 pb-4 border-b border-gray-100">
+                  <div className="p-3 bg-green-100 text-green-700 rounded-xl">
+                    <CheckCircle className="w-8 h-8" />
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-bold text-gray-900">Viabilidade Positiva!</h2>
+                    <p className="text-green-600 font-medium">Sistema recomendado encontrado</p>
+                  </div>
                 </div>
-                <div>
-                  <h2 className="text-2xl font-bold text-gray-900">Viabilidade Positiva!</h2>
-                  <p className="text-green-600 font-medium">Sistema recomendado encontrado</p>
+
+                <div className="grid grid-cols-2 gap-6 mb-8">
+                  <div className="p-5 bg-gray-50 rounded-2xl border border-gray-100">
+                    <p className="text-gray-500 text-sm mb-1 font-bold uppercase">Kit Sugerido</p>
+                    <p className="text-3xl font-black text-gray-800">{resultado.kitSugestao.potencia} kWp</p>
+                    <p className="text-sm text-gray-500 mt-1">{resultado.kitSugestao.modulos} painéis estimados</p>
+                  </div>
+                  <div className="p-5 bg-green-50 rounded-2xl border border-green-100">
+                    <p className="text-green-700 text-sm mb-1 font-bold uppercase">Economia Mensal</p>
+                    <p className="text-3xl font-black text-green-700">
+                      {formatarMoeda(resultado.economiaMensalEstimada)}
+                    </p>
+                    <p className="text-sm text-green-600 mt-1">Estimativa média</p>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center p-4 bg-gray-50 rounded-xl border border-gray-100">
+                    <span className="text-gray-600 font-medium">Investimento Estimado</span>
+                    <span className="font-bold text-xl text-gray-900">
+                      {formatarMoeda(resultado.kitSugestao.valorEstimado)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center p-4 bg-blue-50 rounded-xl border border-blue-100">
+                    <span className="text-blue-700 font-medium">Payback (Retorno)</span>
+                    <span className="font-bold text-xl text-blue-700">{resultado.paybackAnos} Anos</span>
+                  </div>
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-6 mb-8">
-                <div className="p-4 bg-gray-50 rounded-xl">
-                  <p className="text-gray-500 text-sm mb-1">Kit Sugerido</p>
-                  <p className="text-xl font-bold text-gray-900">{resultado.kitSugestao.potencia} kWp</p>
-                  <p className="text-xs text-gray-400">{resultado.kitSugestao.modulos} painéis estimados</p>
-                </div>
-                <div className="p-4 bg-green-50 rounded-xl border border-green-100">
-                  <p className="text-green-700 text-sm mb-1 font-bold">Economia Mensal</p>
-                  <p className="text-2xl font-black text-green-700">
-                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(resultado.economiaMensalEstimada)}
-                  </p>
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                <div className="flex justify-between items-center p-4 border border-gray-100 rounded-lg">
-                  <span className="text-gray-600">Investimento Estimado</span>
-                  <span className="font-bold text-xl text-gray-900">
-                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(resultado.kitSugestao.valorEstimado)}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center p-4 border border-gray-100 rounded-lg">
-                  <span className="text-gray-600">Payback (Retorno)</span>
-                  <span className="font-bold text-xl text-blue-600">{resultado.paybackAnos} Anos</span>
-                </div>
-              </div>
-
-              <div className="mt-8 flex gap-4">
+              <div className="mt-8 pt-6 border-t border-gray-100">
                 <button 
                   onClick={handleSalvar}
                   disabled={loading}
-                  className="flex-1 py-4 bg-brand-DEFAULT text-white rounded-xl font-bold text-lg hover:bg-brand-dark shadow-lg transition-all flex justify-center items-center gap-2"
+                  className="w-full py-4 bg-brand-DEFAULT text-white rounded-xl font-bold text-lg hover:bg-brand-dark shadow-lg shadow-blue-500/20 transition-all flex justify-center items-center gap-2"
                 >
-                  <Save className="w-5 h-5" />
-                  {loading ? 'Salvando...' : 'Salvar Proposta'}
+                  <Save className="w-6 h-6" />
+                  {loading ? 'Salvando Proposta...' : 'Salvar Proposta'}
                 </button>
               </div>
             </div>
           ) : (
-            <div className="bg-gray-50 rounded-2xl border border-dashed border-gray-300 h-full flex flex-col items-center justify-center text-gray-400 p-12">
-              <Sun className="w-16 h-16 mb-4 opacity-20" />
-              <p className="text-lg font-medium">Preencha os dados e clique em Calcular</p>
-              <p className="text-sm">Os resultados aparecerão aqui.</p>
+            <div className="bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200 h-full flex flex-col items-center justify-center text-gray-400 p-12 min-h-[400px]">
+              <Sun className="w-20 h-20 mb-6 text-yellow-400 opacity-50" />
+              <p className="text-xl font-bold text-gray-500">Aguardando Cálculo</p>
+              <p className="text-sm mt-2 text-center max-w-xs">Preencha os dados de consumo ao lado e clique em calcular para ver a viabilidade.</p>
             </div>
           )}
         </div>

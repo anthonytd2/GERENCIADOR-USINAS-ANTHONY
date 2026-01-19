@@ -4,20 +4,13 @@ import { api } from '../../lib/api';
 import { Plus, Search, FileText, Calendar, User, ArrowRight, Trash2, MessageCircle, DollarSign, Zap } from 'lucide-react';
 import Skeleton from '../../components/Skeleton';
 
+// Interface Genérica
 interface Proposta {
   id: number;
   nome_cliente_prospect: string;
   status: string;
   created_at: string;
-  dados_simulacao: {
-    telefone?: string;
-    mediaConsumo?: number;
-    economiaMensal?: number;
-    kitEscolhido?: {
-      potencia?: number;
-      valor?: number;
-    };
-  };
+  dados_simulacao: any; // Any para aceitar qualquer formato antigo
 }
 
 export default function ListaPropostas() {
@@ -51,10 +44,15 @@ export default function ListaPropostas() {
   };
 
   const handleWhatsApp = (p: Proposta) => {
-    const telefone = p.dados_simulacao?.telefone?.replace(/\D/g, '');
-    if (!telefone) return alert('Telefone não cadastrado na simulação');
+    // Busca telefone em qualquer formato (minúsculo ou maiúsculo)
+    const dados = p.dados_simulacao || {};
+    const tel = dados.telefone || dados.Telefone || '';
+    
+    const telefoneLimpo = tel.replace(/\D/g, '');
+    if (!telefoneLimpo) return alert('Telefone não cadastrado na simulação');
+    
     const msg = `Olá ${p.nome_cliente_prospect}, tudo bem? Aqui é da Gestão Solar. Fizemos sua simulação e tenho ótimas notícias sobre sua economia!`;
-    window.open(`https://wa.me/55${telefone}?text=${encodeURIComponent(msg)}`, '_blank');
+    window.open(`https://wa.me/55${telefoneLimpo}?text=${encodeURIComponent(msg)}`, '_blank');
   };
 
   const filtrados = propostas.filter(p => {
@@ -64,6 +62,12 @@ export default function ListaPropostas() {
   });
 
   const BRL = (val: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val || 0);
+
+  // Helper para buscar valor seguro
+  const getValor = (p: Proposta, key: string, Key: string) => {
+    const d = p.dados_simulacao || {};
+    return d[key] || d[Key] || 0;
+  };
 
   return (
     <div className="space-y-6">
@@ -79,6 +83,7 @@ export default function ListaPropostas() {
       </div>
 
       <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+        {/* Filtros */}
         <div className="p-5 border-b border-gray-100 bg-gray-50/50 space-y-4">
           <div className="flex gap-2 overflow-x-auto pb-2">
             {['todos', 'rascunho', 'enviada', 'aprovada', 'rejeitada'].map(st => (
@@ -125,10 +130,16 @@ export default function ListaPropostas() {
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="flex items-center gap-2 text-gray-700"><Zap className="w-4 h-4 text-yellow-500" /> <span className="font-medium">{p.dados_simulacao?.mediaConsumo || 0} kWh</span></div>
+                      <div className="flex items-center gap-2 text-gray-700">
+                        <Zap className="w-4 h-4 text-yellow-500" /> 
+                        <span className="font-medium">{getValor(p, 'mediaConsumo', 'MediaConsumo')} kWh</span>
+                      </div>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="flex items-center gap-2 text-green-700 font-bold bg-green-50 px-3 py-1 rounded-lg w-fit"><DollarSign className="w-4 h-4" /> {BRL(p.dados_simulacao?.economiaMensal || 0)}/mês</div>
+                      <div className="flex items-center gap-2 text-green-700 font-bold bg-green-50 px-3 py-1 rounded-lg w-fit">
+                        <DollarSign className="w-4 h-4" /> 
+                        {BRL(getValor(p, 'economiaMensal', 'EconomiaMensal'))}/mês
+                      </div>
                     </td>
                     <td className="px-6 py-4 text-center">
                       <span className={`px-3 py-1 rounded-full text-xs font-bold border capitalize ${p.status === 'aprovada' ? 'bg-emerald-100 text-emerald-700 border-emerald-200' : p.status === 'enviada' ? 'bg-blue-100 text-blue-700 border-blue-200' : 'bg-gray-100 text-gray-600 border-gray-200'}`}>{p.status || 'Rascunho'}</span>

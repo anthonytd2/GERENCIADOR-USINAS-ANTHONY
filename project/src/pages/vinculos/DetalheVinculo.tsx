@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { api } from '../../lib/api';
-import { ArrowLeft, Ban, Zap, DollarSign, Calendar, FileText, CheckCircle, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Ban, Zap, DollarSign, Calendar, FileText, CheckCircle, AlertCircle, ExternalLink } from 'lucide-react';
 
 interface VinculoDetalhado {
   vinculo_id: number;
@@ -39,7 +39,6 @@ export default function DetalheVinculo() {
         })
         .catch(error => {
           console.error("Erro ao carregar vínculo:", error);
-          alert("Não foi possível carregar os detalhes do vínculo.");
         })
         .finally(() => setLoading(false));
     }
@@ -47,36 +46,33 @@ export default function DetalheVinculo() {
 
   const handleEncerrar = async () => {
     if (!confirm('ATENÇÃO: Tem certeza que deseja encerrar este contrato? Esta ação é irreversível.')) return;
-    
     try {
-      // Data de hoje como data de encerramento
       const dataFim = new Date().toISOString().split('T')[0];
-      await api.vinculos.encerrar(Number(id), dataFim); // Passamos a data
+      await api.vinculos.encerrar(Number(id), dataFim);
       alert('Vínculo encerrado com sucesso!');
       navigate('/vinculos');
     } catch (error) {
-      console.error(error);
-      alert('Erro ao encerrar vínculo. Tente novamente.');
+      alert('Erro ao encerrar vínculo.');
     }
   };
 
-  if (loading) return <div className="p-12 text-center text-gray-500">Carregando detalhes do contrato...</div>;
+  if (loading) return <div className="p-12 text-center text-gray-500">Carregando detalhes...</div>;
   if (!vinculo) return <div className="p-12 text-center text-red-500 font-bold">Contrato não encontrado.</div>;
 
   const isAtivo = vinculo.status?.descricao === 'Ativo';
 
   return (
-    <div className="max-w-5xl mx-auto">
+    <div className="max-w-6xl mx-auto space-y-6">
       {/* HEADER E NAVEGAÇÃO */}
-      <div className="mb-8">
-        <Link to="/vinculos" className="inline-flex items-center gap-2 text-gray-500 hover:text-gray-900 mb-4 transition-colors">
+      <div>
+        <Link to="/vinculos" className="inline-flex items-center gap-2 text-gray-500 hover:text-blue-600 mb-4 transition-colors font-medium">
           <ArrowLeft className="w-5 h-5" /> Voltar à Lista
         </Link>
         
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
           <div>
             <div className="flex items-center gap-3 mb-1">
-              <h1 className="text-3xl font-bold text-gray-900">Contrato #{vinculo.vinculo_id}</h1>
+              <h1 className="text-3xl font-bold text-gray-800">Contrato #{vinculo.vinculo_id}</h1>
               {isAtivo ? (
                 <span className="px-3 py-1 bg-emerald-100 text-emerald-700 text-sm font-bold rounded-full border border-emerald-200 flex items-center gap-1">
                   <CheckCircle className="w-4 h-4" /> ATIVO
@@ -87,23 +83,23 @@ export default function DetalheVinculo() {
                 </span>
               )}
             </div>
-            <p className="text-gray-500">Gestão da relação comercial entre Usina e Consumidor</p>
+            <p className="text-gray-500">Visão geral do contrato de alocação de energia</p>
           </div>
           
           <div className="flex gap-3 w-full md:w-auto">
-            {/* BOTÃO FINANCEIRO (O MAIS IMPORTANTE) */}
+            {/* BOTÃO FINANCEIRO DESTAQUE */}
             <Link 
               to={`/vinculos/${id}/financeiro`}
-              className="flex-1 md:flex-none px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 font-bold flex items-center justify-center gap-2 shadow-lg shadow-blue-900/20 transition-all hover:-translate-y-1"
+              className="flex-1 md:flex-none px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 font-bold flex items-center justify-center gap-2 shadow-lg shadow-blue-500/20 transition-all hover:-translate-y-1"
             >
               <DollarSign className="w-5 h-5" />
-              Gestão Financeira
+              Abrir Financeiro
             </Link>
             
             {isAtivo && (
               <button 
                 onClick={handleEncerrar} 
-                className="px-4 py-3 bg-white text-red-600 border border-red-200 rounded-xl hover:bg-red-50 font-medium flex items-center gap-2 transition-colors"
+                className="px-4 py-3 bg-white text-red-500 border border-red-100 rounded-xl hover:bg-red-50 font-medium flex items-center gap-2 transition-colors"
                 title="Encerrar Contrato"
               >
                 <Ban className="w-5 h-5" />
@@ -114,72 +110,80 @@ export default function DetalheVinculo() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* CARD DA USINA */}
-        <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-200 relative overflow-hidden group">
+        {/* CARD DA USINA (AMARELO) */}
+        <div className="bg-white p-8 rounded-2xl shadow-sm border border-yellow-100 relative overflow-hidden group hover:shadow-md transition-all">
           <div className="absolute top-0 right-0 w-32 h-32 bg-yellow-50 rounded-bl-full -mr-10 -mt-10 transition-transform group-hover:scale-110"></div>
           
-          <div className="flex items-center gap-3 mb-6 border-b border-gray-100 pb-4 relative z-10">
-            <div className="p-2 bg-yellow-100 rounded-lg text-yellow-700">
+          <div className="flex items-center gap-3 mb-6 relative z-10 border-b border-gray-100 pb-4">
+            <div className="p-3 bg-yellow-100 rounded-xl text-yellow-700 shadow-sm">
               <Zap className="w-6 h-6" />
             </div>
             <div>
-              <h3 className="font-bold text-gray-900 text-lg">Dados da Usina</h3>
-              <p className="text-xs text-gray-500 uppercase tracking-wide">Fonte Geradora</p>
+              <h3 className="font-bold text-gray-800 text-lg">Usina Geradora</h3>
+              <p className="text-xs text-yellow-600 font-bold uppercase tracking-wide">Fonte de Energia</p>
             </div>
           </div>
 
           <div className="space-y-4 relative z-10">
             <div>
-              <p className="text-sm text-gray-500 mb-1">Proprietário da Usina</p>
-              <Link to={`/usinas/${vinculo.usinas?.usina_id}`} className="font-bold text-xl text-gray-900 hover:text-blue-600 transition-colors">
+              <p className="text-sm text-gray-500 mb-1">Proprietário (Link)</p>
+              <Link 
+                to={`/usinas/${vinculo.usinas?.usina_id}`} 
+                className="font-bold text-xl text-blue-600 hover:text-blue-800 hover:underline flex items-center gap-2 transition-colors"
+              >
                 {vinculo.usinas?.nome_proprietario}
+                <ExternalLink className="w-4 h-4 text-blue-400" />
               </Link>
             </div>
             
-            <div className="grid grid-cols-2 gap-4 pt-2">
-              <div className="p-3 bg-gray-50 rounded-lg">
-                <p className="text-xs text-gray-500 uppercase mb-1">Potência</p>
-                <p className="font-bold text-gray-900">{vinculo.usinas?.potencia} kWp</p>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
+                <p className="text-xs text-gray-500 uppercase mb-1 font-bold">Potência</p>
+                <p className="font-bold text-gray-900 text-lg">{vinculo.usinas?.potencia} kWp</p>
               </div>
-              <div className="p-3 bg-gray-50 rounded-lg">
-                <p className="text-xs text-gray-500 uppercase mb-1">Tipo</p>
-                <p className="font-bold text-gray-900">{vinculo.usinas?.tipo}</p>
+              <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
+                <p className="text-xs text-gray-500 uppercase mb-1 font-bold">Tipo</p>
+                <p className="font-bold text-gray-900 text-lg">{vinculo.usinas?.tipo}</p>
               </div>
             </div>
           </div>
         </div>
 
-        {/* CARD DO CONSUMIDOR */}
-        <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-200 relative overflow-hidden group">
+        {/* CARD DO CONSUMIDOR (AZUL) */}
+        <div className="bg-white p-8 rounded-2xl shadow-sm border border-blue-100 relative overflow-hidden group hover:shadow-md transition-all">
           <div className="absolute top-0 right-0 w-32 h-32 bg-blue-50 rounded-bl-full -mr-10 -mt-10 transition-transform group-hover:scale-110"></div>
 
-          <div className="flex items-center gap-3 mb-6 border-b border-gray-100 pb-4 relative z-10">
-            <div className="p-2 bg-blue-100 rounded-lg text-blue-700">
+          <div className="flex items-center gap-3 mb-6 relative z-10 border-b border-gray-100 pb-4">
+            <div className="p-3 bg-blue-100 rounded-xl text-blue-700 shadow-sm">
               <Calendar className="w-6 h-6" />
             </div>
             <div>
-              <h3 className="font-bold text-gray-900 text-lg">Dados do Consumidor</h3>
-              <p className="text-xs text-gray-500 uppercase tracking-wide">Cliente Beneficiário</p>
+              <h3 className="font-bold text-gray-800 text-lg">Consumidor</h3>
+              <p className="text-xs text-blue-600 font-bold uppercase tracking-wide">Beneficiário</p>
             </div>
           </div>
 
           <div className="space-y-4 relative z-10">
             <div>
-              <p className="text-sm text-gray-500 mb-1">Nome do Cliente</p>
-              <Link to={`/consumidores/${vinculo.consumidores?.consumidor_id}`} className="font-bold text-xl text-gray-900 hover:text-blue-600 transition-colors">
+              <p className="text-sm text-gray-500 mb-1">Nome do Cliente (Link)</p>
+              <Link 
+                to={`/consumidores/${vinculo.consumidores?.consumidor_id}`} 
+                className="font-bold text-xl text-blue-600 hover:text-blue-800 hover:underline flex items-center gap-2 transition-colors"
+              >
                 {vinculo.consumidores?.nome}
+                <ExternalLink className="w-4 h-4 text-blue-400" />
               </Link>
             </div>
             
-            <div className="grid grid-cols-2 gap-4 pt-2">
-              <div className="p-3 bg-gray-50 rounded-lg">
-                <p className="text-xs text-gray-500 uppercase mb-1">Documento</p>
-                <p className="font-medium text-gray-900 truncate" title={vinculo.consumidores?.documento}>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
+                <p className="text-xs text-gray-500 uppercase mb-1 font-bold">Documento</p>
+                <p className="font-medium text-gray-900 text-sm truncate" title={vinculo.consumidores?.documento}>
                   {vinculo.consumidores?.documento || '-'}
                 </p>
               </div>
-              <div className="p-3 bg-green-50 rounded-lg border border-green-100">
-                <p className="text-xs text-green-700 uppercase mb-1 font-bold">Percentual Alocado</p>
+              <div className="p-4 bg-green-50 rounded-xl border border-green-100">
+                <p className="text-xs text-green-700 uppercase mb-1 font-bold">Alocação</p>
                 <p className="font-bold text-2xl text-green-700">{vinculo.percentual}%</p>
               </div>
             </div>
@@ -187,29 +191,29 @@ export default function DetalheVinculo() {
         </div>
       </div>
 
-      {/* DETALHES DO CONTRATO */}
-      <div className="mt-6 bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
+      {/* DETALHES GERAIS */}
+      <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
         <div className="flex items-center gap-2 mb-4">
           <FileText className="w-5 h-5 text-gray-400" />
-          <h3 className="font-bold text-gray-900">Informações do Contrato</h3>
+          <h3 className="font-bold text-gray-800">Detalhes Administrativos</h3>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-sm">
           <div>
-            <p className="text-sm text-gray-500">Data de Início</p>
-            <p className="font-medium text-gray-900">
+            <p className="text-gray-500 mb-1">Início do Contrato</p>
+            <p className="font-medium text-gray-900 text-lg">
               {vinculo.data_inicio ? new Date(vinculo.data_inicio).toLocaleDateString('pt-BR') : '-'}
             </p>
           </div>
           <div>
-            <p className="text-sm text-gray-500">Data de Término</p>
-            <p className="font-medium text-gray-900">
+            <p className="text-gray-500 mb-1">Vencimento</p>
+            <p className="font-medium text-gray-900 text-lg">
               {vinculo.data_fim ? new Date(vinculo.data_fim).toLocaleDateString('pt-BR') : 'Indeterminado'}
             </p>
           </div>
           <div>
-            <p className="text-sm text-gray-500">Localização do Cliente</p>
-            <p className="font-medium text-gray-900">
-              {vinculo.consumidores?.cidade}/{vinculo.consumidores?.uf}
+            <p className="text-gray-500 mb-1">Localização</p>
+            <p className="font-medium text-gray-900 text-lg flex items-center gap-1">
+               {vinculo.consumidores?.cidade}/{vinculo.consumidores?.uf}
             </p>
           </div>
         </div>

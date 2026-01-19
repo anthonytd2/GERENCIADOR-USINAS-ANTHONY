@@ -3,7 +3,7 @@ import { supabase } from '../db.js';
 
 const router = express.Router();
 
-// LISTAR TODOS OS VÍNCULOS
+// 1. LISTAR TODOS OS VÍNCULOS
 router.get('/', async (req, res) => {
   try {
     const { data, error } = await supabase
@@ -22,12 +22,33 @@ router.get('/', async (req, res) => {
   }
 });
 
-// CRIAR NOVO VÍNCULO
+// 2. BUSCAR UM (Detalhe) - ESTA É A ROTA QUE FALTAVA
+router.get('/:id', async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('vinculos')
+      .select(`
+        *,
+        usinas (nome_proprietario, usina_id, tipo, potencia),
+        consumidores (nome, consumidor_id, documento, endereco, cidade, uf),
+        status (descricao)
+      `)
+      .eq('vinculo_id', req.params.id) // Busca pelo vinculo_id
+      .single();
+
+    if (error) throw error;
+    res.json(data);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// 3. CRIAR NOVO VÍNCULO
 router.post('/', async (req, res) => {
   try {
     const { usina_id, consumidor_id, percentual, data_inicio } = req.body;
     
-    // Define status inicial como ATIVO (ID 1 - ajuste conforme sua tabela status)
+    // Status ID 1 = Ativo (ajuste conforme o ID do seu banco)
     const status_id = 1; 
 
     const { data, error } = await supabase
@@ -43,7 +64,7 @@ router.post('/', async (req, res) => {
   }
 });
 
-// ENCERRAR VÍNCULO (Atualizar data fim)
+// 4. ENCERRAR VÍNCULO
 router.put('/:id/encerrar', async (req, res) => {
   try {
     const { data_fim } = req.body;
@@ -51,7 +72,7 @@ router.put('/:id/encerrar', async (req, res) => {
       .from('vinculos')
       .update({ 
         data_fim, 
-        status_id: 2 // Assumindo 2 = INATIVO/ENCERRADO
+        status_id: 2 // Status ID 2 = Encerrado/Inativo
       })
       .eq('vinculo_id', req.params.id)
       .select()

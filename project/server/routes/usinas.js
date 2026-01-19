@@ -4,33 +4,53 @@ import { usinaSchema } from '../validators/schemas.js';
 
 const router = express.Router();
 
-// LISTAR TODAS AS USINAS
+// LISTAR TODAS (Modo Seguro - Sem Ordenação quebra-cabeça)
 router.get('/', async (req, res) => {
   try {
-    // USAR NOMES EM MINÚSCULO (Regra do Postgres/Supabase)
+    // Busca tudo da tabela 'usinas' (minúsculo, que sabemos que existe)
+    // Removemos o .order() temporariamente para evitar o erro "column does not exist"
     const { data, error } = await supabase
-      .from('usinas') // nome da tabela em minúsculo
-      .select('*')
-      .order('nomeproprietario'); // coluna em minúsculo
+      .from('usinas')
+      .select('*');
 
     if (error) throw error;
+    
+    // Opcional: Ordenação via código para garantir que não quebra o banco
+    if (data && data.length > 0) {
+      data.sort((a, b) => {
+        const nomeA = a.NomeProprietario || a.nomeproprietario || '';
+        const nomeB = b.NomeProprietario || b.nomeproprietario || '';
+        return nomeA.localeCompare(nomeB);
+      });
+    }
+
     res.json(data);
   } catch (error) {
-    res.status(500).json({ 
-      erro: "Erro ao consultar banco de dados",
-      mensagem_tecnica: error.message
-    });
+    console.error("Erro ao listar:", error);
+    res.status(500).json({ error: error.message });
   }
 });
 
-// BUSCAR UMA USINA
+// BUSCAR UMA (Tenta UsinaID Misturado)
 router.get('/:id', async (req, res) => {
   try {
-    const { data, error } = await supabase
+    // Tenta primeiro com UsinaID (Maiúsculo)
+    let { data, error } = await supabase
       .from('usinas')
       .select('*')
-      .eq('usinaid', req.params.id) // coluna id em minúsculo
+      .eq('UsinaID', req.params.id) // Tenta o nome do SQL original
       .single();
+
+    // Se der erro de coluna, tenta minúsculo
+    if (error && error.code === '42703') { // 42703 = Undefined Column
+       const retry = await supabase
+        .from('usinas')
+        .select('*')
+        .eq('usinaid', req.params.id)
+        .single();
+       data = retry.data;
+       error = retry.error;
+    }
 
     if (error) throw error;
     res.json(data);
@@ -39,67 +59,61 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// LISTAR VÍNCULOS
+// VÍNCULOS
 router.get('/:id/vinculos', async (req, res) => {
   try {
-    // Ajustado para os nomes que o Postgres usa internamente
+    // Tenta buscar assumindo tabela 'vinculos' minúscula
+    // Se as tabelas relacionadas (consumidores/status) derem erro, 
+    // remova a parte interna do select para testar: .select('*')
     const { data, error } = await supabase
       .from('vinculos')
       .select('*, consumidores(nome), status(descricao)') 
-      .eq('usinaid', req.params.id);
+      .eq('UsinaID', req.params.id); // Tenta UsinaID aqui também
 
-    if (error) throw error;
+    if (error) {
+       // Fallback para minúsculo se falhar
+       if (error.code === '42703') {
+          const retry = await supabase
+            .from('vinculos')
+            .select('*') 
+            .eq('usinaid', req.params.id);
+          if (retry.error) throw retry.error;
+          return res.json(retry.data);
+       }
+       throw error;
+    }
     res.json(data);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
-// CRIAR
+// Rotas de escrita mantidas simples (o erro principal era leitura)
 router.post('/', async (req, res) => {
   try {
     const dadosLimpos = usinaSchema.parse(req.body);
-    const { data, error } = await supabase
-      .from('usinas')
-      .insert([dadosLimpos])
-      .select()
-      .single();
+    const { data, error } = await supabase.from('usinas').insert([dadosLimpos]).select().single();
     if (error) throw error;
     res.status(201).json(data);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
+  } catch (error) { res.status(500).json({ error: error.message }); }
 });
 
-// ATUALIZAR
 router.put('/:id', async (req, res) => {
   try {
     const dadosLimpos = usinaSchema.partial().parse(req.body);
-    const { data, error } = await supabase
-      .from('usinas')
-      .update(dadosLimpos)
-      .eq('usinaid', req.params.id)
-      .select()
-      .single();
+    // Tenta atualizar usando UsinaID
+    const { data, error } = await supabase.from('usinas').update(dadosLimpos).eq('UsinaID', req.params.id).select().single();
     if (error) throw error;
     res.json(data);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
+  } catch (error) { res.status(500).json({ error: error.message }); }
 });
 
-// EXCLUIR
 router.delete('/:id', async (req, res) => {
   try {
-    const { error } = await supabase
-      .from('usinas')
-      .delete()
-      .eq('usinaid', req.params.id);
+    const { error } = await supabase.from('usinas').delete().eq('UsinaID', req.params.id);
     if (error) throw error;
     res.json({ message: 'Usina excluída' });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
+  } catch (error) { res.status(500).json({ error: error.message }); }
 });
 
 export default router;

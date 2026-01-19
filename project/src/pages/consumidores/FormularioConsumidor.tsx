@@ -4,33 +4,53 @@ import { useForm } from 'react-hook-form';
 import { api } from '../../lib/api';
 import { ArrowLeft, Save } from 'lucide-react';
 
-export default function FormularioUsina() {
+export default function FormularioConsumidor() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { register, handleSubmit, reset, formState: { errors } } = useForm();
+  const { register, handleSubmit, setValue, formState: { errors } } = useForm();
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (id) {
-      api.usinas.get(Number(id)).then(data => {
-        // Preenche o formulário com os dados vindos do banco
-        reset(data); 
+    if (id && id !== 'novo') {
+      api.consumidores.get(Number(id)).then(data => {
+        if (data) {
+          // Preenche os campos com os nomes em snake_case
+          setValue('nome', data.nome);
+          setValue('documento', data.documento);
+          setValue('cep', data.cep);
+          setValue('endereco', data.endereco);
+          setValue('bairro', data.bairro);
+          setValue('cidade', data.cidade);
+          setValue('uf', data.uf);
+          setValue('media_consumo', data.media_consumo);
+          setValue('valor_kw', data.valor_kw);
+          setValue('percentual_desconto', data.percentual_desconto);
+          setValue('observacao', data.observacao);
+        }
       });
     }
-  }, [id, reset]);
+  }, [id, setValue]);
 
   const onSubmit = async (data: any) => {
     setLoading(true);
     try {
-      if (id) {
-        await api.usinas.update(Number(id), data);
+      // Conversão segura de números
+      const payload = {
+        ...data,
+        media_consumo: Number(data.media_consumo) || 0,
+        valor_kw: Number(data.valor_kw) || 0,
+        percentual_desconto: Number(data.percentual_desconto) || 0,
+      };
+
+      if (id && id !== 'novo') {
+        await api.consumidores.update(Number(id), payload);
       } else {
-        await api.usinas.create(data);
+        await api.consumidores.create(payload);
       }
-      navigate('/usinas');
+      navigate('/consumidores');
     } catch (error) {
-      alert('Erro ao salvar usina');
       console.error(error);
+      alert('Erro ao salvar consumidor');
     } finally {
       setLoading(false);
     }
@@ -39,121 +59,95 @@ export default function FormularioUsina() {
   return (
     <div className="max-w-2xl mx-auto">
       <div className="mb-8">
-        <Link to="/usinas" className="inline-flex items-center gap-2 text-gray-500 hover:text-gray-900 mb-4">
+        <Link to="/consumidores" className="inline-flex items-center gap-2 text-gray-500 hover:text-gray-900 mb-4">
           <ArrowLeft className="w-5 h-5" /> Voltar
         </Link>
         <h1 className="text-3xl font-bold text-gray-900">
-          {id ? 'Editar Usina' : 'Nova Usina'}
+          {id ? 'Editar Consumidor' : 'Novo Consumidor'}
         </h1>
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="bg-white p-8 rounded-2xl shadow-sm border border-gray-200 space-y-6">
         
-        {/* NOME DO PROPRIETÁRIO */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Nome do Proprietário</label>
-          <input
-            {...register('nome_proprietario', { required: 'Nome é obrigatório' })}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            placeholder="Ex: João Silva"
-          />
-          {errors.nome_proprietario && <span className="text-red-500 text-sm">{String(errors.nome_proprietario.message)}</span>}
-        </div>
-
-        <div className="grid grid-cols-2 gap-6">
-          {/* POTÊNCIA */}
+        {/* DADOS PESSOAIS */}
+        <div className="space-y-4">
+          <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">Dados Pessoais</h3>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Potência (kWp)</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Nome Completo</label>
             <input
-              type="number"
-              step="0.01"
-              {...register('potencia', { required: 'Obrigatório' })}
+              {...register('nome', { required: true })}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
             />
+            {errors.nome && <span className="text-red-500 text-sm">Obrigatório</span>}
           </div>
-
-          {/* GERAÇÃO ESTIMADA */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Geração (kWh/mês)</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">CPF / CNPJ</label>
             <input
-              type="number"
-              step="0.01"
-              {...register('geracao_estimada', { required: 'Obrigatório' })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-6">
-          {/* VALOR KW */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Valor do kW (R$)</label>
-            <input
-              type="number"
-              step="0.01"
-              {...register('valor_kw_bruto', { required: 'Obrigatório' })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-
-          {/* TIPO */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Tipo da Usina</label>
-            <select {...register('tipo')} className="w-full px-4 py-2 border border-gray-300 rounded-lg">
-              <option value="Solo">Solo</option>
-              <option value="Telhado">Telhado</option>
-            </select>
-          </div>
-        </div>
-
-        {/* DATAS DE CONTRATO */}
-        <div className="grid grid-cols-2 gap-6 pt-4 border-t border-gray-100">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Início do Contrato</label>
-            <input
-              type="date"
-              {...register('inicio_contrato')}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Vencimento</label>
-            <input
-              type="date"
-              {...register('vencimento_contrato')}
+              {...register('documento')}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg"
             />
           </div>
         </div>
 
-        {/* TIPO PAGAMENTO */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Tipo de Pagamento</label>
-          <select {...register('tipo_pagamento')} className="w-full px-4 py-2 border border-gray-300 rounded-lg">
-            <option value="">Selecione...</option>
-            <option value="Aluguel Fixo">Aluguel Fixo</option>
-            <option value="Percentual">Percentual (%)</option>
-            <option value="Permuta">Permuta</option>
-          </select>
+        {/* ENDEREÇO */}
+        <div className="space-y-4">
+          <h3 className="text-lg font-semibold text-gray-900 border-b pb-2 pt-2">Endereço</h3>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">CEP</label>
+              <input {...register('cep')} className="w-full px-4 py-2 border border-gray-300 rounded-lg" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Bairro</label>
+              <input {...register('bairro')} className="w-full px-4 py-2 border border-gray-300 rounded-lg" />
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Logradouro</label>
+            <input {...register('endereco')} className="w-full px-4 py-2 border border-gray-300 rounded-lg" />
+          </div>
+          <div className="grid grid-cols-3 gap-4">
+            <div className="col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Cidade</label>
+              <input {...register('cidade')} className="w-full px-4 py-2 border border-gray-300 rounded-lg" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">UF</label>
+              <input {...register('uf')} maxLength={2} className="w-full px-4 py-2 border border-gray-300 rounded-lg uppercase" />
+            </div>
+          </div>
         </div>
 
-        {/* OBSERVAÇÃO */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Observações</label>
-          <textarea
-            {...register('observacao')}
-            rows={3}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-          ></textarea>
+        {/* DADOS COMERCIAIS */}
+        <div className="space-y-4">
+          <h3 className="text-lg font-semibold text-gray-900 border-b pb-2 pt-2">Dados Comerciais</h3>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Média Consumo (kWh)</label>
+              <input type="number" step="0.01" {...register('media_consumo')} className="w-full px-4 py-2 border border-gray-300 rounded-lg" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Valor kW (R$)</label>
+              <input type="number" step="0.01" {...register('valor_kw')} className="w-full px-4 py-2 border border-gray-300 rounded-lg" />
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Desconto (%)</label>
+            <input type="number" step="0.01" {...register('percentual_desconto')} className="w-full px-4 py-2 border border-gray-300 rounded-lg" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Observações</label>
+            <textarea {...register('observacao')} rows={3} className="w-full px-4 py-2 border border-gray-300 rounded-lg"></textarea>
+          </div>
         </div>
 
         <button
           type="submit"
           disabled={loading}
-          className="w-full py-3 bg-brand-DEFAULT text-white rounded-xl hover:bg-brand-dark font-bold shadow-lg shadow-blue-900/20 transition-all flex justify-center items-center gap-2"
+          className="w-full py-3 bg-brand-DEFAULT text-white rounded-xl hover:bg-brand-dark font-bold shadow-lg transition-all flex justify-center items-center gap-2"
         >
           <Save className="w-5 h-5" />
-          {loading ? 'Salvando...' : 'Salvar Usina'}
+          {loading ? 'Salvando...' : 'Salvar Consumidor'}
         </button>
       </form>
     </div>

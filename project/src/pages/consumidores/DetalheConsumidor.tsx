@@ -1,193 +1,104 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { api } from '../../lib/api';
-import { ArrowLeft, Edit, Trash2, User, Zap, MapPin, Phone, Mail, FileText } from 'lucide-react';
-import Skeleton from '../../components/Skeleton';
-import GerenciadorDocumentos from '../../components/GerenciadorDocumentos'; // <--- O IMPORT NOVO
-
-interface Consumidor {
-  ConsumidorID: number;
-  Nome: string;
-  Email?: string;
-  Telefone?: string;
-  Documento?: string;
-  UnidadeConsumidora?: string;
-  Tensao?: string;
-  Fasico?: string;
-  PercentualDesconto: number;
-  MediaConsumo: number;
-  Endereco?: {
-    Logradouro: string;
-    Numero: string;
-    Bairro: string;
-    Cidade: string;
-    UF: string;
-    CEP: string;
-  };
-}
+import { ArrowLeft, Edit, Trash2, MapPin, FileText, Zap } from 'lucide-react';
 
 export default function DetalheConsumidor() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [consumidor, setConsumidor] = useState<Consumidor | null>(null);
+  const [consumidor, setConsumidor] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!id) return;
-    api.consumidores.get(Number(id))
-      .then((data: any) => setConsumidor(data))
-      .catch((err: any) => {
-        console.error(err);
-        alert('Erro ao carregar consumidor');
-        navigate('/consumidores');
-      })
-      .finally(() => setLoading(false));
-  }, [id, navigate]);
+    if (id) {
+      api.consumidores.get(Number(id))
+        .then(setConsumidor)
+        .catch(console.error)
+        .finally(() => setLoading(false));
+    }
+  }, [id]);
 
   const handleDelete = async () => {
-    if (!confirm('Tem certeza que deseja excluir este consumidor?')) return;
+    if (!confirm('Excluir este consumidor?')) return;
     try {
       await api.consumidores.delete(Number(id));
-      alert('Consumidor excluído com sucesso!');
       navigate('/consumidores');
     } catch (error) {
       alert('Erro ao excluir consumidor');
     }
   };
 
-  if (loading) {
-    return (
-      <div className="space-y-6">
-        <Skeleton className="h-10 w-1/3" />
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-           <Skeleton className="h-40" />
-           <Skeleton className="h-40" />
-           <Skeleton className="h-40" />
-        </div>
-      </div>
-    );
-  }
-
-  if (!consumidor) return <div>Consumidor não encontrado.</div>;
+  if (loading) return <div className="p-8 text-center text-gray-500">Carregando...</div>;
+  if (!consumidor) return <div className="p-8 text-center">Consumidor não encontrado</div>;
 
   return (
-    <div className="max-w-6xl mx-auto pb-20">
-      
-      {/* CABEÇALHO */}
-      <div className="flex items-center justify-between mb-8">
-        <div className="flex items-center gap-4">
-          <Link to="/consumidores" className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
-            <ArrowLeft className="w-6 h-6 text-gray-600" />
-          </Link>
+    <div>
+      {/* Cabeçalho */}
+      <div className="mb-8">
+        <Link to="/consumidores" className="inline-flex items-center gap-2 text-gray-500 hover:text-gray-900 mb-4">
+          <ArrowLeft className="w-5 h-5" /> Voltar
+        </Link>
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">{consumidor.Nome}</h1>
-            <div className="flex items-center gap-2 text-gray-500 text-sm mt-1">
-              <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded font-medium">Ativo</span>
-              <span>•</span>
-              <span>ID: {consumidor.ConsumidorID}</span>
+            <h1 className="text-3xl font-bold text-gray-900">{consumidor.nome}</h1>
+            <div className="flex items-center gap-2 text-gray-500 mt-1">
+              <FileText className="w-4 h-4" />
+              <span>{consumidor.documento || 'Sem documento'}</span>
             </div>
           </div>
-        </div>
-
-        <div className="flex gap-3">
-          <Link
-            to={`/consumidores/${id}/editar`}
-            className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors shadow-sm"
-          >
-            <Edit className="w-4 h-4" />
-            <span>Editar</span>
-          </Link>
-          <button
-            onClick={handleDelete}
-            className="flex items-center gap-2 px-4 py-2 bg-red-50 border border-red-200 text-red-700 rounded-lg hover:bg-red-100 transition-colors shadow-sm"
-          >
-            <Trash2 className="w-4 h-4" />
-            <span>Excluir</span>
-          </button>
+          <div className="flex gap-2">
+            <Link to={`/consumidores/${id}/editar`} className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 flex items-center gap-2">
+              <Edit className="w-4 h-4" /> Editar
+            </Link>
+            <button onClick={handleDelete} className="px-4 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 flex items-center gap-2">
+              <Trash2 className="w-4 h-4" /> Excluir
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* GRID DE INFORMAÇÕES */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         
-        {/* CARD 1: CONTATO */}
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-          <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
-            <User className="w-5 h-5 text-blue-500" /> Dados Pessoais
+        {/* Cartão de Contato / Endereço */}
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
+          <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+            <MapPin className="w-5 h-5 text-blue-500" /> Endereço e Contato
           </h3>
-          <div className="space-y-3 text-sm">
-            <div>
-              <p className="text-gray-500 text-xs">Documento (CPF/CNPJ)</p>
-              <p className="font-medium text-gray-900">{consumidor.Documento || 'Não informado'}</p>
-            </div>
-            <div>
-              <p className="text-gray-500 text-xs">Email</p>
-              <div className="flex items-center gap-2">
-                <Mail className="w-3 h-3 text-gray-400" />
-                <p className="font-medium text-gray-900 truncate">{consumidor.Email || 'Não informado'}</p>
-              </div>
-            </div>
-            <div>
-              <p className="text-gray-500 text-xs">Telefone</p>
-              <div className="flex items-center gap-2">
-                <Phone className="w-3 h-3 text-gray-400" />
-                <p className="font-medium text-gray-900">{consumidor.Telefone || 'Não informado'}</p>
-              </div>
-            </div>
+          <div className="space-y-3 text-gray-600">
+            <p><span className="font-medium text-gray-900">Endereço:</span> {consumidor.endereco || '-'}</p>
+            <p><span className="font-medium text-gray-900">Bairro:</span> {consumidor.bairro || '-'}</p>
+            <p><span className="font-medium text-gray-900">Cidade:</span> {consumidor.cidade || '-'} / {consumidor.uf || '-'}</p>
+            <p><span className="font-medium text-gray-900">CEP:</span> {consumidor.cep || '-'}</p>
           </div>
         </div>
 
-        {/* CARD 2: ENERGIA */}
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-          <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
-            <Zap className="w-5 h-5 text-yellow-500" /> Dados Energéticos
+        {/* Cartão Comercial */}
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
+          <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+            <Zap className="w-5 h-5 text-yellow-500" /> Dados de Energia
           </h3>
-          <div className="space-y-3 text-sm">
-            <div className="flex justify-between border-b pb-2">
-              <span className="text-gray-500">Unidade Consumidora</span>
-              <span className="font-bold text-gray-900">{consumidor.UnidadeConsumidora || 'N/A'}</span>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="p-4 bg-gray-50 rounded-xl">
+              <p className="text-sm text-gray-500">Média de Consumo</p>
+              <p className="text-xl font-bold text-gray-900">{consumidor.media_consumo} kWh</p>
             </div>
-            <div className="flex justify-between border-b pb-2">
-              <span className="text-gray-500">Média Consumo</span>
-              <span className="font-bold text-gray-900">{consumidor.MediaConsumo} kWh</span>
+            <div className="p-4 bg-gray-50 rounded-xl">
+              <p className="text-sm text-gray-500">Valor do kW</p>
+              <p className="text-xl font-bold text-gray-900">R$ {consumidor.valor_kw}</p>
             </div>
-            <div className="flex justify-between pt-1">
-               <div className="text-center w-1/2 border-r pr-2">
-                 <p className="text-xs text-gray-500">Tensão</p>
-                 <p className="font-medium">{consumidor.Tensao || 'N/A'}</p>
-               </div>
-               <div className="text-center w-1/2 pl-2">
-                 <p className="text-xs text-gray-500">Fase</p>
-                 <p className="font-medium">{consumidor.Fasico || 'N/A'}</p>
-               </div>
+            <div className="p-4 bg-gray-50 rounded-xl">
+              <p className="text-sm text-gray-500">Desconto</p>
+              <p className="text-xl font-bold text-green-600">{consumidor.percentual_desconto}%</p>
             </div>
           </div>
-        </div>
-
-        {/* CARD 3: ENDEREÇO */}
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-          <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
-            <MapPin className="w-5 h-5 text-green-500" /> Endereço
-          </h3>
-          {consumidor.Endereco ? (
-             <div className="space-y-2 text-sm text-gray-700">
-               <p>{consumidor.Endereco.Logradouro}, {consumidor.Endereco.Numero}</p>
-               <p>{consumidor.Endereco.Bairro}</p>
-               <p>{consumidor.Endereco.Cidade} - {consumidor.Endereco.UF}</p>
-               <p className="text-gray-400 text-xs mt-2">CEP: {consumidor.Endereco.CEP}</p>
-             </div>
-          ) : (
-            <p className="text-gray-400 italic text-sm">Endereço não cadastrado.</p>
+          {consumidor.observacao && (
+            <div className="mt-4 pt-4 border-t border-gray-100">
+              <p className="text-sm font-medium text-gray-900">Observações:</p>
+              <p className="text-sm text-gray-600 mt-1">{consumidor.observacao}</p>
+            </div>
           )}
         </div>
       </div>
-
-      {/* --- ÁREA DO COFRE DE DOCUMENTOS --- */}
-      {/* Aqui inserimos o componente que criamos */}
-      <div className="mt-8">
-         <GerenciadorDocumentos tipoEntidade="consumidor" entidadeId={Number(id)} />
-      </div>
-
     </div>
   );
 }

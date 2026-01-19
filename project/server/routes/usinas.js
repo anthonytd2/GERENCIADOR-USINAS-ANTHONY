@@ -4,12 +4,12 @@ import { usinaSchema } from '../validators/schemas.js';
 
 const router = express.Router();
 
-// 1. LISTAR TODAS (Estratégia de Fusão - 100% Robusta)
+// 1. LISTAR TODAS (Correção Definitiva de Status)
 router.get('/', async (req, res) => {
   try {
     // PASSO A: Buscar todas as Usinas
-    // Tenta minúsculo primeiro, depois maiúsculo para garantir
     let queryUsinas = await supabase.from('usinas').select('*');
+    // Fallback para Maiúsculas se necessário
     if (queryUsinas.error && queryUsinas.error.code === '42P01') {
        queryUsinas = await supabase.from('Usinas').select('*');
     }
@@ -17,36 +17,37 @@ router.get('/', async (req, res) => {
 
     const listaUsinas = queryUsinas.data || [];
 
-    // PASSO B: Buscar todos os Vínculos (Apenas os IDs para ser rápido)
-    let queryVinculos = await supabase.from('vinculos').select('usinaid, UsinaID');
+    // PASSO B: Buscar todos os Vínculos (Selecionar TUDO para evitar erro de coluna)
+    // Usamos select('*') para garantir que trazemos as colunas independente do nome
+    let queryVinculos = await supabase.from('vinculos').select('*');
     
-    // Se a tabela 'vinculos' não for encontrada, tenta 'Vinculos' (Maiúsculo)
     if (queryVinculos.error && queryVinculos.error.code === '42P01') {
-       queryVinculos = await supabase.from('Vinculos').select('usinaid, UsinaID');
+       queryVinculos = await supabase.from('Vinculos').select('*');
     }
     
-    // Se der erro nos vínculos, assumimos lista vazia (evita travar o sistema)
     const listaVinculos = queryVinculos.data || [];
 
-    // PASSO C: Fundir as informações (Calcula 'is_locada' aqui no servidor)
+    // PASSO C: Cruzar as informações com conversão de String
     const usinasProcessadas = listaUsinas.map(usina => {
-       // Normaliza o ID da usina atual (pode vir como usinaid ou UsinaID)
-       const idAtual = usina.usinaid || usina.UsinaID;
+       // Normaliza o ID da usina atual
+       const idUsina = usina.usinaid || usina.UsinaID || usina.id;
 
-       // Verifica se este ID existe na lista de vínculos
+       // Verifica se existe vínculo convertendo ambos para STRING
        const estaLocada = listaVinculos.some(vinculo => {
-          const vUsinaId = vinculo.usinaid || vinculo.UsinaID;
-          return vUsinaId === idAtual;
+          const idVinculoUsina = vinculo.usinaid || vinculo.UsinaID || vinculo.UsinaId;
+          
+          // Verifica se os dados existem e se são iguais (convertendo para texto)
+          return idVinculoUsina && String(idVinculoUsina) === String(idUsina);
        });
 
        return {
          ...usina,
-         // Forçamos a propriedade 'is_locada' para o Frontend ler direto
+         // Força o status correto
          is_locada: estaLocada 
        };
     });
 
-    // Ordenação manual (Nome do Proprietário) para não depender do banco
+    // Ordenação (Nome)
     if (usinasProcessadas.length > 0) {
       usinasProcessadas.sort((a, b) => {
         const nomeA = a.NomeProprietario || a.nomeproprietario || '';
@@ -63,7 +64,7 @@ router.get('/', async (req, res) => {
   }
 });
 
-// 2. BUSCAR UMA (Mantido Igual - Já funciona)
+// 2. BUSCAR UMA (Mantido Igual)
 router.get('/:id', async (req, res) => {
   try {
     let { data, error } = await supabase.from('usinas').select('*').eq('usinaid', req.params.id).single();
@@ -78,14 +79,13 @@ router.get('/:id', async (req, res) => {
   } catch (error) { res.status(500).json({ error: error.message }); }
 });
 
-// 3. VÍNCULOS (Mantido Igual - Já funciona)
+// 3. VÍNCULOS (Mantido Igual)
 router.get('/:id/vinculos', async (req, res) => {
   try {
     const id = req.params.id;
     let { data, error } = await supabase.from('vinculos').select('*, consumidores(nome), status(descricao)').eq('usinaid', id);
 
     if (error) {
-      // Fallbacks para garantir que não quebra se os nomes das tabelas forem diferentes
       const retrySimple = await supabase.from('vinculos').select('*').eq('usinaid', id);
       if (retrySimple.error) {
          const retryMaiusc = await supabase.from('vinculos').select('*').eq('UsinaID', id);
@@ -98,7 +98,7 @@ router.get('/:id/vinculos', async (req, res) => {
   } catch (error) { res.json([]); }
 });
 
-// ROTAS DE ESCRITA (Mantidas padrão)
+// ROTAS DE ESCRITA
 router.post('/', async (req, res) => {
   try {
     const dadosLimpos = usinaSchema.parse(req.body);

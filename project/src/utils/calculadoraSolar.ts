@@ -1,4 +1,3 @@
-// Interface para o resultado
 export interface KitSolar {
   potencia: number;
   modulos: number;

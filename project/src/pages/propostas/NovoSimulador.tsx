@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { api } from '../../lib/api';
-// Adicione 'User' na lista
-import { ArrowLeft, Save, FileText, Sun, Calculator, CheckCircle, Smartphone, User } from 'lucide-react';
+// CORREÇÃO: Adicionado 'User' na importação
+import { ArrowLeft, Save, Sun, Calculator, CheckCircle, User } from 'lucide-react';
 import { calcularViabilidade, type ResultadoViabilidade } from '../../utils/calculadoraSolar';
 
 export default function NovoSimulador() {
@@ -10,7 +10,7 @@ export default function NovoSimulador() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   
-  // Estados do Formulário (Mantidos)
+  // Estados do Formulário
   const [cliente, setCliente] = useState('');
   const [telefone, setTelefone] = useState('');
   const [consumo, setConsumo] = useState('');
@@ -24,14 +24,28 @@ export default function NovoSimulador() {
       api.propostas.get(Number(id)).then(data => {
         if (data && data.dados_simulacao) {
           const dados = data.dados_simulacao;
+          
+          // 1. Preencher os Inputs (O que foi digitado)
           setCliente(data.nome_cliente_prospect || '');
           setTelefone(dados.telefone || '');
           setConsumo(String(dados.mediaConsumo || ''));
           setValorKwh(String(dados.valorTarifa || '0.95'));
           setTipoTelhado(dados.tipoTelhado || 'Fibrocimento');
           
-          // Recalcula se tiver os dados
-          if (dados.mediaConsumo) {
+          // 2. LÓGICA DE RECUPERAÇÃO INTELIGENTE
+          // Se já existe um kit salvo (proposta fechada), recuperamos ele (Snapshot)
+          if (dados.kitEscolhido) {
+             setResultado({
+               economiaMensalEstimada: dados.economiaMensal || 0,
+               paybackAnos: dados.payback || 0,
+               kitSugestao: dados.kitEscolhido,
+               // Derivados simples (caso não tenham sido salvos)
+               economiaAnualEstimada: (dados.economiaMensal || 0) * 12,
+               roi: 0 
+             });
+          } 
+          // Se não tiver kit salvo (é um rascunho antigo), recalculamos com base no consumo
+          else if (dados.mediaConsumo) {
             const calc = calcularViabilidade(
               Number(dados.mediaConsumo), 
               Number(dados.valorTarifa || 0.95)
@@ -57,12 +71,13 @@ export default function NovoSimulador() {
     try {
       const payload = {
         nome_cliente_prospect: cliente,
-        status: 'rascunho', // Status inicial
+        status: 'rascunho',
         dados_simulacao: {
           telefone,
           mediaConsumo: Number(consumo),
           valorTarifa: Number(valorKwh),
           tipoTelhado,
+          // Salvamos os RESULTADOS também para servirem de "Snapshot"
           economiaMensal: resultado.economiaMensalEstimada,
           payback: resultado.paybackAnos,
           kitEscolhido: resultado.kitSugestao
@@ -74,7 +89,7 @@ export default function NovoSimulador() {
       } else {
         await api.propostas.create(payload);
       }
-      navigate('/propostas'); // <--- CORREÇÃO: Volta para o Pipeline
+      navigate('/propostas');
     } catch (error) {
       alert('Erro ao salvar proposta');
     } finally {
@@ -84,11 +99,10 @@ export default function NovoSimulador() {
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
-      {/* HEADER CORRIGIDO */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <Link 
-            to="/propostas" // <--- CORREÇÃO: Aponta para o Pipeline
+            to="/propostas"
             className="p-2 hover:bg-white rounded-full text-gray-600 transition-colors shadow-sm bg-gray-50 border border-gray-200"
           >
             <ArrowLeft size={24} />
@@ -97,7 +111,7 @@ export default function NovoSimulador() {
             <h1 className="text-2xl font-bold text-gray-800">
               {id && id !== 'novo' ? 'Editar Simulação' : 'Nova Simulação'}
             </h1>
-            <p className="text-sm text-gray-500">Crie propostas personalizadas de energia solar</p>
+            <p className="text-sm text-gray-500">Crie propostas personalizadas</p>
           </div>
         </div>
       </div>

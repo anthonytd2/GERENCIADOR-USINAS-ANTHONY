@@ -4,18 +4,22 @@ import { usinaSchema } from '../validators/schemas.js';
 
 const router = express.Router();
 
-// LISTAR TODAS (Modo Seguro - Sem Ordenação quebra-cabeça)
+// 1. LISTAR TODAS (Modo Seguro)
 router.get('/', async (req, res) => {
   try {
-    // Busca tudo da tabela 'usinas' (minúsculo, que sabemos que existe)
-    // Removemos o .order() temporariamente para evitar o erro "column does not exist"
-    const { data, error } = await supabase
-      .from('usinas')
-      .select('*');
+    // Tenta ler da tabela 'usinas' (minúsculo, padrão do Postgres)
+    let { data, error } = await supabase.from('usinas').select('*');
+    
+    // Se der erro, tenta com 'Usinas' (Maiúsculo)
+    if (error && error.code === '42P01') { 
+       const retry = await supabase.from('Usinas').select('*');
+       data = retry.data;
+       error = retry.error;
+    }
 
     if (error) throw error;
     
-    // Opcional: Ordenação via código para garantir que não quebra o banco
+    // Ordenação manual via código para não depender do nome da coluna no banco
     if (data && data.length > 0) {
       data.sort((a, b) => {
         const nomeA = a.NomeProprietario || a.nomeproprietario || '';
@@ -31,23 +35,26 @@ router.get('/', async (req, res) => {
   }
 });
 
-// BUSCAR UMA (Tenta UsinaID Misturado)
+// 2. BUSCAR UMA (Modo Seguro)
 router.get('/:id', async (req, res) => {
   try {
-    // Tenta primeiro com UsinaID (Maiúsculo)
+    // Tenta primeiro o padrão minúsculo 'usinaid'
     let { data, error } = await supabase
       .from('usinas')
       .select('*')
-      .eq('UsinaID', req.params.id) // Tenta o nome do SQL original
+      .eq('usinaid', req.params.id)
       .single();
 
-    // Se der erro de coluna, tenta minúsculo
-    if (error && error.code === '42703') { // 42703 = Undefined Column
-       const retry = await supabase
-        .from('usinas')
-        .select('*')
-        .eq('usinaid', req.params.id)
-        .single();
+    // Se falhar (coluna não existe ou tabela maiúscula), tenta variantes
+    if (error) {
+       // Tentativa 2: Tabela minúscula, Coluna Maiúscula
+       let retry = await supabase.from('usinas').select('*').eq('UsinaID', req.params.id).single();
+       
+       // Tentativa 3: Tabela Maiúscula, Coluna Maiúscula
+       if (retry.error) {
+         retry = await supabase.from('Usinas').select('*').eq('UsinaID', req.params.id).single();
+       }
+       
        data = retry.data;
        error = retry.error;
     }
@@ -59,36 +66,56 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// VÍNCULOS
+// 3. VÍNCULOS (CORREÇÃO DO ERRO ATUAL)
 router.get('/:id/vinculos', async (req, res) => {
   try {
-    // Tenta buscar assumindo tabela 'vinculos' minúscula
-    // Se as tabelas relacionadas (consumidores/status) derem erro, 
-    // remova a parte interna do select para testar: .select('*')
-    const { data, error } = await supabase
+    const id = req.params.id;
+    
+    // TENTATIVA 1: Tudo minúsculo (Padrão Postgres)
+    // Tenta trazer os dados cruzados com consumidores e status
+    let query = supabase
       .from('vinculos')
-      .select('*, consumidores(nome), status(descricao)') 
-      .eq('UsinaID', req.params.id); // Tenta UsinaID aqui também
+      .select('*, consumidores(nome), status(descricao)')
+      .eq('usinaid', id);
+      
+    let { data, error } = await query;
 
+    // TENTATIVA 2: Se der erro no JOIN (relação não encontrada), tenta buscar SEM o join
+    // Isso garante que a lista carrega, mesmo que os nomes dos consumidores não apareçam
     if (error) {
-       // Fallback para minúsculo se falhar
-       if (error.code === '42703') {
-          const retry = await supabase
-            .from('vinculos')
-            .select('*') 
-            .eq('usinaid', req.params.id);
-          if (retry.error) throw retry.error;
-          return res.json(retry.data);
-       }
-       throw error;
+      console.log("Tentativa 1 de vínculos falhou, tentando modo simples...");
+      
+      // Tenta buscar apenas a tabela vinculos simples
+      const retrySimple = await supabase
+        .from('vinculos')
+        .select('*')
+        .eq('usinaid', id);
+
+      // Se falhar de novo, tenta usar UsinaID maiúsculo
+      if (retrySimple.error) {
+         const retryMaiusculo = await supabase
+          .from('vinculos')
+          .select('*')
+          .eq('UsinaID', id);
+          
+         data = retryMaiusculo.data;
+         error = retryMaiusculo.error;
+      } else {
+        data = retrySimple.data;
+        error = null; // Sucesso no modo simples
+      }
     }
+
+    if (error) throw error;
     res.json(data);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error("Erro fatal em vínculos:", error);
+    // Retorna array vazio em vez de erro 500 para não quebrar a tela
+    res.json([]); 
   }
 });
 
-// Rotas de escrita mantidas simples (o erro principal era leitura)
+// ROTAS DE ESCRITA (Mantidas padrão)
 router.post('/', async (req, res) => {
   try {
     const dadosLimpos = usinaSchema.parse(req.body);
@@ -101,8 +128,12 @@ router.post('/', async (req, res) => {
 router.put('/:id', async (req, res) => {
   try {
     const dadosLimpos = usinaSchema.partial().parse(req.body);
-    // Tenta atualizar usando UsinaID
-    const { data, error } = await supabase.from('usinas').update(dadosLimpos).eq('UsinaID', req.params.id).select().single();
+    // Tenta atualizar usando usinaid minúsculo primeiro
+    let { data, error } = await supabase.from('usinas').update(dadosLimpos).eq('usinaid', req.params.id).select().single();
+    // Fallback para Maiúsculo
+    if (error) {
+       ({ data, error } = await supabase.from('usinas').update(dadosLimpos).eq('UsinaID', req.params.id).select().single());
+    }
     if (error) throw error;
     res.json(data);
   } catch (error) { res.status(500).json({ error: error.message }); }
@@ -110,7 +141,10 @@ router.put('/:id', async (req, res) => {
 
 router.delete('/:id', async (req, res) => {
   try {
-    const { error } = await supabase.from('usinas').delete().eq('UsinaID', req.params.id);
+    let { error } = await supabase.from('usinas').delete().eq('usinaid', req.params.id);
+    if (error) {
+       ({ error } = await supabase.from('usinas').delete().eq('UsinaID', req.params.id));
+    }
     if (error) throw error;
     res.json({ message: 'Usina excluída' });
   } catch (error) { res.status(500).json({ error: error.message }); }

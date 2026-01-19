@@ -1,53 +1,61 @@
 export interface DadosSimulacao {
   consumoKwh: number;
-  valorTusd: number;
-  valorTe: number;
-  valorBandeira: number;
-  valorIluminacao: number;
-  valorOutros: number;
-  fioB_Total: number;
-  fioB_Percentual: number;
-  valorPis: number;
-  valorCofins: number;
-  valorIcms: number;
-  descontoBionova: number;
+  valorTusd: number;      // R$ Total
+  valorTe: number;        // R$ Total
+  valorBandeira: number;  // R$ Total
+  valorIluminacao: number; // R$ Total
+  valorOutros: number;    // R$ Total
+  fioB_Total: number;     // Tarifa Unitária (R$/kWh) ex: 0.1450
+  fioB_Percentual: number; // % (ex: 60)
+  valorPis: number;       // R$ Total
+  valorCofins: number;    // R$ Total
+  valorIcms: number;      // R$ Total
+  descontoBionova: number; // %
 }
 
-export const calcularEconomia = (d: DadosSimulacao) => {
-  // 1. CÁLCULO DO CENÁRIO ATUAL (SEM SOLAR)
-  // Custo Energia Pura = Consumo * (Tarifas)
-  const custoEnergia = d.consumoKwh * (d.valorTusd + d.valorTe + d.valorBandeira);
-  
-  // Impostos Totais (Soma simples dos valores em R$ informados)
-  const impostos = d.valorPis + d.valorCofins + d.valorIcms;
-  
-  // Fatura Atual Total
-  const faturaAtual = custoEnergia + d.valorIluminacao + d.valorOutros + impostos;
+export function calcularEconomia(dados: DadosSimulacao) {
+  const consumo = dados.consumoKwh > 0 ? dados.consumoKwh : 1;
 
-  // 2. CÁLCULO DO CENÁRIO NOVO (COM SOLAR)
-  // O cliente paga Fio B sobre a energia compensada
-  // Custo Fio B = Consumo * TarifaFioB * (PercentualCobrado / 100)
-  const custoFioB = d.consumoKwh * d.fioB_Total * (d.fioB_Percentual / 100);
+  // 1. Tarifas Unitárias (Calculadas a partir dos totais informados)
+  const tarifaPisCofins = (dados.valorPis + dados.valorCofins) / consumo;
+  const tarifaIcms = dados.valorIcms / consumo;
   
-  // Nova Fatura na Distribuidora (O que sobra pra pagar lá)
-  // Ele paga: Iluminação + Outros + Fio B (O resto da energia é abatido)
-  const novaFaturaDistribuidora = d.valorIluminacao + d.valorOutros + custoFioB;
-
-  // 3. PAGAMENTO À USINA (BIONOVA)
-  // Crédito Gerado = Valor da Energia que foi abatida (TUSD + TE + Bandeira)
-  // A Bionova cobra esse valor com o desconto aplicado
-  // Mas atenção: Para ser justo, descontamos o Fio B que ele já pagou na distribuidora
-  // Fórmula de Locação: (Crédito - FioB) * (1 - Desconto) ou apenas Crédito * (1-Desconto)?
-  // Vou usar a lógica de "Desconto Garantido sobre a Tarifa Cheia", ajustado para cobrir o Fio B.
+  // 2. Regra Fio B (Lei 14.300) - Custo Unitário que o cliente paga
+  const fioB_Efetivo = dados.fioB_Total * (dados.fioB_Percentual / 100);
   
-  const creditoBruto = custoEnergia; 
-  // Valor Cobrado Usina = (Crédito - CustoFioB) * (1 - Desconto%) 
-  // Isso garante que o desconto incide sobre o "lucro" da operação
-  const pagamentoUsina = (creditoBruto - custoFioB) * (1 - (d.descontoBionova / 100));
+  // 3. Tarifa Irredutível (Obrigatória por kWh)
+  // Soma dos impostos unitários + Fio B efetivo
+  const tarifaIrredutivel = tarifaPisCofins + tarifaIcms + fioB_Efetivo;
+  
+  // 4. Novo TUSD (Custo Residual na Distribuidora referente à energia)
+  // É o consumo multiplicado pela tarifa que não se consegue abater
+  const novoTusd = consumo * tarifaIrredutivel;
+  
+  // 5. Economia Bruta (O quanto a usina conseguiu "matar" da conta)
+  // Economia no TUSD = Valor Original - O que sobrou para pagar
+  const reducaoTusd = dados.valorTusd - novoTusd;
+  
+  // A Economia Bruta é a soma de tudo que foi abatido:
+  // TE inteira + Bandeira inteira + A parte do TUSD que sumiu
+  const economiaBruta = dados.valorTe + dados.valorBandeira + (reducaoTusd > 0 ? reducaoTusd : 0);
 
-  // 4. RESULTADOS FINAIS
+  // 6. Divisão do Lucro
+  // O cliente fica com X% dessa economia bruta (Desconto)
+  const economiaRealCliente = economiaBruta * (dados.descontoBionova / 100);
+  // A Usina fica com o resto (Assinatura)
+  const pagamentoUsina = economiaBruta - economiaRealCliente;
+
+  // 7. Totais Finais
+  // Fatura Atual (Soma simples dos inputs)
+  const faturaAtual = dados.valorTusd + dados.valorTe + dados.valorBandeira + dados.valorIluminacao + dados.valorOutros;
+  
+  // Nova Fatura Distribuidora = O novo TUSD (fio b + impostos) + Iluminação + Outros
+  const novaFaturaDistribuidora = novoTusd + dados.valorIluminacao + dados.valorOutros;
+  
+  // Novo Custo Total = O que paga pra distribuidora + O que paga pra usina
   const novoCustoTotal = novaFaturaDistribuidora + pagamentoUsina;
-  const economiaRealCliente = faturaAtual - novoCustoTotal;
+
+  // 8. Indicadores Extras
   const percentualReducaoTotal = faturaAtual > 0 ? (economiaRealCliente / faturaAtual) * 100 : 0;
 
   return {
@@ -55,11 +63,17 @@ export const calcularEconomia = (d: DadosSimulacao) => {
     novaFaturaDistribuidora,
     pagamentoUsina,
     novoCustoTotal,
+    economiaBruta,
     economiaRealCliente,
     percentualReducaoTotal,
-    dadosOriginais: d,
+    
+    // Retornamos os dados originais também para facilitar o relatório
+    dadosOriginais: dados,
+    
     detalhes: {
-        novoTusd: custoFioB
+      novoTusd,
+      tarifaIrredutivel,
+      reducaoTusd // Quanto economizou só no TUSD
     }
   };
-};
+}

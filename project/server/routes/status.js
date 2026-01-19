@@ -5,12 +5,10 @@ const router = express.Router();
 
 router.get('/', async (req, res) => {
   try {
-    // CORREÇÃO: Busca na tabela 'status', mas ordena por 'Descricao' (Maiúsculo)
-    // Se der erro, tente trocar .from('status') por .from('Status')
     const { data, error } = await supabase
-      .from('status') 
+      .from('status')
       .select('*')
-      .order('Descricao'); 
+      .order('descricao'); // CORREÇÃO: minúsculo (snake_case)
 
     if (error) throw error;
     res.json(data);

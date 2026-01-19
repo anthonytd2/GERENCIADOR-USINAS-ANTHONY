@@ -3,13 +3,12 @@ import { supabase } from '../db.js';
 
 const router = express.Router();
 
-// LISTAR TODAS (Para preencher o Select na tela)
 router.get('/', async (req, res) => {
   try {
     const { data, error } = await supabase
       .from('concessionarias')
       .select('*')
-      .order('nome');
+      .order('nome'); // Já estava ok, mas confirmamos.
 
     if (error) throw error;
     res.json(data);

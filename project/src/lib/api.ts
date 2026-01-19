@@ -34,6 +34,10 @@ export const api = {
     get: (id: number) => axiosInstance.get(`/vinculos/${id}`).then((res: any) => res.data),
     create: (data: any) => axiosInstance.post('/vinculos', data).then((res: any) => res.data),
     update: (id: number, data: any) => axiosInstance.put(`/vinculos/${id}`, data).then((res: any) => res.data),
+    
+    // --- ADICIONADO: Função que faltava ---
+    encerrar: (id: number, dataFim: string) => axiosInstance.put(`/vinculos/${id}/encerrar`, { data_fim: dataFim }).then((res: any) => res.data),
+    
     delete: (id: number) => axiosInstance.delete(`/vinculos/${id}`).then((res: any) => res.data),
   },
   status: {
@@ -46,7 +50,6 @@ export const api = {
     delete: (id: number) => axiosInstance.delete(`/entidades/${id}`).then((res: any) => res.data),
   },
   
-  // --- ADICIONADO: Concessionárias (Correção do Erro) ---
   concessionarias: {
     list: () => axiosInstance.get('/concessionarias').then((res: any) => res.data),
     create: (data: any) => axiosInstance.post('/concessionarias', data).then((res: any) => res.data),
@@ -54,9 +57,8 @@ export const api = {
     delete: (id: number) => axiosInstance.delete(`/concessionarias/${id}`).then((res: any) => res.data),
   },
 
-propostas: {
+  propostas: {
     list: () => axiosInstance.get('/propostas').then((res: any) => res.data),
-    // NOVO: GET ONE
     get: (id: number) => axiosInstance.get(`/propostas/${id}`).then((res: any) => res.data),
     create: (data: any) => axiosInstance.post('/propostas', data).then((res: any) => res.data),
     update: (id: number, data: any) => axiosInstance.put(`/propostas/${id}`, data).then((res: any) => res.data),
@@ -70,7 +72,7 @@ propostas: {
     delete: (id: number) => axiosInstance.delete(`/fechamentos/${id}`).then((res: any) => res.data),
   },
 
-documentos: {
+  documentos: {
     list: (tipo: string, id: number) => axiosInstance.get(`/documentos/${tipo}/${id}`).then((res: any) => res.data),
     create: (data: any) => axiosInstance.post('/documentos', data).then((res: any) => res.data),
     delete: (id: number) => axiosInstance.delete(`/documentos/${id}`).then((res: any) => res.data),

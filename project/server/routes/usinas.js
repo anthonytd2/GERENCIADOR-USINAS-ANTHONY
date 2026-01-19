@@ -4,127 +4,116 @@ import { usinaSchema } from '../validators/schemas.js';
 
 const router = express.Router();
 
-// 1. LISTAR TODAS (Correção Definitiva de Status)
+// 1. LISTAR TODAS (Código Limpo e Otimizado)
 router.get('/', async (req, res) => {
   try {
-    // PASSO A: Buscar todas as Usinas
-    let queryUsinas = await supabase.from('usinas').select('*');
-    // Fallback para Maiúsculas se necessário
-    if (queryUsinas.error && queryUsinas.error.code === '42P01') {
-       queryUsinas = await supabase.from('Usinas').select('*');
-    }
-    if (queryUsinas.error) throw queryUsinas.error;
+    // Busca Usinas e Vínculos numa única consulta eficiente
+    const { data, error } = await supabase
+      .from('usinas')
+      .select('*, vinculos(vinculo_id)'); // Traz apenas o ID do vínculo para verificar se está locada
 
-    const listaUsinas = queryUsinas.data || [];
+    if (error) throw error;
 
-    // PASSO B: Buscar todos os Vínculos (Selecionar TUDO para evitar erro de coluna)
-    // Usamos select('*') para garantir que trazemos as colunas independente do nome
-    let queryVinculos = await supabase.from('vinculos').select('*');
-    
-    if (queryVinculos.error && queryVinculos.error.code === '42P01') {
-       queryVinculos = await supabase.from('Vinculos').select('*');
-    }
-    
-    const listaVinculos = queryVinculos.data || [];
+    // Processamento rápido para o status
+    const usinasFormatadas = data.map(usina => ({
+      ...usina,
+      // Se tiver vínculos ativos, marca como true
+      is_locada: usina.vinculos && usina.vinculos.length > 0
+    }));
 
-    // PASSO C: Cruzar as informações com conversão de String
-    const usinasProcessadas = listaUsinas.map(usina => {
-       // Normaliza o ID da usina atual
-       const idUsina = usina.usinaid || usina.UsinaID || usina.id;
+    // Ordenação alfabética
+    usinasFormatadas.sort((a, b) => 
+      (a.nome_proprietario || '').localeCompare(b.nome_proprietario || '')
+    );
 
-       // Verifica se existe vínculo convertendo ambos para STRING
-       const estaLocada = listaVinculos.some(vinculo => {
-          const idVinculoUsina = vinculo.usinaid || vinculo.UsinaID || vinculo.UsinaId;
-          
-          // Verifica se os dados existem e se são iguais (convertendo para texto)
-          return idVinculoUsina && String(idVinculoUsina) === String(idUsina);
-       });
-
-       return {
-         ...usina,
-         // Força o status correto
-         is_locada: estaLocada 
-       };
-    });
-
-    // Ordenação (Nome)
-    if (usinasProcessadas.length > 0) {
-      usinasProcessadas.sort((a, b) => {
-        const nomeA = a.NomeProprietario || a.nomeproprietario || '';
-        const nomeB = b.NomeProprietario || b.nomeproprietario || '';
-        return nomeA.localeCompare(nomeB);
-      });
-    }
-
-    res.json(usinasProcessadas);
-
+    res.json(usinasFormatadas);
   } catch (error) {
     console.error("Erro ao listar usinas:", error);
     res.status(500).json({ error: error.message });
   }
 });
 
-// 2. BUSCAR UMA (Mantido Igual)
+// 2. BUSCAR UMA (Pelo ID padrão)
 router.get('/:id', async (req, res) => {
   try {
-    let { data, error } = await supabase.from('usinas').select('*').eq('usinaid', req.params.id).single();
-    if (error) {
-       let retry = await supabase.from('usinas').select('*').eq('UsinaID', req.params.id).single();
-       if (retry.error) retry = await supabase.from('Usinas').select('*').eq('UsinaID', req.params.id).single();
-       data = retry.data;
-       error = retry.error;
-    }
+    const { data, error } = await supabase
+      .from('usinas')
+      .select('*')
+      .eq('usina_id', req.params.id) // Nome correto da coluna
+      .single();
+
     if (error) throw error;
     res.json(data);
-  } catch (error) { res.status(500).json({ error: error.message }); }
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
-// 3. VÍNCULOS (Mantido Igual)
+// 3. VÍNCULOS DA USINA
 router.get('/:id/vinculos', async (req, res) => {
   try {
-    const id = req.params.id;
-    let { data, error } = await supabase.from('vinculos').select('*, consumidores(nome), status(descricao)').eq('usinaid', id);
+    const { data, error } = await supabase
+      .from('vinculos')
+      .select('*, consumidores(nome), status(descricao)')
+      .eq('usina_id', req.params.id); // Nome correto da chave estrangeira
 
-    if (error) {
-      const retrySimple = await supabase.from('vinculos').select('*').eq('usinaid', id);
-      if (retrySimple.error) {
-         const retryMaiusc = await supabase.from('vinculos').select('*').eq('UsinaID', id);
-         data = retryMaiusc.data;
-      } else {
-        data = retrySimple.data;
-      }
-    }
-    res.json(data || []);
-  } catch (error) { res.json([]); }
+    if (error) throw error;
+    res.json(data);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
-// ROTAS DE ESCRITA
+// 4. CRIAR
 router.post('/', async (req, res) => {
   try {
     const dadosLimpos = usinaSchema.parse(req.body);
-    const { data, error } = await supabase.from('usinas').insert([dadosLimpos]).select().single();
+    const { data, error } = await supabase
+      .from('usinas')
+      .insert([dadosLimpos])
+      .select()
+      .single();
+
     if (error) throw error;
     res.status(201).json(data);
-  } catch (error) { res.status(500).json({ error: error.message }); }
+  } catch (error) {
+    // Trata erro de validação do Zod ou do Banco
+    const msg = error.issues ? error.issues.map(i => i.message).join(' | ') : error.message;
+    res.status(500).json({ error: msg });
+  }
 });
 
+// 5. ATUALIZAR
 router.put('/:id', async (req, res) => {
   try {
     const dadosLimpos = usinaSchema.partial().parse(req.body);
-    let { data, error } = await supabase.from('usinas').update(dadosLimpos).eq('usinaid', req.params.id).select().single();
-    if (error) ({ data, error } = await supabase.from('usinas').update(dadosLimpos).eq('UsinaID', req.params.id).select().single());
+    const { data, error } = await supabase
+      .from('usinas')
+      .update(dadosLimpos)
+      .eq('usina_id', req.params.id)
+      .select()
+      .single();
+
     if (error) throw error;
     res.json(data);
-  } catch (error) { res.status(500).json({ error: error.message }); }
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
+// 6. EXCLUIR
 router.delete('/:id', async (req, res) => {
   try {
-    let { error } = await supabase.from('usinas').delete().eq('usinaid', req.params.id);
-    if (error) ({ error } = await supabase.from('usinas').delete().eq('UsinaID', req.params.id));
+    const { error } = await supabase
+      .from('usinas')
+      .delete()
+      .eq('usina_id', req.params.id);
+
     if (error) throw error;
-    res.json({ message: 'Usina excluída' });
-  } catch (error) { res.status(500).json({ error: error.message }); }
+    res.json({ message: 'Usina excluída com sucesso' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
 export default router;

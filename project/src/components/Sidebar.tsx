@@ -5,7 +5,7 @@ export default function Sidebar() {
   const location = useLocation();
 
   const isActive = (path: string) => {
-    // Verifica se o caminho atual começa com o path do menu (ex: /simulacoes/novo ativa /simulacoes)
+    // Verifica se o caminho atual começa com o path do menu
     if (path === '/' && location.pathname !== '/') return false;
     return location.pathname.startsWith(path);
   };
@@ -16,8 +16,8 @@ export default function Sidebar() {
     { icon: Sun, label: 'Usinas', path: '/usinas' },
     { icon: LinkIcon, label: 'Vínculos', path: '/vinculos' },
     { icon: FileText, label: 'Recibos', path: '/recibos' },
-    // Aponta para a lista de propostas, que tem o botão para criar nova
-    { icon: Calculator, label: 'Simulações', path: '/simulacoes' },
+    // CORREÇÃO AQUI: Mudamos de '/simulacoes' para '/propostas' para bater com o App.tsx
+    { icon: Calculator, label: 'Simulações', path: '/propostas' },
   ];
 
   return (
@@ -47,7 +47,6 @@ export default function Sidebar() {
                   : 'text-blue-100 hover:bg-white/10 hover:text-white'
                 }`}
             >
-              {/* Efeito de barra lateral brilhante quando ativo */}
               {active && <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-300 shadow-[0_0_10px_rgba(147,197,253,0.5)]"></div>}
               
               <item.icon className={`w-5 h-5 ${active ? 'text-white' : 'text-blue-300 group-hover:text-white'}`} />

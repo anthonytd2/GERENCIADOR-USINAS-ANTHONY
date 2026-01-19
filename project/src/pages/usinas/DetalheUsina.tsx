@@ -14,7 +14,7 @@ export default function DetalheUsina() {
     if (id) {
       Promise.all([
         api.usinas.get(Number(id)),
-        api.usinas.vinculos(Number(id)).catch(() => []) // Evita travar se vínculos falhar
+        api.usinas.vinculos(Number(id))
       ]).then(([usinaData, vinculosData]) => {
         setUsina(usinaData);
         setVinculos(vinculosData || []);
@@ -33,24 +33,6 @@ export default function DetalheUsina() {
 
   const isLocada = vinculos.length > 0;
 
-  // HELPER: Função para ler dados independente de Maiúscula/Minúscula
-  const getDados = (obj: any, keyMaiusc: string, keyMinusc: string) => {
-    if (!obj) return null;
-    return obj[keyMaiusc] !== undefined ? obj[keyMaiusc] : obj[keyMinusc];
-  };
-
-  // Prepara os dados normalizados
-  const nomeProprietario = getDados(usina, 'NomeProprietario', 'nomeproprietario') || 'Sem Nome';
-  const usinaId = getDados(usina, 'UsinaID', 'usinaid');
-  const potencia = getDados(usina, 'Potencia', 'potencia');
-  const geracao = getDados(usina, 'GeracaoEstimada', 'geracaoestimada');
-  const tipo = getDados(usina, 'Tipo', 'tipo');
-  const valorKw = getDados(usina, 'ValorKWBruto', 'valorkwbruto');
-  const observacao = getDados(usina, 'Observacao', 'observacao');
-  const tipoPagamento = getDados(usina, 'TipoPagamento', 'tipopagamento');
-  const inicio = getDados(usina, 'InicioContrato', 'iniciocontrato');
-  const vencimento = getDados(usina, 'VencimentoContrato', 'vencimentocontrato');
-
   return (
     <div>
       <div className="mb-8">
@@ -60,7 +42,7 @@ export default function DetalheUsina() {
         
         <div className="flex justify-between items-start">
           <div>
-            <h1 className="text-4xl font-bold text-gray-900 mb-2">{nomeProprietario}</h1>
+            <h1 className="text-4xl font-bold text-gray-900 mb-2">{usina.nome_proprietario}</h1>
             <div className="flex items-center gap-3">
               {isLocada ? (
                 <span className="px-3 py-1 bg-green-100 text-green-700 font-bold rounded-full text-sm border border-green-200 flex items-center gap-1">
@@ -71,7 +53,7 @@ export default function DetalheUsina() {
                   <XCircle className="w-4 h-4" /> DISPONÍVEL
                 </span>
               )}
-              <span className="text-gray-500">ID: #{usinaId}</span>
+              <span className="text-gray-500">ID: #{usina.usina_id}</span>
             </div>
           </div>
           
@@ -96,26 +78,26 @@ export default function DetalheUsina() {
             <div className="grid grid-cols-2 gap-8">
               <div>
                 <p className="text-sm text-gray-500 mb-1">Potência Instalada</p>
-                <p className="text-3xl font-bold text-gray-900">{potencia} <span className="text-sm text-gray-400 font-normal">kWp</span></p>
+                <p className="text-3xl font-bold text-gray-900">{usina.potencia} <span className="text-sm text-gray-400 font-normal">kWp</span></p>
               </div>
               <div>
                 <p className="text-sm text-gray-500 mb-1">Geração Estimada</p>
-                <p className="text-3xl font-bold text-gray-900">{geracao} <span className="text-sm text-gray-400 font-normal">kWh</span></p>
+                <p className="text-3xl font-bold text-gray-900">{usina.geracao_estimada} <span className="text-sm text-gray-400 font-normal">kWh</span></p>
               </div>
               <div>
                 <p className="text-sm text-gray-500 mb-1">Tipo da Usina</p>
-                <p className="font-medium text-lg text-gray-900">{tipo || '-'}</p>
+                <p className="font-medium text-lg text-gray-900">{usina.tipo || '-'}</p>
               </div>
               <div>
                 <p className="text-sm text-gray-500 mb-1">Custo kW (Bruto)</p>
-                <p className="font-medium text-lg text-gray-900">R$ {valorKw}</p>
+                <p className="font-medium text-lg text-gray-900">R$ {usina.valor_kw_bruto}</p>
               </div>
             </div>
 
-            {observacao && (
+            {usina.observacao && (
               <div className="mt-8 p-4 bg-gray-50 rounded-lg border border-gray-100">
                 <p className="text-sm font-bold text-gray-700 mb-2">Observações:</p>
-                <p className="text-gray-600 whitespace-pre-line">{observacao}</p>
+                <p className="text-gray-600 whitespace-pre-line">{usina.observacao}</p>
               </div>
             )}
           </div>
@@ -129,28 +111,19 @@ export default function DetalheUsina() {
               <p className="text-gray-500">Nenhum consumidor vinculado a esta usina.</p>
             ) : (
               <div className="space-y-3">
-                {vinculos.map((v) => {
-                  // Normalização rápida para vínculos
-                  const vId = getDados(v, 'VinculoID', 'vinculoid');
-                  const cNome = v.consumidores ? getDados(v.consumidores, 'Nome', 'nome') : 
-                               (v.Consumidores ? getDados(v.Consumidores, 'Nome', 'nome') : 'Consumidor');
-                  const sDesc = v.status ? getDados(v.status, 'Descricao', 'descricao') :
-                               (v.Status ? getDados(v.Status, 'Descricao', 'descricao') : '-');
-
-                  return (
-                    <div key={vId} className="flex justify-between items-center p-4 bg-gray-50 rounded-lg border border-gray-100">
-                      <div>
-                        <Link to={`/vinculos/${vId}`} className="font-bold text-blue-600 hover:underline">
-                          {cNome}
-                        </Link>
-                        <p className="text-sm text-gray-500">Status: {sDesc}</p>
-                      </div>
-                      <Link to={`/vinculos/${vId}`} className="px-3 py-1 bg-white border border-gray-300 text-sm font-medium rounded hover:bg-gray-50">
-                        Ver Contrato
+                {vinculos.map((v) => (
+                  <div key={v.vinculo_id} className="flex justify-between items-center p-4 bg-gray-50 rounded-lg border border-gray-100">
+                    <div>
+                      <Link to={`/vinculos/${v.vinculo_id}`} className="font-bold text-blue-600 hover:underline">
+                        {v.consumidores?.nome || 'Consumidor'}
                       </Link>
+                      <p className="text-sm text-gray-500">Status: {v.status?.descricao || 'Ativo'}</p>
                     </div>
-                  );
-                })}
+                    <Link to={`/vinculos/${v.vinculo_id}`} className="px-3 py-1 bg-white border border-gray-300 text-sm font-medium rounded hover:bg-gray-50">
+                      Ver Contrato
+                    </Link>
+                  </div>
+                ))}
               </div>
             )}
           </div>
@@ -162,15 +135,15 @@ export default function DetalheUsina() {
           <div className="space-y-4">
             <div>
               <p className="text-sm text-gray-500">Tipo de Pagamento</p>
-              <p className="font-medium text-gray-900">{tipoPagamento || '-'}</p>
+              <p className="font-medium text-gray-900">{usina.tipo_pagamento || '-'}</p>
             </div>
             <div className="pt-4 border-t border-gray-200">
               <p className="text-sm text-gray-500 mb-1">Início</p>
-              <p className="font-medium text-gray-900">{inicio || '-'}</p>
+              <p className="font-medium text-gray-900">{usina.inicio_contrato || '-'}</p>
             </div>
             <div>
               <p className="text-sm text-gray-500 mb-1">Vencimento</p>
-              <p className="font-medium text-gray-900">{vencimento || '-'}</p>
+              <p className="font-medium text-gray-900">{usina.vencimento_contrato || '-'}</p>
             </div>
           </div>
         </div>

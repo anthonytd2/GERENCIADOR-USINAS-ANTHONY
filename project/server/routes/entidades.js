@@ -3,37 +3,50 @@ import { supabase } from '../db.js';
 
 const router = express.Router();
 
-// LISTAR TODAS AS EMPRESAS
+// LISTAR
 router.get('/', async (req, res) => {
-  const { data, error } = await supabase
-    .from('entidades')
-    .select('*')
-    .order('nome');
+  try {
+    const { data, error } = await supabase
+      .from('entidades')
+      .select('*')
+      .order('nome');
 
-  if (error) return res.status(500).json({ error: error.message });
-  res.json(data);
+    if (error) throw error;
+    res.json(data);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
-// CADASTRAR NOVA EMPRESA
+// CADASTRAR (Padronizado com .single())
 router.post('/', async (req, res) => {
-  const { nome, documento, endereco, cidade, uf } = req.body;
-  
-  const { data, error } = await supabase
-    .from('entidades')
-    .insert([{ nome, documento, endereco, cidade, uf }])
-    .select();
+  try {
+    const { nome, documento, endereco, cidade, uf } = req.body;
+    
+    const { data, error } = await supabase
+      .from('entidades')
+      .insert([{ nome, documento, endereco, cidade, uf }])
+      .select()
+      .single(); // Garante que retorna um objeto, não um array
 
-  if (error) return res.status(500).json({ error: error.message });
-  res.status(201).json(data[0]);
+    if (error) throw error;
+    res.status(201).json(data);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
-// DELETAR EMPRESA
+// DELETAR
 router.delete('/:id', async (req, res) => {
-  const { id } = req.params;
-  const { error } = await supabase.from('entidades').delete().eq('id', id);
-  
-  if (error) return res.status(500).json({ error: error.message });
-  res.json({ message: 'Deletado com sucesso' });
+  try {
+    const { id } = req.params;
+    const { error } = await supabase.from('entidades').delete().eq('id', id);
+    
+    if (error) throw error;
+    res.json({ message: 'Deletado com sucesso' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
 export default router;

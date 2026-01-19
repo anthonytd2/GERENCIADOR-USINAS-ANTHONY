@@ -51,7 +51,6 @@ export default function NovoSimulador() {
           const proposta = await api.propostas.get(Number(id));
           if (proposta && proposta.dados_simulacao) {
             let savedData = proposta.dados_simulacao;
-            // Garante que é objeto se vier string
             if (typeof savedData === 'string') {
                 try { savedData = JSON.parse(savedData); } catch (e) { savedData = {}; }
             }
@@ -81,7 +80,7 @@ export default function NovoSimulador() {
                setTipoCliente('prospect');
             }
             
-            // Recalcula se tiver dados suficientes
+            // Recalcula automático se tiver dados
             if (savedData.consumoKwh && savedData.valorTusd) {
                 const dadosCalc: DadosSimulacao = {
                     consumoKwh: Number(savedData.consumoKwh),
@@ -197,12 +196,10 @@ export default function NovoSimulador() {
 
   return (
     <div className="max-w-7xl mx-auto pb-20">
-      
-      {/* HEADER */}
       <div className="mb-8 border-b border-gray-200 pb-6 flex justify-between items-center">
         <div>
            <h1 className="text-3xl font-bold text-gray-900">{id && id !== 'novo' ? 'Editar Proposta' : 'Simulador Comercial'}</h1>
-           <p className="text-gray-500 mt-1">{id && id !== 'novo' ? `Visualizando detalhes da proposta #${id}` : 'Gere propostas detalhadas com cálculo exato'}</p>
+           <p className="text-gray-500 mt-1">Preencha os valores TOTAIS (R$) da conta de luz</p>
         </div>
         <Link to="/propostas" className="flex items-center gap-2 text-gray-600 hover:text-gray-900 bg-gray-100 px-4 py-2 rounded-lg">
            <ArrowLeft className="w-4 h-4" /> Voltar para Pipeline
@@ -210,7 +207,7 @@ export default function NovoSimulador() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        {/* === COLUNA ESQUERDA (FORM) === */}
+        {/* FORMULÁRIO */}
         <div className="lg:col-span-4 space-y-6">
           <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-200">
             <h2 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
@@ -244,38 +241,29 @@ export default function NovoSimulador() {
 
           <form onSubmit={handleSimular} className="bg-white p-5 rounded-xl shadow-sm border border-gray-200">
             <h2 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
-              <Zap className="w-5 h-5 text-orange-500"/> Fatura Atual
+              <Zap className="w-5 h-5 text-orange-500"/> Valores da Conta (R$)
             </h2>
 
             <div className="space-y-3">
               <div>
-                <label className="text-xs font-semibold text-gray-500">Consumo (kWh)</label>
+                <label className="text-xs font-semibold text-gray-500">Consumo Total (kWh)</label>
                 <input type="number" name="consumoKwh" required value={form.consumoKwh} onChange={handleInputChange} className="w-full p-2 border rounded text-lg font-bold text-blue-900 bg-blue-50" />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
-                <div><label className="block text-[10px] font-bold text-gray-600 mb-0.5">TUSD (R$)</label><input type="number" step="0.0001" name="valorTusd" required value={form.valorTusd} onChange={handleInputChange} className="w-full p-2 border rounded text-sm" /></div>
-                <div><label className="block text-[10px] font-bold text-gray-600 mb-0.5">TE (R$)</label><input type="number" step="0.0001" name="valorTe" required value={form.valorTe} onChange={handleInputChange} className="w-full p-2 border rounded text-sm" /></div>
+                <div><label className="block text-[10px] font-bold text-gray-600 mb-0.5">TUSD (Valor R$)</label><input type="number" step="0.01" name="valorTusd" required value={form.valorTusd} onChange={handleInputChange} className="w-full p-2 border rounded text-sm" /></div>
+                <div><label className="block text-[10px] font-bold text-gray-600 mb-0.5">TE (Valor R$)</label><input type="number" step="0.01" name="valorTe" required value={form.valorTe} onChange={handleInputChange} className="w-full p-2 border rounded text-sm" /></div>
                 <div><label className="block text-[10px] font-bold text-gray-600 mb-0.5">Bandeira (R$)</label><input type="number" step="0.01" name="valorBandeira" value={form.valorBandeira} onChange={handleInputChange} className="w-full p-2 border rounded text-sm" /></div>
                 <div><label className="block text-[10px] font-bold text-gray-600 mb-0.5">Ilum. Púb (R$)</label><input type="number" step="0.01" name="valorIluminacao" value={form.valorIluminacao} onChange={handleInputChange} className="w-full p-2 border rounded text-sm" /></div>
                 <div><label className="block text-[10px] font-bold text-gray-600 mb-0.5">Outros (R$)</label><input type="number" step="0.01" name="valorOutros" value={form.valorOutros} onChange={handleInputChange} className="w-full p-2 border rounded text-sm" /></div>
               </div>
 
               <div className="pt-3 border-t">
-                <p className="text-xs font-bold mb-2 text-gray-700">Impostos (Digite o valor em R$)</p>
+                <p className="text-xs font-bold mb-2 text-gray-700">Impostos (Valor R$)</p>
                 <div className="grid grid-cols-3 gap-2">
-                  <div>
-                    <label className="block text-[10px] font-bold text-gray-500">PIS</label>
-                    <input type="number" step="0.01" name="valorPis" value={form.valorPis} onChange={handleInputChange} className="w-full p-1 border rounded text-xs" />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-bold text-gray-500">COFINS</label>
-                    <input type="number" step="0.01" name="valorCofins" value={form.valorCofins} onChange={handleInputChange} className="w-full p-1 border rounded text-xs" />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-bold text-gray-500">ICMS</label>
-                    <input type="number" step="0.01" name="valorIcms" value={form.valorIcms} onChange={handleInputChange} className="w-full p-1 border rounded text-xs" />
-                  </div>
+                  <div><label className="block text-[10px] font-bold text-gray-500">PIS</label><input type="number" step="0.01" name="valorPis" value={form.valorPis} onChange={handleInputChange} className="w-full p-1 border rounded text-xs" /></div>
+                  <div><label className="block text-[10px] font-bold text-gray-500">COFINS</label><input type="number" step="0.01" name="valorCofins" value={form.valorCofins} onChange={handleInputChange} className="w-full p-1 border rounded text-xs" /></div>
+                  <div><label className="block text-[10px] font-bold text-gray-500">ICMS</label><input type="number" step="0.01" name="valorIcms" value={form.valorIcms} onChange={handleInputChange} className="w-full p-1 border rounded text-xs" /></div>
                 </div>
               </div>
 
@@ -302,12 +290,12 @@ export default function NovoSimulador() {
           </form>
         </div>
 
-        {/* === COLUNA DIREITA (RESULTADOS) === */}
+        {/* COLUNA DIREITA: RESULTADOS */}
         <div className="lg:col-span-8">
           {!resultado ? (
             <div className="h-full flex flex-col items-center justify-center bg-gray-50 border-2 border-dashed border-gray-200 rounded-xl text-gray-400 min-h-[400px]">
               <Calculator className="w-16 h-16 opacity-20 mb-4"/>
-              <p>Preencha os dados e clique em Calcular</p>
+              <p>Preencha os valores TOTAIS (R$) e clique em Calcular</p>
             </div>
           ) : (
             <div className="space-y-6 animate-fade-in">
@@ -330,7 +318,7 @@ export default function NovoSimulador() {
                 </div>
               </div>
 
-              {/* Tabela Comparativa */}
+              {/* Tabela Comparativa (CORRIGIDA: Mostra valores diretos) */}
               <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
                 <div className="p-4 bg-gray-50 border-b flex justify-between items-center">
                   <h3 className="font-bold text-gray-800">Raio-X da Economia</h3>
@@ -345,8 +333,8 @@ export default function NovoSimulador() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
-                    <tr><td className="px-6 py-3 text-gray-600">TUSD (Uso do Sistema)</td><td className="px-6 py-3 text-right">{fmt(resultado.dadosOriginais.valorTusd * resultado.dadosOriginais.consumoKwh)}</td><td className="px-6 py-3 text-right text-orange-600 font-medium">{fmt(resultado.detalhes.novoTusd)} *</td></tr>
-                    <tr><td className="px-6 py-3 text-gray-600">TE (Energia)</td><td className="px-6 py-3 text-right">{fmt(resultado.dadosOriginais.valorTe * resultado.dadosOriginais.consumoKwh)}</td><td className="px-6 py-3 text-right text-green-600 font-bold">0,00</td></tr>
+                    <tr><td className="px-6 py-3 text-gray-600">TUSD (Uso do Sistema)</td><td className="px-6 py-3 text-right">{fmt(resultado.dadosOriginais.valorTusd)}</td><td className="px-6 py-3 text-right text-orange-600 font-medium">{fmt(resultado.detalhes.novoTusd)} *</td></tr>
+                    <tr><td className="px-6 py-3 text-gray-600">TE (Energia)</td><td className="px-6 py-3 text-right">{fmt(resultado.dadosOriginais.valorTe)}</td><td className="px-6 py-3 text-right text-green-600 font-bold">0,00</td></tr>
                     <tr><td className="px-6 py-3 text-gray-600">Bandeira Tarifária</td><td className="px-6 py-3 text-right">{fmt(resultado.dadosOriginais.valorBandeira)}</td><td className="px-6 py-3 text-right text-green-600 font-bold">0,00</td></tr>
                     <tr><td className="px-6 py-3 text-gray-600">Iluminação Pública</td><td className="px-6 py-3 text-right">{fmt(resultado.dadosOriginais.valorIluminacao)}</td><td className="px-6 py-3 text-right text-gray-800">{fmt(resultado.dadosOriginais.valorIluminacao)}</td></tr>
                     <tr><td className="px-6 py-3 text-gray-600">Outros / Multas</td><td className="px-6 py-3 text-right">{fmt(resultado.dadosOriginais.valorOutros)}</td><td className="px-6 py-3 text-right text-gray-800">{fmt(resultado.dadosOriginais.valorOutros)}</td></tr>
@@ -374,6 +362,7 @@ export default function NovoSimulador() {
       {resultado && (
         <div className="fixed left-[-9999px]">
            <div ref={pdfTemplateRef} className="w-[210mm] min-h-[297mm] bg-white p-[15mm] font-sans text-gray-800">
+              {/* Cabeçalho do PDF */}
               <div className="flex justify-between items-end border-b-2 border-blue-600 pb-6 mb-8">
                  <div>
                     <h1 className="text-4xl font-extrabold text-blue-900 tracking-tight">PROPOSTA COMERCIAL</h1>
@@ -388,6 +377,7 @@ export default function NovoSimulador() {
                  </div>
               </div>
 
+              {/* Cards do PDF */}
               <div className="flex gap-4 mb-8">
                  <div className="flex-1 bg-green-50 border border-green-200 rounded-xl p-6 text-center">
                     <p className="text-green-800 font-semibold mb-2">Economia Mensal Estimada</p>
@@ -409,8 +399,9 @@ export default function NovoSimulador() {
                   </tr>
                 </thead>
                 <tbody>
-                   <tr className="border-b"><td className="p-3">TUSD (Fio B + Encargos)</td><td className="p-3 text-right">{fmt(resultado.dadosOriginais.valorTusd * resultado.dadosOriginais.consumoKwh)}</td><td className="p-3 text-right font-medium">{fmt(resultado.detalhes.novoTusd)}</td></tr>
-                   <tr className="border-b"><td className="p-3">TE (Energia Elétrica)</td><td className="p-3 text-right">{fmt(resultado.dadosOriginais.valorTe * resultado.dadosOriginais.consumoKwh)}</td><td className="p-3 text-right font-bold text-green-600">0,00</td></tr>
+                   {/* Linhas da tabela PDF corrigidas também (sem multiplicação) */}
+                   <tr className="border-b"><td className="p-3">TUSD (Fio B + Encargos)</td><td className="p-3 text-right">{fmt(resultado.dadosOriginais.valorTusd)}</td><td className="p-3 text-right font-medium">{fmt(resultado.detalhes.novoTusd)}</td></tr>
+                   <tr className="border-b"><td className="p-3">TE (Energia Elétrica)</td><td className="p-3 text-right">{fmt(resultado.dadosOriginais.valorTe)}</td><td className="p-3 text-right font-bold text-green-600">0,00</td></tr>
                    <tr className="border-b"><td className="p-3">Bandeira Tarifária</td><td className="p-3 text-right">{fmt(resultado.dadosOriginais.valorBandeira)}</td><td className="p-3 text-right font-bold text-green-600">0,00</td></tr>
                    <tr className="border-b"><td className="p-3">Iluminação Pública</td><td className="p-3 text-right">{fmt(resultado.dadosOriginais.valorIluminacao)}</td><td className="p-3 text-right">{fmt(resultado.dadosOriginais.valorIluminacao)}</td></tr>
                    <tr className="border-b"><td className="p-3">Outros / Multas</td><td className="p-3 text-right">{fmt(resultado.dadosOriginais.valorOutros)}</td><td className="p-3 text-right">{fmt(resultado.dadosOriginais.valorOutros)}</td></tr>

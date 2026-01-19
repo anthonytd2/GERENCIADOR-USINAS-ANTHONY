@@ -1,31 +1,16 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../../lib/api';
-import { 
-  Plus, 
-  FileText, 
-  CheckCircle, 
-  XCircle, 
-  Clock, 
-  Search, 
-  DollarSign, 
-  TrendingUp, 
-  MessageCircle, 
-  Trash2, 
-  ExternalLink 
-} from 'lucide-react';
+import { Plus, Search, FileText, Calendar, User, ArrowRight } from 'lucide-react';
 import Skeleton from '../../components/Skeleton';
 
+// Interface ajustada ao seu banco (snake_case)
 interface Proposta {
   id: number;
   nome_cliente_prospect: string;
-  status: 'Rascunho' | 'Enviada' | 'Fechada' | 'Perdida';
+  status: string;
   created_at: string;
-  dados_simulacao: {
-    consumoKwh: number;
-    economiaRealCliente?: number;
-    economiaMensal?: number;
-  };
+  dados_simulacao: any;
 }
 
 export default function ListaPropostas() {
@@ -33,225 +18,106 @@ export default function ListaPropostas() {
   const [loading, setLoading] = useState(true);
   const [busca, setBusca] = useState('');
 
-  // KPIs (Indicadores para o Chefe)
-  const [totalPotencial, setTotalPotencial] = useState(0);
-  const [taxaConversao, setTaxaConversao] = useState(0);
-
-  const loadPropostas = async () => {
+  const loadPropostas = () => {
     setLoading(true);
-    try {
-      const data = await api.propostas.list().catch(() => []);
-      const lista = Array.isArray(data) ? data : (data.data || []);
-      setPropostas(lista);
-
-      // CÁLCULO DE INDICADORES (Mágica para o chefe)
-      const total = lista.reduce((acc: number, p: any) => {
-        // Tenta pegar do JSON salvo ou usa um valor estimado se não tiver
-        const economia = p.dados_simulacao?.economiaRealCliente || (p.dados_simulacao?.consumoKwh * 0.95) || 0; 
-        return acc + economia;
-      }, 0);
-      setTotalPotencial(total);
-
-      const fechadas = lista.filter((p: any) => p.status === 'Fechada').length;
-      setTaxaConversao(lista.length > 0 ? (fechadas / lista.length) * 100 : 0);
-
-    } catch (error) {
-      console.error("Erro ao carregar propostas", error);
-    } finally {
-      setLoading(false);
-    }
+    api.propostas.list()
+      .then((data: any) => {
+        setPropostas(Array.isArray(data) ? data : []);
+      })
+      .catch(console.error)
+      .finally(() => setLoading(false));
   };
 
   useEffect(() => {
     loadPropostas();
   }, []);
 
-  const handleStatusChange = async (id: number, novoStatus: string) => {
-    if(!confirm(`Mudar status para ${novoStatus}?`)) return;
-    try {
-        await api.propostas.update(id, { status: novoStatus });
-        loadPropostas(); // Recarrega para atualizar KPIs
-    } catch (e) {
-        alert("Erro ao atualizar status");
-    }
-  };
-
-  const handleDelete = async (id: number) => {
-    if(!confirm('Tem certeza que deseja excluir esta proposta?')) return;
-    try {
-      await api.propostas.delete(id);
-      // Remove da lista visualmente para ser rápido
-      setPropostas(prev => prev.filter(p => p.id !== id));
-      loadPropostas(); // Recarrega KPIs
-    } catch (error) {
-      alert('Erro ao excluir proposta.');
-    }
-  };
-
-  const filtered = propostas.filter(p => 
-    p.nome_cliente_prospect.toLowerCase().includes(busca.toLowerCase())
+  const filtrados = propostas.filter(p => 
+    (p.nome_cliente_prospect || '').toLowerCase().includes(busca.toLowerCase())
   );
 
-  const formatMoney = (v: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v);
-
   return (
-    <div>
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+    <div className="space-y-6">
+      {/* CABEÇALHO */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h2 className="text-3xl font-bold text-brand-dark">Pipeline de Vendas</h2>
-          <p className="text-gray-500 mt-1">Acompanhe as propostas geradas e feche contratos</p>
+          <h2 className="text-3xl font-bold text-gray-800">Simulações</h2>
+          <p className="text-gray-500 mt-1">Histórico de propostas geradas</p>
         </div>
+        {/* BOTÃO CORRIGIDO: Aponta para /propostas/novo */}
         <Link
-          to="/simulacoes/novo"
-          className="flex items-center gap-2 px-5 py-3 bg-brand-DEFAULT text-white rounded-xl hover:bg-brand-dark shadow-lg shadow-blue-900/20 transition-all hover:-translate-y-1"
+          to="/propostas/novo"
+          className="flex items-center gap-2 px-6 py-3 bg-brand-DEFAULT text-white rounded-xl hover:bg-brand-dark shadow-lg shadow-blue-900/20 transition-all hover:-translate-y-1 font-medium"
         >
           <Plus className="w-5 h-5" />
           <span>Nova Simulação</span>
         </Link>
       </div>
 
-      {/* --- KPI CARDS (VISÃO DO DONO) --- */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm flex items-center gap-4">
-          <div className="p-3 bg-blue-100 text-blue-700 rounded-lg">
-            <FileText className="w-6 h-6" />
-          </div>
-          <div>
-            <p className="text-sm text-gray-500 font-medium">Propostas na Mesa</p>
-            <p className="text-2xl font-bold text-gray-900">{propostas.length}</p>
-          </div>
-        </div>
-        <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm flex items-center gap-4">
-          <div className="p-3 bg-green-100 text-green-700 rounded-lg">
-            <DollarSign className="w-6 h-6" />
-          </div>
-          <div>
-            <p className="text-sm text-gray-500 font-medium">Potencial Mensal (Est.)</p>
-            <p className="text-2xl font-bold text-gray-900">{formatMoney(totalPotencial)}</p>
-          </div>
-        </div>
-        <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm flex items-center gap-4">
-          <div className="p-3 bg-purple-100 text-purple-700 rounded-lg">
-            <TrendingUp className="w-6 h-6" />
-          </div>
-          <div>
-            <p className="text-sm text-gray-500 font-medium">Taxa de Conversão</p>
-            <p className="text-2xl font-bold text-gray-900">{taxaConversao.toFixed(1)}%</p>
-          </div>
-        </div>
-      </div>
-
-      {/* --- FILTRO E BUSCA --- */}
-      <div className="mb-6 relative">
-        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-          <Search className="h-5 w-5 text-gray-400" />
-        </div>
-        <input
-          type="text"
-          placeholder="Buscar por nome do cliente..."
-          className="pl-10 w-full md:w-1/3 rounded-lg border-gray-300 focus:ring-brand-DEFAULT focus:border-brand-DEFAULT py-2 shadow-sm"
-          value={busca}
-          onChange={(e) => setBusca(e.target.value)}
-        />
-      </div>
-
-      {/* --- TABELA DE OPORTUNIDADES --- */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+        {/* BUSCA */}
+        <div className="p-5 border-b border-gray-100 bg-gray-50/50">
+          <div className="relative max-w-lg">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
+            <input 
+              type="text"
+              placeholder="Buscar por nome do cliente..."
+              className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
+              value={busca}
+              onChange={e => setBusca(e.target.value)}
+            />
+          </div>
+        </div>
+
+        {/* LISTA */}
         {loading ? (
-           <div className="p-6 space-y-4">
-             {[1,2,3].map(i => <Skeleton key={i} className="h-12 w-full" />)}
-           </div>
-        ) : filtered.length === 0 ? (
-          <div className="p-12 text-center flex flex-col items-center justify-center">
-            <div className="h-16 w-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-              <FileText className="h-8 w-8 text-gray-400" />
-            </div>
-            <h3 className="text-lg font-semibold text-gray-900">Nenhuma proposta encontrada</h3>
-            <p className="text-gray-500 max-w-sm mt-1 mb-6">
-              Use o simulador para gerar novas oportunidades de negócio.
-            </p>
-            <Link to="/simulacoes/novo" className="text-brand-DEFAULT font-medium hover:underline">
-              Ir para o Simulador
-            </Link>
+          <div className="p-6 space-y-4">
+            {[1, 2, 3].map(i => <Skeleton key={i} className="h-20 w-full rounded-xl" />)}
+          </div>
+        ) : filtrados.length === 0 ? (
+          <div className="p-16 text-center text-gray-500 flex flex-col items-center">
+            <FileText className="w-12 h-12 text-gray-300 mb-3" />
+            <p>Nenhuma simulação encontrada.</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-100">
-              <thead className="bg-slate-50">
+              <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Cliente</th>
-                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Data</th>
-                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Consumo (kWh)</th>
-                  <th className="px-6 py-3 text-center text-xs font-bold text-gray-500 uppercase">Status</th>
-                  <th className="px-6 py-3 text-right text-xs font-bold text-gray-500 uppercase">Ações</th>
+                  <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase">Cliente</th>
+                  <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase">Data</th>
+                  <th className="px-6 py-4 text-center text-xs font-bold text-gray-500 uppercase">Status</th>
+                  <th className="px-6 py-4 text-right text-xs font-bold text-gray-500 uppercase">Ações</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
-                {filtered.map((p) => (
-                  <tr key={p.id} className="hover:bg-slate-50 transition-colors">
+              <tbody className="divide-y divide-gray-100 bg-white">
+                {filtrados.map((p) => (
+                  <tr key={p.id} className="hover:bg-blue-50/30 transition-colors group">
                     <td className="px-6 py-4">
-                        <div className="font-semibold text-gray-900">{p.nome_cliente_prospect}</div>
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 bg-blue-100 text-blue-600 rounded-lg">
+                          <User className="w-4 h-4" />
+                        </div>
+                        <span className="font-bold text-gray-900">{p.nome_cliente_prospect}</span>
+                      </div>
                     </td>
-                    <td className="px-6 py-4 text-gray-600 text-sm">
-                        {new Date(p.created_at).toLocaleDateString()}
-                    </td>
-                    <td className="px-6 py-4 text-gray-600 font-medium">
-                        {p.dados_simulacao?.consumoKwh || '-'} kWh
+                    <td className="px-6 py-4 text-gray-600 flex items-center gap-2">
+                      <Calendar className="w-4 h-4 text-gray-400" />
+                      {new Date(p.created_at).toLocaleDateString('pt-BR')}
                     </td>
                     <td className="px-6 py-4 text-center">
-                        <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide border
-                            ${p.status === 'Fechada' ? 'bg-green-100 text-green-700 border-green-200' : 
-                              p.status === 'Perdida' ? 'bg-red-100 text-red-700 border-red-200' :
-                              p.status === 'Enviada' ? 'bg-blue-100 text-blue-700 border-blue-200' :
-                              'bg-gray-100 text-gray-700 border-gray-200'}`}>
-                            {p.status === 'Fechada' && <CheckCircle className="w-3 h-3"/>}
-                            {p.status === 'Perdida' && <XCircle className="w-3 h-3"/>}
-                            {p.status === 'Enviada' && <Clock className="w-3 h-3"/>}
-                            {p.status === 'Rascunho' && <FileText className="w-3 h-3"/>}
-                            {p.status}
-                        </span>
+                      <span className="px-3 py-1 bg-gray-100 text-gray-600 rounded-full text-xs font-bold border border-gray-200">
+                        {p.status || 'Rascunho'}
+                      </span>
                     </td>
                     <td className="px-6 py-4 text-right">
-                       <div className="flex justify-end gap-2">
-                          
-                          {/* BOTÃO ABRIR / EDITAR */}
-                          <Link 
-                            to={`/simulacoes/editar/${p.id}`}
-                            className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg"
-                            title="Abrir Detalhes / Recalcular"
-                          >
-                            <ExternalLink className="w-5 h-5" />
-                          </Link>
-
-                          {/* BOTÃO FECHAR VENDA */}
-                          {p.status !== 'Fechada' && (
-                              <button 
-                                onClick={() => handleStatusChange(p.id, 'Fechada')}
-                                className="p-2 text-green-600 hover:bg-green-50 rounded-lg" 
-                                title="Marcar como Vendido"
-                              >
-                                <CheckCircle className="w-5 h-5" />
-                              </button>
-                          )}
-                          
-                          {/* BOTÃO WHATSAPP */}
-                          <button 
-                            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg"
-                            title="Cobrar no WhatsApp"
-                            onClick={() => window.open(`https://wa.me/?text=Olá ${p.nome_cliente_prospect}, conseguimos avaliar a proposta de energia solar?`, '_blank')}
-                          >
-                            <MessageCircle className="w-5 h-5" />
-                          </button>
-
-                          {/* BOTÃO EXCLUIR */}
-                          <button 
-                            onClick={() => handleDelete(p.id)}
-                            className="p-2 text-red-500 hover:bg-red-50 rounded-lg"
-                            title="Excluir Proposta"
-                          >
-                            <Trash2 className="w-5 h-5" />
-                          </button>
-                       </div>
+                      {/* LINK CORRIGIDO: Aponta para /propostas/ID */}
+                      <Link 
+                        to={`/propostas/${p.id}`}
+                        className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 font-medium hover:bg-blue-50 px-3 py-2 rounded-lg transition-colors"
+                      >
+                        Abrir <ArrowRight className="w-4 h-4" />
+                      </Link>
                     </td>
                   </tr>
                 ))}

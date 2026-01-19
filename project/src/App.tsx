@@ -20,9 +20,11 @@ import FinanceiroVinculo from './pages/vinculos/FinanceiroVinculo';
 
 // Outros
 import FechamentoMensal from './pages/financeiro/FechamentoMensal';
+import GerenciadorRecibos from './pages/recibos/GerenciadorRecibos';
+
+// Propostas / Simulações
 import ListaPropostas from './pages/propostas/ListaPropostas';
 import NovoSimulador from './pages/propostas/NovoSimulador';
-import GerenciadorRecibos from './pages/recibos/GerenciadorRecibos';
 
 function App() {
   return (
@@ -31,10 +33,8 @@ function App() {
         <Route element={<Layout />}>
           <Route path="/" element={<Dashboard />} />
           
-          {/* --- ROTAS DE USINAS (ORDEM IMPORTA MUITO!) --- */}
+          {/* --- ROTAS DE USINAS --- */}
           <Route path="/usinas" element={<ListaUsinas />} />
-          
-          {/* REGRA DE OURO: Rotas específicas (como 'novo') vêm ANTES das rotas dinâmicas (:id) */}
           <Route path="/usinas/novo" element={<FormularioUsina />} />
           <Route path="/usinas/:id/editar" element={<FormularioUsina />} />
           <Route path="/usinas/:id" element={<DetalheUsina />} />
@@ -51,10 +51,18 @@ function App() {
           <Route path="/vinculos/:id" element={<DetalheVinculo />} />
           <Route path="/vinculos/:id/financeiro" element={<FinanceiroVinculo />} />
 
-          {/* --- OUTRAS ROTAS --- */}
-          <Route path="/financeiro" element={<FechamentoMensal />} />
+          {/* --- ROTAS DE PROPOSTAS (CORRIGIDO) --- */}
+          {/* Lista */}
           <Route path="/propostas" element={<ListaPropostas />} />
-          <Route path="/simulador" element={<NovoSimulador />} />
+          
+          {/* Nova Simulação */}
+          <Route path="/propostas/novo" element={<NovoSimulador />} />
+          
+          {/* Editar/Ver Simulação (Usa o mesmo componente por enquanto) */}
+          <Route path="/propostas/:id" element={<NovoSimulador />} />
+
+          {/* --- OUTRAS --- */}
+          <Route path="/financeiro" element={<FechamentoMensal />} />
           <Route path="/recibos" element={<GerenciadorRecibos />} />
           
           <Route path="*" element={<Navigate to="/" replace />} />

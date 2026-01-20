@@ -3,6 +3,7 @@ import { useNavigate, useParams, Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { api } from '../../lib/api';
 import { ArrowLeft, Save } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 export default function FormularioUsina() {
   const { id } = useParams();
@@ -32,7 +33,7 @@ export default function FormularioUsina() {
         })
         .catch(err => {
           console.error("Erro ao carregar usina:", err);
-          alert("Erro ao carregar dados da usina.");
+          toast.error("Erro ao carregar dados da usina."); // <--- ADICIONAR ISSO
         })
         .finally(() => setLoading(false));
     }
@@ -40,11 +41,14 @@ export default function FormularioUsina() {
 
   const onSubmit = async (data: any) => {
     setLoading(true);
+
+    // 1. Inicia o aviso de "Carregando"
+    // Esse 'toastId' serve para a gente atualizar essa mesma mensagem depois
+    const toastId = toast.loading('Salvando dados da usina...');
+
     try {
-      // PREPARAÇÃO DOS DADOS (Conversão Manual)
       const payload = {
         ...data,
-        // Garante que números vão como números, não strings
         potencia: Number(data.potencia) || 0,
         geracao_estimada: Number(data.geracao_estimada) || 0,
         valor_kw_bruto: Number(data.valor_kw_bruto) || 0,
@@ -52,15 +56,24 @@ export default function FormularioUsina() {
 
       if (id && id !== 'novo') {
         await api.usinas.update(Number(id), payload);
+        // 2. Se deu certo, transforma o aviso de carregando em Sucesso (Verde)
+        toast.success('Usina atualizada com sucesso!', { id: toastId });
       } else {
         await api.usinas.create(payload);
+        toast.success('Usina criada com sucesso!', { id: toastId });
       }
-      navigate('/usinas');
+
+      // 3. Pequeno delay para o usuário ler a mensagem antes de sair da tela
+      setTimeout(() => {
+        navigate('/usinas');
+      }, 1000);
+
     } catch (error: any) {
       console.error("Erro ao salvar:", error);
-      // Mostra mensagem amigável se o backend devolver erro
       const msg = error.response?.data?.error || error.message || "Erro desconhecido";
-      alert(`Erro ao salvar: ${msg}`);
+
+      // 4. Se deu erro, transforma o aviso em Erro (Vermelho)
+      toast.error(`Erro ao salvar: ${msg}`, { id: toastId });
     } finally {
       setLoading(false);
     }
@@ -78,7 +91,7 @@ export default function FormularioUsina() {
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="bg-white p-8 rounded-2xl shadow-sm border border-gray-200 space-y-6">
-        
+
         {/* NOME DO PROPRIETÁRIO */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Nome do Proprietário *</label>

@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom';
 import { api } from '../../lib/api';
 import { Plus, Edit, Trash2, CheckCircle, XCircle, Filter } from 'lucide-react';
 import Skeleton from '../../components/Skeleton';
+import toast from 'react-hot-toast'; // Para as mensagens bonitas
+import ModalConfirmacao from '../../components/ModalConfirmacao'; // Para a janela de confirmação
 
 // Interface atualizada para bater com o Banco de Dados (snake_case)
 interface Usina {
@@ -19,7 +21,9 @@ export default function ListaUsinas() {
   const [usinas, setUsinas] = useState<Usina[]>([]);
   const [loading, setLoading] = useState(true);
   const [filtro, setFiltro] = useState<'todos' | 'disponiveis' | 'locadas'>('todos');
-
+  // Estados para controlar o Modal
+  const [modalAberto, setModalAberto] = useState(false); // Começa fechado (false)
+  const [idParaExcluir, setIdParaExcluir] = useState<number | null>(null); // Nenhuma usina selecionada ainda
   const loadUsinas = () => {
     setLoading(true);
     api.usinas.list()
@@ -36,11 +40,26 @@ export default function ListaUsinas() {
   useEffect(() => {
     loadUsinas();
   }, []);
+  // Função 1: Apenas abre a janela (não deleta nada ainda)
+  const solicitarExclusao = (id: number) => {
+    setIdParaExcluir(id); // Guarda qual usina é
+    setModalAberto(true); // Abre a janela
+  };
 
-  const handleDelete = async (id: number) => {
-    if (!confirm('Tem certeza que deseja excluir esta usina?')) return;
-    await api.usinas.delete(id);
-    loadUsinas();
+  // Função 2: Ocorre QUANDO clica em "Sim" no Modal
+  const confirmarExclusao = async () => {
+    if (!idParaExcluir) return; // Segurança extra
+
+    try {
+      await api.usinas.delete(idParaExcluir); // Deleta de verdade no banco
+      toast.success('Usina excluída com sucesso!'); // Feedback visual verde
+      loadUsinas(); // Atualiza a lista na tela
+    } catch (error) {
+      toast.error('Erro ao excluir usina.'); // Feedback visual vermelho
+    } finally {
+      setModalAberto(false); // Fecha a janela
+      setIdParaExcluir(null); // Limpa a memória
+    }
   };
 
   const formatMoeda = (valor: number) => {
@@ -116,7 +135,7 @@ export default function ListaUsinas() {
                     <td className="px-6 py-4 text-right">
                       <div className="flex justify-end gap-2">
                         <Link to={`/usinas/${u.usina_id}/editar`} className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg"><Edit className="w-5 h-5" /></Link>
-                        <button onClick={() => handleDelete(u.usina_id)} className="p-2 text-red-500 hover:bg-red-50 rounded-lg"><Trash2 className="w-5 h-5" /></button>
+                        <button onClick={() => solicitarExclusao(u.usina_id)} className="p-2 text-red-500 hover:bg-red-50 rounded-lg"><Trash2 className="w-5 h-5" /></button>
                       </div>
                     </td>
                   </tr>
@@ -126,6 +145,16 @@ export default function ListaUsinas() {
           </div>
         )}
       </div>
-    </div>
+      {/* Componente Visual do Modal */}
+      <ModalConfirmacao
+        isOpen={modalAberto} // Liga/Desliga baseado no estado
+        onClose={() => setModalAberto(false)} // Se clicar em cancelar, fecha
+        onConfirm={confirmarExclusao} // Se clicar em Sim, chama a função de deletar
+        title="Excluir Usina"
+        message="Tem certeza que deseja excluir esta usina? Todos os dados vinculados a ela poderão ser afetados."
+        isDestructive={true} // Deixa o botão vermelho (perigo)
+        confirmText="Sim, Excluir"
+      />
+    </div> // <--- AQUI É A DIV QUE JÁ EXISTIA
   );
 }

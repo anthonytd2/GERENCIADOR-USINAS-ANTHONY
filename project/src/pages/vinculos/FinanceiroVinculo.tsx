@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { api } from '../../lib/api';
 import { supabaseClient as supabase } from '../../lib/supabaseClient'; 
-import { ArrowLeft, FileText, Upload, Trash2, DollarSign, Download, Edit2, Save, X, Calendar, Zap, TrendingUp, Calculator } from 'lucide-react';
+import { ArrowLeft, FileText, Upload, Trash2, DollarSign, Download, Edit2, X, Zap, TrendingUp, Calculator } from 'lucide-react';
 
 interface Fechamento {
   fechamento_id: number;
@@ -42,15 +42,37 @@ export default function FinanceiroVinculo() {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
 
-  // Estados do formulário e cálculos (Mantidos da sua lógica original)
+  // Estados do formulário
   const [formData, setFormData] = useState({
-    mes_referencia: '', consumo_rede: '', energia_compensada: '', tarifa_kwh: '', tusd_fio_b: '', valor_fatura_geradora: '',
-    tarifa_com_imposto: '', iluminacao_publica: '', outras_taxas: '', valor_pago_fatura: '',
-    arquivo: null as File | null, recibo: null as File | null, arquivo_url_existente: null as string | null, recibo_url_existente: null as string | null
+    mes_referencia: '', 
+    // Usina (Azul)
+    consumo_rede: '', // Este campo será usado como "Energia Consumida" no cálculo da Copel
+    energia_compensada: '', 
+    tarifa_kwh: '', 
+    tusd_fio_b: '', 
+    valor_fatura_geradora: '',
+    // Consumidor (Verde)
+    tarifa_com_imposto: '', 
+    iluminacao_publica: '', 
+    outras_taxas: '', 
+    valor_pago_fatura: '',
+    percentual_desconto: '', 
+    // Arquivos
+    arquivo: null as File | null, 
+    recibo: null as File | null, 
+    arquivo_url_existente: null as string | null, 
+    recibo_url_existente: null as string | null
   });
 
   const [calculos, setCalculos] = useState({
-    totalBruto: 0, custoFioB: 0, totalLiquidoPagar: 0, totalPagariaCopel: 0, economia: 0, descontoAplicado: 0, totalReceberFinal: 0
+    totalBruto: 0, 
+    custoFioB: 0, 
+    totalLiquidoPagar: 0, // Spread Usina
+    
+    totalPagariaCopel: 0,
+    economia: 0, 
+    descontoAplicado: 0, 
+    totalReceberFinal: 0
   });
 
   const carregarDados = async () => {
@@ -58,6 +80,15 @@ export default function FinanceiroVinculo() {
       setLoading(true);
       const dadosVinculo = await api.vinculos.get(Number(id));
       setVinculo(dadosVinculo);
+      
+      // Ao carregar o vínculo, se for um NOVO formulário, já preenche o desconto padrão
+      if (!editingId && !formData.percentual_desconto) {
+        setFormData(prev => ({
+            ...prev,
+            percentual_desconto: String(dadosVinculo.consumidores?.percentual_desconto || 0)
+        }));
+      }
+
       try {
         const dadosFechamentos = await api.financeiro.list(Number(id));
         setFechamentos(Array.isArray(dadosFechamentos) ? dadosFechamentos : []);
@@ -67,31 +98,57 @@ export default function FinanceiroVinculo() {
 
   useEffect(() => { if (id) carregarDados(); }, [id]);
 
-  // CÁLCULO EM TEMPO REAL
+  // --- CÁLCULO EM TEMPO REAL ---
   useEffect(() => {
+    // 1. DADOS DO GERADOR (Captura inputs)
     const energiaCompensada = parseFloat(formData.energia_compensada) || 0;
-    const energiaConsumida = parseFloat(formData.consumo_rede) || 0;
+    const consumoRede = parseFloat(formData.consumo_rede) || 0; // "Energia Consumida"
     const valorKwh = parseFloat(formData.tarifa_kwh) || 0;
     const difTusd = parseFloat(formData.tusd_fio_b) || 0;
     const faturaGeradora = parseFloat(formData.valor_fatura_geradora) || 0;
+
+    // LADO USINA (Cálculo do Spread)
     const totalBruto = energiaCompensada * valorKwh;
     const custoFioB = energiaCompensada * difTusd;
     const totalLiquidoPagar = totalBruto - custoFioB - faturaGeradora;
 
+    // 2. DADOS DO CONSUMIDOR (Captura inputs)
     const tarifaImposto = parseFloat(formData.tarifa_com_imposto) || 0;
     const ilumPublica = parseFloat(formData.iluminacao_publica) || 0;
     const outrasTaxas = parseFloat(formData.outras_taxas) || 0;
     const valorPagoFatura = parseFloat(formData.valor_pago_fatura) || 0;
-    const totalPagariaCopel = (energiaConsumida * tarifaImposto) + ilumPublica + outrasTaxas;
+    const percentualDescManual = parseFloat(formData.percentual_desconto) || 0;
+
+    // NOVA LÓGICA DE NEGÓCIO CORRIGIDA:
+    
+    // Passo A: O que o cliente pagaria SEM solar? 
+    // CORREÇÃO: Usa apenas a Energia Consumida (consumoRede)
+    const totalPagariaCopel = (consumoRede * tarifaImposto) + ilumPublica + outrasTaxas;
+
+    // Passo B: Economia na Fatura
+    // "Total que Pagaria Copel" - "Valor Pago na Fatura"
     const economia = totalPagariaCopel - valorPagoFatura;
 
-    const percentualDesconto = vinculo?.consumidores?.percentual_desconto || 0;
-    const fatorDesconto = percentualDesconto > 1 ? percentualDesconto / 100 : percentualDesconto;
+    // Passo C: Desconto e Valor a Receber
+    const fatorDesconto = percentualDescManual / 100;
+    
+    // Valor Economizado com Energia Solar (Parte do Cliente)
     const valorDesconto = economia * fatorDesconto;
+    
+    // Total a Receber do Consumidor (Sua Parte)
+    // Regra: Economia na Fatura - Parte do Cliente
     const totalReceberFinal = economia - valorDesconto;
 
-    setCalculos({ totalBruto, custoFioB, totalLiquidoPagar, totalPagariaCopel, economia, descontoAplicado: valorDesconto, totalReceberFinal });
-  }, [formData, vinculo]);
+    setCalculos({ 
+        totalBruto, 
+        custoFioB, 
+        totalLiquidoPagar, 
+        totalPagariaCopel, 
+        economia, 
+        descontoAplicado: valorDesconto, 
+        totalReceberFinal 
+    });
+  }, [formData]);
 
   const uploadArquivo = async (file: File, bucketName: string) => {
     const nomeLimpo = file.name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s/g, '_');
@@ -141,11 +198,32 @@ export default function FinanceiroVinculo() {
 
   const handleEditar = (item: Fechamento) => {
     setEditingId(item.fechamento_id);
+    
+    let percentualInferido = '0';
+    if(item.economia_gerada > 0) {
+        const descontoDado = item.economia_gerada - item.valor_recebido;
+        const p = (descontoDado / item.economia_gerada) * 100;
+        percentualInferido = p.toFixed(2);
+    }
+
     setFormData({
       mes_referencia: item.mes_referencia,
-      consumo_rede: String(item.consumo_rede || ''), energia_compensada: String(item.energia_compensada || ''), tarifa_kwh: String(item.tarifa_kwh || ''), tusd_fio_b: String(item.tusd_fio_b || ''), valor_fatura_geradora: String(item.valor_fatura_geradora || ''),
-      tarifa_com_imposto: String(item.tarifa_com_imposto || ''), iluminacao_publica: String(item.iluminacao_publica || ''), outras_taxas: String(item.outras_taxas || ''), valor_pago_fatura: String(item.valor_pago_fatura || ''),
-      arquivo: null, recibo: null, arquivo_url_existente: item.arquivo_url || null, recibo_url_existente: item.recibo_url || null
+      consumo_rede: String(item.consumo_rede || ''), 
+      energia_compensada: String(item.energia_compensada || ''), 
+      tarifa_kwh: String(item.tarifa_kwh || ''), 
+      tusd_fio_b: String(item.tusd_fio_b || ''), 
+      valor_fatura_geradora: String(item.valor_fatura_geradora || ''),
+      
+      tarifa_com_imposto: String(item.tarifa_com_imposto || ''), 
+      iluminacao_publica: String(item.iluminacao_publica || ''), 
+      outras_taxas: String(item.outras_taxas || ''), 
+      valor_pago_fatura: String(item.valor_pago_fatura || ''),
+      
+      percentual_desconto: percentualInferido,
+
+      arquivo: null, recibo: null, 
+      arquivo_url_existente: item.arquivo_url || null, 
+      recibo_url_existente: item.recibo_url || null
     });
     setShowForm(true); window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -157,7 +235,7 @@ export default function FinanceiroVinculo() {
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
-      {/* CABEÇALHO COM LINK AZUL PARA VOLTAR */}
+      {/* CABEÇALHO */}
       <div className="flex flex-col md:flex-row items-center justify-between gap-4">
         <div className="flex items-center gap-4 w-full">
           <Link to={`/vinculos/${id}`} className="p-3 bg-white hover:bg-blue-50 rounded-full text-blue-600 transition-colors shadow-sm border border-gray-100">
@@ -168,16 +246,19 @@ export default function FinanceiroVinculo() {
             <div className="flex items-center gap-2 text-sm text-gray-500">
               <span className="font-medium text-blue-600">Contrato #{vinculo.vinculo_id}</span>
               <span>•</span>
-              {/* NOME AZUL CLICÁVEL - COMO PEDIDO */}
               <Link to={`/consumidores/${vinculo.consumidores?.documento}`} className="text-blue-600 hover:underline font-bold">
                 {vinculo.consumidores?.nome}
               </Link>
-              <span className="bg-green-100 text-green-800 px-2 rounded-full text-xs font-bold">Desc: {vinculo.consumidores?.percentual_desconto}%</span>
+              <span className="bg-green-100 text-green-800 px-2 rounded-full text-xs font-bold">Desc. Contrato: {vinculo.consumidores?.percentual_desconto}%</span>
             </div>
           </div>
         </div>
         {!showForm && (
-          <button onClick={() => setShowForm(true)} className="w-full md:w-auto bg-blue-600 text-white px-6 py-3 rounded-xl flex items-center justify-center gap-2 hover:bg-blue-700 shadow-lg shadow-blue-500/20 transition-all font-bold">
+          <button onClick={() => {
+              setShowForm(true);
+              setEditingId(null);
+              setFormData(prev => ({...prev, percentual_desconto: String(vinculo.consumidores?.percentual_desconto || 0)}));
+          }} className="w-full md:w-auto bg-blue-600 text-white px-6 py-3 rounded-xl flex items-center justify-center gap-2 hover:bg-blue-700 shadow-lg shadow-blue-500/20 transition-all font-bold">
             <DollarSign size={20} /> Novo Fechamento
           </button>
         )}
@@ -202,23 +283,26 @@ export default function FinanceiroVinculo() {
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              {/* COLUNA AZUL: GERADOR */}
+              {/* COLUNA AZUL: GERADOR (USINA) */}
               <div className="bg-blue-50/50 p-6 rounded-2xl border border-blue-100">
                 <h4 className="text-sm font-black text-blue-800 uppercase mb-6 flex items-center gap-2 pb-2 border-b border-blue-200">
                   <Zap size={18}/> Usina (Gerador)
                 </h4>
                 <div className="grid grid-cols-2 gap-5">
                   <div className="col-span-1">
-                    <label className="text-xs text-gray-600 font-bold mb-1 block">Energia Rede</label>
-                    <input required type="number" className="w-full p-2 border border-blue-200 rounded-lg focus:border-blue-500 outline-none" value={formData.consumo_rede} onChange={e => setFormData({...formData, consumo_rede: e.target.value})} />
+                    <label className="text-xs text-gray-600 font-bold mb-1 block">Energia Consumida (kWh)</label>
+                    <input required type="number" className="w-full p-2 border border-blue-200 rounded-lg focus:border-blue-500 outline-none" 
+                        value={formData.consumo_rede} onChange={e => setFormData({...formData, consumo_rede: e.target.value})} />
                   </div>
                   <div className="col-span-1">
                     <label className="text-xs text-gray-600 font-bold mb-1 block">Compensada (kWh)</label>
-                    <input required type="number" className="w-full p-2 border border-blue-200 rounded-lg focus:border-blue-500 outline-none" value={formData.energia_compensada} onChange={e => setFormData({...formData, energia_compensada: e.target.value})} />
+                    <input required type="number" className="w-full p-2 border border-blue-200 rounded-lg focus:border-blue-500 outline-none" 
+                        value={formData.energia_compensada} onChange={e => setFormData({...formData, energia_compensada: e.target.value})} />
                   </div>
                   <div className="col-span-1">
                     <label className="text-xs text-gray-600 font-bold mb-1 block">Valor kWh (R$)</label>
-                    <input required type="number" step="0.0001" className="w-full p-2 border border-blue-200 rounded-lg focus:border-blue-500 outline-none" value={formData.tarifa_kwh} onChange={e => setFormData({...formData, tarifa_kwh: e.target.value})} />
+                    <input required type="number" step="0.0001" className="w-full p-2 border border-blue-200 rounded-lg focus:border-blue-500 outline-none" 
+                        value={formData.tarifa_kwh} onChange={e => setFormData({...formData, tarifa_kwh: e.target.value})} />
                   </div>
                   <div className="col-span-1 bg-white p-2 rounded-lg border border-blue-100 flex flex-col justify-center">
                     <span className="text-[10px] text-blue-400 font-bold">TOTAL BRUTO</span>
@@ -227,21 +311,23 @@ export default function FinanceiroVinculo() {
                   {/* Fio B e Fatura */}
                   <div className="col-span-1">
                     <label className="text-xs text-gray-600 font-bold mb-1 block">TUSD Fio B</label>
-                    <input required type="number" step="0.0001" className="w-full p-2 border border-blue-200 rounded-lg outline-none" value={formData.tusd_fio_b} onChange={e => setFormData({...formData, tusd_fio_b: e.target.value})} />
+                    <input required type="number" step="0.0001" className="w-full p-2 border border-blue-200 rounded-lg outline-none" 
+                        value={formData.tusd_fio_b} onChange={e => setFormData({...formData, tusd_fio_b: e.target.value})} />
                   </div>
                   <div className="col-span-1">
                     <label className="text-xs text-gray-600 font-bold mb-1 block">Fatura Geradora</label>
-                    <input required type="number" step="0.01" className="w-full p-2 border border-blue-200 rounded-lg outline-none" value={formData.valor_fatura_geradora} onChange={e => setFormData({...formData, valor_fatura_geradora: e.target.value})} />
+                    <input required type="number" step="0.01" className="w-full p-2 border border-blue-200 rounded-lg outline-none" 
+                        value={formData.valor_fatura_geradora} onChange={e => setFormData({...formData, valor_fatura_geradora: e.target.value})} />
                   </div>
                   
                   <div className="col-span-2 bg-blue-100 p-3 rounded-lg flex justify-between items-center mt-2">
-                    <span className="text-xs font-bold text-blue-800">LÍQUIDO A PAGAR</span>
-                    <span className="text-lg font-black text-blue-700">R$ {calculos.totalLiquidoPagar.toFixed(2)}</span>
+                    <span className="text-xs font-bold text-blue-800">LÍQUIDO A PAGAR (SPREAD)</span>
+                    <span className="text-2xl font-black text-blue-700">R$ {calculos.totalLiquidoPagar.toFixed(2)}</span>
                   </div>
                 </div>
               </div>
 
-              {/* COLUNA VERDE: CONSUMIDOR */}
+              {/* COLUNA VERDE: CONSUMIDOR (CLIENTE) */}
               <div className="bg-green-50/50 p-6 rounded-2xl border border-green-100">
                 <h4 className="text-sm font-black text-green-800 uppercase mb-6 flex items-center gap-2 pb-2 border-b border-green-200">
                   <TrendingUp size={18}/> Consumidor
@@ -249,24 +335,51 @@ export default function FinanceiroVinculo() {
                 <div className="grid grid-cols-2 gap-5">
                   <div className="col-span-1">
                     <label className="text-xs text-gray-600 font-bold mb-1 block">Tarifa c/ Imposto</label>
-                    <input required type="number" step="0.0001" className="w-full p-2 border border-green-200 rounded-lg focus:border-green-500 outline-none" value={formData.tarifa_com_imposto} onChange={e => setFormData({...formData, tarifa_com_imposto: e.target.value})} />
+                    <input required type="number" step="0.0001" className="w-full p-2 border border-green-200 rounded-lg focus:border-green-500 outline-none" 
+                        value={formData.tarifa_com_imposto} onChange={e => setFormData({...formData, tarifa_com_imposto: e.target.value})} />
                   </div>
                   <div className="col-span-1">
                     <label className="text-xs text-gray-600 font-bold mb-1 block">Ilum. Pública</label>
-                    <input required type="number" step="0.01" className="w-full p-2 border border-green-200 rounded-lg outline-none" value={formData.iluminacao_publica} onChange={e => setFormData({...formData, iluminacao_publica: e.target.value})} />
+                    <input required type="number" step="0.01" className="w-full p-2 border border-green-200 rounded-lg outline-none" 
+                        value={formData.iluminacao_publica} onChange={e => setFormData({...formData, iluminacao_publica: e.target.value})} />
                   </div>
                   <div className="col-span-1">
                     <label className="text-xs text-gray-600 font-bold mb-1 block">Outras Taxas</label>
-                    <input required type="number" step="0.01" className="w-full p-2 border border-green-200 rounded-lg outline-none" value={formData.outras_taxas} onChange={e => setFormData({...formData, outras_taxas: e.target.value})} />
+                    <input required type="number" step="0.01" className="w-full p-2 border border-green-200 rounded-lg outline-none" 
+                        value={formData.outras_taxas} onChange={e => setFormData({...formData, outras_taxas: e.target.value})} />
                   </div>
                   <div className="col-span-1">
-                    <label className="text-xs text-red-500 font-bold mb-1 block">Pago Fatura</label>
-                    <input required type="number" step="0.01" className="w-full p-2 border border-red-200 bg-red-50 text-red-700 font-bold rounded-lg outline-none" value={formData.valor_pago_fatura} onChange={e => setFormData({...formData, valor_pago_fatura: e.target.value})} />
+                    <label className="text-xs text-red-500 font-bold mb-1 block">Pago Fatura (R$)</label>
+                    <input required type="number" step="0.01" className="w-full p-2 border border-red-200 bg-red-50 text-red-700 font-bold rounded-lg outline-none" 
+                        value={formData.valor_pago_fatura} onChange={e => setFormData({...formData, valor_pago_fatura: e.target.value})} />
                   </div>
 
-                  <div className="col-span-2 bg-green-100 p-3 rounded-lg flex justify-between items-center mt-2">
-                    <span className="text-xs font-bold text-green-800">TOTAL A RECEBER</span>
-                    <span className="text-lg font-black text-green-700">R$ {calculos.totalReceberFinal.toFixed(2)}</span>
+                  {/* RESULTADOS INTERMEDIÁRIOS MAIORES */}
+                  <div className="col-span-2 border-t border-green-200 pt-3 mt-2">
+                      <div className="flex justify-between items-center mb-2">
+                          <span className="text-sm text-gray-600">Total Pagaria Copel:</span>
+                          <span className="text-lg font-bold text-gray-800">R$ {calculos.totalPagariaCopel.toFixed(2)}</span>
+                      </div>
+                      <div className="flex justify-between items-center mb-3">
+                          <span className="text-sm text-green-700 font-bold uppercase">Economia na Fatura:</span>
+                          <span className="text-xl font-black text-green-700">R$ {calculos.economia.toFixed(2)}</span>
+                      </div>
+                  </div>
+
+                  {/* NOVO CAMPO DE DESCONTO MANUAL */}
+                  <div className="col-span-1">
+                    <label className="text-xs text-purple-600 font-bold mb-1 block">Desconto Manual (%)</label>
+                    <input required type="number" step="0.01" className="w-full p-2 border border-purple-200 rounded-lg focus:border-purple-500 outline-none text-purple-700 font-bold text-lg" 
+                        value={formData.percentual_desconto} onChange={e => setFormData({...formData, percentual_desconto: e.target.value})} />
+                  </div>
+                  <div className="col-span-1 bg-purple-50 p-2 rounded-lg flex flex-col justify-center border border-purple-100">
+                     <span className="text-[10px] text-purple-500 font-bold">VALOR CLIENTE (DESC)</span>
+                     <span className="font-bold text-purple-800 text-lg">R$ {calculos.descontoAplicado.toFixed(2)}</span>
+                  </div>
+
+                  <div className="col-span-2 bg-green-100 p-4 rounded-xl flex flex-col items-center justify-center mt-2 border border-green-200 shadow-sm">
+                    <span className="text-sm font-bold text-green-800 uppercase tracking-wider">TOTAL A RECEBER (SUA PARTE)</span>
+                    <span className="text-4xl font-black text-green-700 mt-1">R$ {calculos.totalReceberFinal.toFixed(2)}</span>
                   </div>
                 </div>
               </div>
@@ -305,7 +418,7 @@ export default function FinanceiroVinculo() {
             <tr>
               <th className="px-6 py-4 text-left">Mês</th>
               <th className="px-6 py-4 text-right">Compensada</th>
-              <th className="px-6 py-4 text-right text-blue-600">Líq. Usina</th>
+              <th className="px-6 py-4 text-right text-blue-600">Spread Usina</th>
               <th className="px-6 py-4 text-right text-green-600">Economia</th>
               <th className="px-6 py-4 text-right bg-green-50 text-green-800">A Receber</th>
               <th className="px-6 py-4 text-center">Docs</th>

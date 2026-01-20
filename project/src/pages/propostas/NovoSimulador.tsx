@@ -81,23 +81,26 @@ export default function NovoSimulador() {
                setTipoCliente('prospect');
             }
             
-            // Recalcula automático se tiver dados
+            // Tenta recalcular se já tiver dados
             if (savedData.consumoKwh && savedData.valorTusd) {
-                const dadosCalc: DadosSimulacao = {
-                    consumoKwh: Number(savedData.consumoKwh),
-                    valorTusd: Number(savedData.valorTusd),
-                    valorTe: Number(savedData.valorTe),
-                    valorBandeira: Number(savedData.valorBandeira),
-                    valorIluminacao: Number(savedData.valorIluminacao),
-                    valorOutros: Number(savedData.valorOutros),
-                    fioB_Total: Number(savedData.fioB_Total),
-                    fioB_Percentual: Number(savedData.fioB_Percentual),
-                    valorPis: Number(savedData.valorPis),
-                    valorCofins: Number(savedData.valorCofins),
-                    valorIcms: Number(savedData.valorIcms),
-                    descontoBionova: Number(savedData.descontoBionova)
-                };
-                setResultado(calcularEconomia(dadosCalc));
+                // Pequeno delay para garantir estado
+                setTimeout(() => {
+                    const dadosCalc: DadosSimulacao = {
+                        consumoKwh: Number(savedData.consumoKwh),
+                        valorTusd: Number(savedData.valorTusd),
+                        valorTe: Number(savedData.valorTe),
+                        valorBandeira: Number(savedData.valorBandeira),
+                        valorIluminacao: Number(savedData.valorIluminacao),
+                        valorOutros: Number(savedData.valorOutros),
+                        fioB_Total: Number(savedData.fioB_Total),
+                        fioB_Percentual: Number(savedData.fioB_Percentual),
+                        valorPis: Number(savedData.valorPis),
+                        valorCofins: Number(savedData.valorCofins),
+                        valorIcms: Number(savedData.valorIcms),
+                        descontoBionova: Number(savedData.descontoBionova)
+                    };
+                    setResultado(calcularEconomia(dadosCalc));
+                }, 100);
             }
           }
         }
@@ -114,7 +117,7 @@ export default function NovoSimulador() {
     const selectedId = e.target.value;
     setClienteSelecionadoId(selectedId);
     if (selectedId) {
-      const cli = clientesBase.find(c => c.consumidor_id === Number(selectedId));
+      const cli = clientesBase.find(c => String(c.consumidor_id || c.id) === String(selectedId));
       if (cli) {
         setForm(prev => ({
           ...prev,
@@ -128,16 +131,15 @@ export default function NovoSimulador() {
     }
   };
 
-  // Handler original para campos de texto simples
+  // Handler para inputs normais (Texto, kWh, Porcentagem)
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setForm(prev => ({ ...prev, [name]: value }));
   };
 
-  // NOVO HANDLER SEGURO PARA MOEDA (Não quebra a lógica)
+  // --- NOVO HANDLER PARA MOEDA (R$) ---
+  // A biblioteca nos dá o "value" limpo (ex: "1500.50")
   const handleValorChange = (value: string | undefined, name: string) => {
-    // A biblioteca devolve '1000.50' (string limpa) ou undefined se vazio.
-    // Salvamos exatamente isso no estado, mantendo compatibilidade com Number()
     setForm(prev => ({ ...prev, [name]: value || '' }));
   };
 
@@ -231,7 +233,7 @@ export default function NovoSimulador() {
                  <select className="w-full p-2 border rounded-lg bg-white text-sm" value={clienteSelecionadoId} onChange={handleClienteChange}>
                    <option value="">Selecione da lista...</option>
                    {clientesBase.map(c => (
-                     <option key={c.consumidor_id} value={c.consumidor_id}>{c.nome}</option>
+                     <option key={c.consumidor_id || c.id} value={c.consumidor_id || c.id}>{c.nome}</option>
                    ))}
                  </select>
                </div>
@@ -242,7 +244,9 @@ export default function NovoSimulador() {
                   <input type="text" name="uc" value={form.uc} onChange={handleInputChange} className="w-full p-2 border rounded text-sm" placeholder="Nº UC" />
                   <select name="concessionaria_id" value={form.concessionaria_id} onChange={handleInputChange} className="w-full p-2 border rounded text-sm bg-white">
                     <option value="">Concessionária</option>
-                    {concessionarias.map(c => <option key={c.concessionaria_id} value={c.concessionaria_id}>{c.nome}</option>)}
+                    {concessionarias.map(c => (
+                        <option key={c.concessionaria_id || c.id} value={c.concessionaria_id || c.id}>{c.nome}</option>
+                    ))}
                   </select>
                 </div>
             </div>
@@ -259,15 +263,16 @@ export default function NovoSimulador() {
                 <input type="number" name="consumoKwh" required value={form.consumoKwh} onChange={handleInputChange} className="w-full p-2 border rounded text-lg font-bold text-blue-900 bg-blue-50" />
               </div>
 
-              {/* INPUTS DE MOEDA (MÁSCARAS) */}
+              {/* MÁSCARAS DE DINHEIRO */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
                     <label className="block text-[10px] font-bold text-gray-600 mb-0.5">TUSD (Valor R$)</label>
                     <CurrencyInput
                         name="valorTusd"
                         prefix="R$ "
+                        decimalSeparator=","
+                        groupSeparator="."
                         decimalsLimit={2}
-                        decimalScale={2}
                         value={form.valorTusd}
                         onValueChange={(val) => handleValorChange(val, 'valorTusd')}
                         className="w-full p-2 border rounded text-sm text-right font-medium"
@@ -279,8 +284,9 @@ export default function NovoSimulador() {
                     <CurrencyInput
                         name="valorTe"
                         prefix="R$ "
+                        decimalSeparator=","
+                        groupSeparator="."
                         decimalsLimit={2}
-                        decimalScale={2}
                         value={form.valorTe}
                         onValueChange={(val) => handleValorChange(val, 'valorTe')}
                         className="w-full p-2 border rounded text-sm text-right font-medium"
@@ -292,8 +298,9 @@ export default function NovoSimulador() {
                     <CurrencyInput
                         name="valorBandeira"
                         prefix="R$ "
+                        decimalSeparator=","
+                        groupSeparator="."
                         decimalsLimit={2}
-                        decimalScale={2}
                         value={form.valorBandeira}
                         onValueChange={(val) => handleValorChange(val, 'valorBandeira')}
                         className="w-full p-2 border rounded text-sm text-right font-medium"
@@ -304,8 +311,9 @@ export default function NovoSimulador() {
                     <CurrencyInput
                         name="valorIluminacao"
                         prefix="R$ "
+                        decimalSeparator=","
+                        groupSeparator="."
                         decimalsLimit={2}
-                        decimalScale={2}
                         value={form.valorIluminacao}
                         onValueChange={(val) => handleValorChange(val, 'valorIluminacao')}
                         className="w-full p-2 border rounded text-sm text-right font-medium"
@@ -316,8 +324,9 @@ export default function NovoSimulador() {
                     <CurrencyInput
                         name="valorOutros"
                         prefix="R$ "
+                        decimalSeparator=","
+                        groupSeparator="."
                         decimalsLimit={2}
-                        decimalScale={2}
                         value={form.valorOutros}
                         onValueChange={(val) => handleValorChange(val, 'valorOutros')}
                         className="w-full p-2 border rounded text-sm text-right font-medium"
@@ -333,6 +342,8 @@ export default function NovoSimulador() {
                       <CurrencyInput
                         name="valorPis"
                         prefix="R$ "
+                        decimalSeparator=","
+                        groupSeparator="."
                         decimalsLimit={2}
                         value={form.valorPis}
                         onValueChange={(val) => handleValorChange(val, 'valorPis')}
@@ -344,6 +355,8 @@ export default function NovoSimulador() {
                       <CurrencyInput
                         name="valorCofins"
                         prefix="R$ "
+                        decimalSeparator=","
+                        groupSeparator="."
                         decimalsLimit={2}
                         value={form.valorCofins}
                         onValueChange={(val) => handleValorChange(val, 'valorCofins')}
@@ -355,6 +368,8 @@ export default function NovoSimulador() {
                       <CurrencyInput
                         name="valorIcms"
                         prefix="R$ "
+                        decimalSeparator=","
+                        groupSeparator="."
                         decimalsLimit={2}
                         value={form.valorIcms}
                         onValueChange={(val) => handleValorChange(val, 'valorIcms')}

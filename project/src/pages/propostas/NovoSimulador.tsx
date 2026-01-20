@@ -5,6 +5,7 @@ import { calcularEconomia, DadosSimulacao } from '../../utils/calculadoraSolar';
 import { Save, Calculator, FileText, User, Zap, CheckCircle, ArrowLeft } from 'lucide-react';
 // @ts-ignore
 import html2pdf from 'html2pdf.js';
+import CurrencyInput from 'react-currency-input-field';
 
 export default function NovoSimulador() {
   const navigate = useNavigate();
@@ -127,9 +128,17 @@ export default function NovoSimulador() {
     }
   };
 
+  // Handler original para campos de texto simples
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setForm(prev => ({ ...prev, [name]: value }));
+  };
+
+  // NOVO HANDLER SEGURO PARA MOEDA (Não quebra a lógica)
+  const handleValorChange = (value: string | undefined, name: string) => {
+    // A biblioteca devolve '1000.50' (string limpa) ou undefined se vazio.
+    // Salvamos exatamente isso no estado, mantendo compatibilidade com Number()
+    setForm(prev => ({ ...prev, [name]: value || '' }));
   };
 
   const handleSimular = (e: React.FormEvent) => {
@@ -250,20 +259,108 @@ export default function NovoSimulador() {
                 <input type="number" name="consumoKwh" required value={form.consumoKwh} onChange={handleInputChange} className="w-full p-2 border rounded text-lg font-bold text-blue-900 bg-blue-50" />
               </div>
 
+              {/* INPUTS DE MOEDA (MÁSCARAS) */}
               <div className="grid grid-cols-2 gap-3">
-                <div><label className="block text-[10px] font-bold text-gray-600 mb-0.5">TUSD (Valor R$)</label><input type="number" step="0.01" name="valorTusd" required value={form.valorTusd} onChange={handleInputChange} className="w-full p-2 border rounded text-sm" /></div>
-                <div><label className="block text-[10px] font-bold text-gray-600 mb-0.5">TE (Valor R$)</label><input type="number" step="0.01" name="valorTe" required value={form.valorTe} onChange={handleInputChange} className="w-full p-2 border rounded text-sm" /></div>
-                <div><label className="block text-[10px] font-bold text-gray-600 mb-0.5">Bandeira (R$)</label><input type="number" step="0.01" name="valorBandeira" value={form.valorBandeira} onChange={handleInputChange} className="w-full p-2 border rounded text-sm" /></div>
-                <div><label className="block text-[10px] font-bold text-gray-600 mb-0.5">Ilum. Púb (R$)</label><input type="number" step="0.01" name="valorIluminacao" value={form.valorIluminacao} onChange={handleInputChange} className="w-full p-2 border rounded text-sm" /></div>
-                <div><label className="block text-[10px] font-bold text-gray-600 mb-0.5">Outros (R$)</label><input type="number" step="0.01" name="valorOutros" value={form.valorOutros} onChange={handleInputChange} className="w-full p-2 border rounded text-sm" /></div>
+                <div>
+                    <label className="block text-[10px] font-bold text-gray-600 mb-0.5">TUSD (Valor R$)</label>
+                    <CurrencyInput
+                        name="valorTusd"
+                        prefix="R$ "
+                        decimalsLimit={2}
+                        decimalScale={2}
+                        value={form.valorTusd}
+                        onValueChange={(val) => handleValorChange(val, 'valorTusd')}
+                        className="w-full p-2 border rounded text-sm text-right font-medium"
+                        placeholder="R$ 0,00"
+                    />
+                </div>
+                <div>
+                    <label className="block text-[10px] font-bold text-gray-600 mb-0.5">TE (Valor R$)</label>
+                    <CurrencyInput
+                        name="valorTe"
+                        prefix="R$ "
+                        decimalsLimit={2}
+                        decimalScale={2}
+                        value={form.valorTe}
+                        onValueChange={(val) => handleValorChange(val, 'valorTe')}
+                        className="w-full p-2 border rounded text-sm text-right font-medium"
+                        placeholder="R$ 0,00"
+                    />
+                </div>
+                <div>
+                    <label className="block text-[10px] font-bold text-gray-600 mb-0.5">Bandeira (R$)</label>
+                    <CurrencyInput
+                        name="valorBandeira"
+                        prefix="R$ "
+                        decimalsLimit={2}
+                        decimalScale={2}
+                        value={form.valorBandeira}
+                        onValueChange={(val) => handleValorChange(val, 'valorBandeira')}
+                        className="w-full p-2 border rounded text-sm text-right font-medium"
+                    />
+                </div>
+                <div>
+                    <label className="block text-[10px] font-bold text-gray-600 mb-0.5">Ilum. Púb (R$)</label>
+                    <CurrencyInput
+                        name="valorIluminacao"
+                        prefix="R$ "
+                        decimalsLimit={2}
+                        decimalScale={2}
+                        value={form.valorIluminacao}
+                        onValueChange={(val) => handleValorChange(val, 'valorIluminacao')}
+                        className="w-full p-2 border rounded text-sm text-right font-medium"
+                    />
+                </div>
+                <div>
+                    <label className="block text-[10px] font-bold text-gray-600 mb-0.5">Outros (R$)</label>
+                    <CurrencyInput
+                        name="valorOutros"
+                        prefix="R$ "
+                        decimalsLimit={2}
+                        decimalScale={2}
+                        value={form.valorOutros}
+                        onValueChange={(val) => handleValorChange(val, 'valorOutros')}
+                        className="w-full p-2 border rounded text-sm text-right font-medium"
+                    />
+                </div>
               </div>
 
               <div className="pt-3 border-t">
                 <p className="text-xs font-bold mb-2 text-gray-700">Impostos (Valor R$)</p>
                 <div className="grid grid-cols-3 gap-2">
-                  <div><label className="block text-[10px] font-bold text-gray-500">PIS</label><input type="number" step="0.01" name="valorPis" value={form.valorPis} onChange={handleInputChange} className="w-full p-1 border rounded text-xs" /></div>
-                  <div><label className="block text-[10px] font-bold text-gray-500">COFINS</label><input type="number" step="0.01" name="valorCofins" value={form.valorCofins} onChange={handleInputChange} className="w-full p-1 border rounded text-xs" /></div>
-                  <div><label className="block text-[10px] font-bold text-gray-500">ICMS</label><input type="number" step="0.01" name="valorIcms" value={form.valorIcms} onChange={handleInputChange} className="w-full p-1 border rounded text-xs" /></div>
+                  <div>
+                      <label className="block text-[10px] font-bold text-gray-500">PIS</label>
+                      <CurrencyInput
+                        name="valorPis"
+                        prefix="R$ "
+                        decimalsLimit={2}
+                        value={form.valorPis}
+                        onValueChange={(val) => handleValorChange(val, 'valorPis')}
+                        className="w-full p-1 border rounded text-xs text-right"
+                      />
+                  </div>
+                  <div>
+                      <label className="block text-[10px] font-bold text-gray-500">COFINS</label>
+                      <CurrencyInput
+                        name="valorCofins"
+                        prefix="R$ "
+                        decimalsLimit={2}
+                        value={form.valorCofins}
+                        onValueChange={(val) => handleValorChange(val, 'valorCofins')}
+                        className="w-full p-1 border rounded text-xs text-right"
+                      />
+                  </div>
+                  <div>
+                      <label className="block text-[10px] font-bold text-gray-500">ICMS</label>
+                      <CurrencyInput
+                        name="valorIcms"
+                        prefix="R$ "
+                        decimalsLimit={2}
+                        value={form.valorIcms}
+                        onValueChange={(val) => handleValorChange(val, 'valorIcms')}
+                        className="w-full p-1 border rounded text-xs text-right"
+                      />
+                  </div>
                 </div>
               </div>
 
@@ -318,7 +415,7 @@ export default function NovoSimulador() {
                 </div>
               </div>
 
-              {/* Tabela Comparativa (CORRIGIDA: Mostra valores diretos) */}
+              {/* Tabela Comparativa */}
               <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
                 <div className="p-4 bg-gray-50 border-b flex justify-between items-center">
                   <h3 className="font-bold text-gray-800">Raio-X da Economia</h3>
@@ -362,7 +459,6 @@ export default function NovoSimulador() {
       {resultado && (
         <div className="fixed left-[-9999px]">
            <div ref={pdfTemplateRef} className="w-[210mm] min-h-[297mm] bg-white p-[15mm] font-sans text-gray-800">
-              {/* Cabeçalho do PDF */}
               <div className="flex justify-between items-end border-b-2 border-blue-600 pb-6 mb-8">
                  <div>
                     <h1 className="text-4xl font-extrabold text-blue-900 tracking-tight">PROPOSTA COMERCIAL</h1>
@@ -377,7 +473,6 @@ export default function NovoSimulador() {
                  </div>
               </div>
 
-              {/* Cards do PDF */}
               <div className="flex gap-4 mb-8">
                  <div className="flex-1 bg-green-50 border border-green-200 rounded-xl p-6 text-center">
                     <p className="text-green-800 font-semibold mb-2">Economia Mensal Estimada</p>
@@ -399,7 +494,6 @@ export default function NovoSimulador() {
                   </tr>
                 </thead>
                 <tbody>
-                   {/* Linhas da tabela PDF corrigidas também (sem multiplicação) */}
                    <tr className="border-b"><td className="p-3">TUSD (Fio B + Encargos)</td><td className="p-3 text-right">{fmt(resultado.dadosOriginais.valorTusd)}</td><td className="p-3 text-right font-medium">{fmt(resultado.detalhes.novoTusd)}</td></tr>
                    <tr className="border-b"><td className="p-3">TE (Energia Elétrica)</td><td className="p-3 text-right">{fmt(resultado.dadosOriginais.valorTe)}</td><td className="p-3 text-right font-bold text-green-600">0,00</td></tr>
                    <tr className="border-b"><td className="p-3">Bandeira Tarifária</td><td className="p-3 text-right">{fmt(resultado.dadosOriginais.valorBandeira)}</td><td className="p-3 text-right font-bold text-green-600">0,00</td></tr>

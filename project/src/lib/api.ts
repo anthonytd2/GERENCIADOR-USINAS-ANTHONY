@@ -1,10 +1,11 @@
 import axios from 'axios';
 
-// Verifica se está rodando local ou em produção
-const isLocal = window.location.hostname === 'localhost';
-const API_BASE = isLocal 
-  ? 'http://localhost:3001/api' 
-  : 'https://api-gestao-solar.onrender.com/api';
+// --- CONFIGURAÇÃO DA BASE URL ---
+// 1. Tenta pegar a variável de ambiente (Vercel/Produção)
+// 2. Se não existir, assume que é Localhost (Seu PC) na porta 3000
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+
+console.log('🔌 Conectado à API:', API_BASE); // Para você conferir no F12 (Console)
 
 const axiosInstance = axios.create({
   baseURL: API_BASE,
@@ -13,7 +14,11 @@ const axiosInstance = axios.create({
   },
 });
 
+// --- OBJETO API COMPLETO ---
 export const api = {
+  // Configuração genérica (caso precise acessar o axios direto)
+  client: axiosInstance,
+
   usinas: {
     list: () => axiosInstance.get('/usinas').then((res: any) => res.data),
     get: (id: number) => axiosInstance.get(`/usinas/${id}`).then((res: any) => res.data),
@@ -22,6 +27,7 @@ export const api = {
     update: (id: number, data: any) => axiosInstance.put(`/usinas/${id}`, data).then((res: any) => res.data),
     delete: (id: number) => axiosInstance.delete(`/usinas/${id}`).then((res: any) => res.data),
   },
+
   consumidores: {
     list: () => axiosInstance.get('/consumidores').then((res: any) => res.data),
     get: (id: number) => axiosInstance.get(`/consumidores/${id}`).then((res: any) => res.data),
@@ -29,20 +35,23 @@ export const api = {
     update: (id: number, data: any) => axiosInstance.put(`/consumidores/${id}`, data).then((res: any) => res.data),
     delete: (id: number) => axiosInstance.delete(`/consumidores/${id}`).then((res: any) => res.data),
   },
+
   vinculos: {
     list: () => axiosInstance.get('/vinculos').then((res: any) => res.data),
     get: (id: number) => axiosInstance.get(`/vinculos/${id}`).then((res: any) => res.data),
     create: (data: any) => axiosInstance.post('/vinculos', data).then((res: any) => res.data),
     update: (id: number, data: any) => axiosInstance.put(`/vinculos/${id}`, data).then((res: any) => res.data),
     
-    // --- ADICIONADO: Função que faltava ---
+    // Função Especial para Encerrar Contrato
     encerrar: (id: number, dataFim: string) => axiosInstance.put(`/vinculos/${id}/encerrar`, { data_fim: dataFim }).then((res: any) => res.data),
     
     delete: (id: number) => axiosInstance.delete(`/vinculos/${id}`).then((res: any) => res.data),
   },
+
   status: {
     list: () => axiosInstance.get('/status').then((res: any) => res.data),
   },
+
   entidades: {
     list: () => axiosInstance.get('/entidades').then((res: any) => res.data),
     create: (data: any) => axiosInstance.post('/entidades', data).then((res: any) => res.data),
@@ -65,6 +74,12 @@ export const api = {
     delete: (id: number) => axiosInstance.delete(`/propostas/${id}`).then((res: any) => res.data),
   },
 
+  // Endpoint Específico para Dashboard (Lucros e Totais)
+  dashboard: {
+    getStats: () => axiosInstance.get('/dashboard').then((res: any) => res.data),
+  },
+
+  // Mantendo compatibilidade com códigos antigos que chamam 'financeiro' ou 'fechamentos'
   fechamentos: {
     list: (vinculoId: number) => axiosInstance.get(`/fechamentos/${vinculoId}`).then((res: any) => res.data),
     create: (data: any) => axiosInstance.post('/fechamentos', data).then((res: any) => res.data),
@@ -78,6 +93,7 @@ export const api = {
     delete: (id: number) => axiosInstance.delete(`/documentos/${id}`).then((res: any) => res.data),
   },
   
+  // Alias para fechamentos (caso seu frontend use 'financeiro')
   financeiro: {
     list: (vinculoId: number) => axiosInstance.get(`/fechamentos/${vinculoId}`).then((res: any) => res.data),
     create: (data: any) => axiosInstance.post('/fechamentos', data).then((res: any) => res.data),
@@ -85,6 +101,7 @@ export const api = {
     delete: (id: number) => axiosInstance.delete(`/fechamentos/${id}`).then((res: any) => res.data),
   },
   
+  // Métodos genéricos auxiliares
   get: (url: string) => axiosInstance.get(url).then((res: any) => res.data),
   post: (url: string, data: any) => axiosInstance.post(url, data).then((res: any) => res.data),
   put: (url: string, data: any) => axiosInstance.put(url, data).then((res: any) => res.data),

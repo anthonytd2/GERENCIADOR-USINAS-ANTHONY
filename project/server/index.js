@@ -1,3 +1,4 @@
+import 'dotenv/config'; // Adicione isto na linha 1
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';

@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { Toaster } from 'react-hot-toast'; // <--- IMPORTANTE
 import Layout from './components/Layout';
 import Dashboard from './pages/Dashboard';
 
@@ -29,6 +30,7 @@ import NovoSimulador from './pages/propostas/NovoSimulador';
 function App() {
   return (
     <BrowserRouter>
+    <Toaster position="top-right" toastOptions={{ duration: 4000 }} />
       <Routes>
         <Route element={<Layout />}>
           <Route path="/" element={<Dashboard />} />

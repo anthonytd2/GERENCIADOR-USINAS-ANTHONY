@@ -1,19 +1,22 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../../lib/api';
-import { 
-  Plus, 
-  Search, 
-  Zap, 
-  User, 
-  ArrowRight, 
-  CheckCircle, 
-  XCircle, 
+import {
+  Plus,
+  Search,
+  Zap,
+  User,
+  ArrowRight,
+  CheckCircle,
+  XCircle,
   AlertCircle,
   BarChart3,
-  Link as LinkIcon
+  Link as LinkIcon,
+  Trash2 // <--- Verifique se adicionou este aqui
 } from 'lucide-react';
 import Skeleton from '../../components/Skeleton';
+import toast from 'react-hot-toast'; // <--- Adicionar
+import ModalConfirmacao from '../../components/ModalConfirmacao'; // <--- Adicionar
 
 interface Vinculo {
   vinculo_id: number;
@@ -28,9 +31,9 @@ interface Vinculo {
 export default function ListaVinculos() {
   const [vinculos, setVinculos] = useState<Vinculo[]>([]);
   const [loading, setLoading] = useState(true);
+  const [modalAberto, setModalAberto] = useState(false);
+  const [idParaExcluir, setIdParaExcluir] = useState<number | null>(null);
   const [busca, setBusca] = useState('');
-
-  // KPIs
   const [stats, setStats] = useState({ total: 0, ativos: 0, mediaPercentual: 0 });
 
   const loadVinculos = () => {
@@ -43,12 +46,12 @@ export default function ListaVinculos() {
         // Calcular KPIs (Considerando Data)
         const hoje = new Date();
         const ativos = lista.filter(v => {
-           const fim = v.data_fim ? new Date(v.data_fim) : null;
-           return !fim || fim >= hoje;
+          const fim = v.data_fim ? new Date(v.data_fim) : null;
+          return !fim || fim >= hoje;
         }).length;
 
         const somaPercentual = lista.reduce((acc, curr) => acc + (Number(curr.percentual) || 0), 0);
-        
+
         setStats({
           total: lista.length,
           ativos: ativos,
@@ -63,7 +66,28 @@ export default function ListaVinculos() {
     loadVinculos();
   }, []);
 
-  const filtrados = vinculos.filter(v => 
+  // 1. Abre a janela
+  const solicitarExclusao = (id: number) => {
+    setIdParaExcluir(id);
+    setModalAberto(true);
+  };
+
+  // 2. Deleta de verdade
+  const confirmarExclusao = async () => {
+    if (!idParaExcluir) return;
+    try {
+      await api.vinculos.delete(idParaExcluir);
+      toast.success('Vínculo excluído com sucesso!');
+      loadVinculos();
+    } catch (error) {
+      toast.error('Erro ao excluir vínculo.');
+    } finally {
+      setModalAberto(false);
+      setIdParaExcluir(null);
+    }
+  };
+
+  const filtrados = vinculos.filter(v =>
     (v.usinas?.nome_proprietario || '').toLowerCase().includes(busca.toLowerCase()) ||
     (v.consumidores?.nome || '').toLowerCase().includes(busca.toLowerCase())
   );
@@ -121,7 +145,7 @@ export default function ListaVinculos() {
         <div className="p-5 border-b border-gray-100 bg-gray-50/50 flex flex-col md:flex-row gap-4">
           <div className="relative flex-1 max-w-lg">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
-            <input 
+            <input
               type="text"
               placeholder="Buscar por usina ou consumidor..."
               className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
@@ -162,23 +186,23 @@ export default function ListaVinculos() {
                   // Se tiver data fim e ela já passou = Vencido
                   // Se não tem data fim OU data fim é futura = Ativo
                   const hoje = new Date();
-                  hoje.setHours(0,0,0,0);
-                  
+                  hoje.setHours(0, 0, 0, 0);
+
                   let dataFim = null;
                   if (v.data_fim) {
                     dataFim = new Date(v.data_fim);
-                    dataFim.setHours(0,0,0,0);
+                    dataFim.setHours(0, 0, 0, 0);
                   }
 
                   const isVencido = dataFim && dataFim < hoje;
                   const isCancelado = v.status?.descricao === 'Encerrado' || v.status?.descricao === 'Cancelado';
-                  
+
                   // Prioridade: Cancelado Manualmente > Vencido por Data > Ativo
                   const isAtivo = !isVencido && !isCancelado;
-                  
+
                   return (
                     <tr key={v.vinculo_id} className="hover:bg-blue-50/30 transition-colors group">
-                      
+
                       {/* COLUNA USINA */}
                       <td className="px-6 py-4">
                         <div className="flex items-start gap-3">
@@ -186,8 +210,8 @@ export default function ListaVinculos() {
                             <Zap className="w-5 h-5" />
                           </div>
                           <div>
-                            <Link 
-                              to={`/usinas/${v.usinas?.usina_id}`} 
+                            <Link
+                              to={`/usinas/${v.usinas?.usina_id}`}
                               className="font-bold text-gray-900 hover:text-blue-600 hover:underline block text-base"
                             >
                               {v.usinas?.nome_proprietario || 'N/D'}
@@ -206,8 +230,8 @@ export default function ListaVinculos() {
                             {v.percentual}%
                           </div>
                           <div className="w-16 h-1.5 bg-gray-200 rounded-full overflow-hidden">
-                            <div 
-                              className="h-full bg-blue-500 rounded-full" 
+                            <div
+                              className="h-full bg-blue-500 rounded-full"
                               style={{ width: `${Math.min(v.percentual, 100)}%` }}
                             ></div>
                           </div>
@@ -221,8 +245,8 @@ export default function ListaVinculos() {
                             <User className="w-5 h-5" />
                           </div>
                           <div>
-                            <Link 
-                              to={`/consumidores/${v.consumidores?.consumidor_id}`} 
+                            <Link
+                              to={`/consumidores/${v.consumidores?.consumidor_id}`}
                               className="font-bold text-gray-900 hover:text-blue-600 hover:underline block text-base"
                             >
                               {v.consumidores?.nome || 'N/D'}
@@ -238,18 +262,17 @@ export default function ListaVinculos() {
 
                       {/* COLUNA STATUS (LÓGICA VISUAL APLICADA) */}
                       <td className="px-6 py-4 text-center">
-                        <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold border uppercase tracking-wide ${
-                          isAtivo 
-                            ? 'bg-emerald-100 text-emerald-700 border-emerald-200' 
+                        <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold border uppercase tracking-wide ${isAtivo
+                            ? 'bg-emerald-100 text-emerald-700 border-emerald-200'
                             : 'bg-gray-100 text-gray-500 border-gray-200'
-                        }`}>
+                          }`}>
                           {isAtivo ? (
                             <>
                               <CheckCircle className="w-3 h-3 mr-1.5" /> ATIVO
                             </>
                           ) : (
                             <>
-                              <XCircle className="w-3 h-3 mr-1.5" /> 
+                              <XCircle className="w-3 h-3 mr-1.5" />
                               {isCancelado ? 'CANCELADO' : 'VENCIDO'}
                             </>
                           )}
@@ -262,14 +285,27 @@ export default function ListaVinculos() {
                       </td>
 
                       {/* AÇÕES */}
+                      {/* AÇÕES (ATUALIZADO) */}
                       <td className="px-6 py-4 text-right whitespace-nowrap text-sm font-medium">
-                        <Link 
-                          to={`/vinculos/${v.vinculo_id}`}
-                          className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg text-gray-700 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-200 transition-all shadow-sm"
-                        >
-                          Detalhes <ArrowRight className="w-4 h-4" />
-                        </Link>
+                        <div className="flex justify-end items-center gap-2">
+                          <Link
+                            to={`/vinculos/${v.vinculo_id}`}
+                            className="inline-flex items-center gap-2 px-3 py-2 bg-white border border-gray-200 rounded-lg text-gray-700 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-200 transition-all shadow-sm"
+                          >
+                            Detalhes <ArrowRight className="w-4 h-4" />
+                          </Link>
+
+                          {/* NOVO BOTÃO DE EXCLUIR */}
+                          <button
+                            onClick={() => solicitarExclusao(v.vinculo_id)}
+                            className="p-2 bg-white border border-gray-200 rounded-lg text-red-500 hover:bg-red-50 hover:border-red-200 transition-all shadow-sm"
+                            title="Excluir Vínculo"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
                       </td>
+
                     </tr>
                   );
                 })}
@@ -278,6 +314,16 @@ export default function ListaVinculos() {
           </div>
         )}
       </div>
+      {/* Componente Modal */}
+      <ModalConfirmacao
+        isOpen={modalAberto}
+        onClose={() => setModalAberto(false)}
+        onConfirm={confirmarExclusao}
+        title="Encerrar Vínculo"
+        message="Tem certeza que deseja excluir este vínculo? O histórico financeiro poderá ser perdido."
+        isDestructive={true}
+        confirmText="Sim, Excluir"
+      />
     </div>
   );
 }

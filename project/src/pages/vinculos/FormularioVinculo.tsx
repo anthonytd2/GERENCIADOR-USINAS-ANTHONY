@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { api } from '../../lib/api';
 import { ArrowLeft, Save } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 export default function FormularioVinculo() {
   const navigate = useNavigate();
@@ -16,26 +17,52 @@ export default function FormularioVinculo() {
     Promise.all([
       api.usinas.list(),
       api.consumidores.list()
-    ]).then(([uData, cData]) => {
+    ])
+    .then(([uData, cData]) => {
       setUsinas(Array.isArray(uData) ? uData : []);
       setConsumidores(Array.isArray(cData) ? cData : []);
+    })
+    .catch(() => {
+      toast.error('Erro ao carregar listas de usinas e consumidores.');
     });
   }, []);
 
   const onSubmit = async (data: any) => {
     setLoading(true);
+    // 1. Feedback visual imediato
+    const toastId = toast.loading('Criando vínculo...');
+
     try {
+      // 2. Validação de Regra de Negócio
+      if (Number(data.percentual) > 100) {
+        throw new Error('O percentual não pode ser maior que 100%.');
+      }
+
+      // 3. Prepara os dados
       const payload = {
         usina_id: Number(data.usina_id),
         consumidor_id: Number(data.consumidor_id),
         percentual: Number(data.percentual),
-        data_inicio: data.data_inicio
+        data_inicio: data.data_inicio,
+        status_id: 1 // Define status "Ativo" por padrão ao criar
       };
 
+      // 4. Envia para o Backend
       await api.vinculos.create(payload);
-      navigate('/vinculos');
-    } catch (error) {
-      alert('Erro ao criar vínculo');
+      
+      // 5. Sucesso!
+      toast.success('Vínculo criado com sucesso!', { id: toastId });
+      
+      // 6. Redireciona após 1 segundo
+      setTimeout(() => {
+        navigate('/vinculos');
+      }, 1000);
+
+    } catch (error: any) {
+      console.error(error);
+      const msg = error.message || 'Erro ao criar vínculo';
+      // 7. Erro visual
+      toast.error(msg, { id: toastId });
     } finally {
       setLoading(false);
     }

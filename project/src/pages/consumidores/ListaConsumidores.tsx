@@ -3,7 +3,8 @@ import { Link } from 'react-router-dom';
 import { api } from '../../lib/api';
 import { Plus, Search, Edit, Trash2, MapPin, Zap } from 'lucide-react';
 import Skeleton from '../../components/Skeleton';
-
+import toast from 'react-hot-toast'; // <--- Adicionar
+import ModalConfirmacao from '../../components/ModalConfirmacao'; // <--- Adicionar
 // Interface atualizada para o novo padrão do banco
 interface Consumidor {
   consumidor_id: number;
@@ -18,7 +19,8 @@ export default function ListaConsumidores() {
   const [consumidores, setConsumidores] = useState<Consumidor[]>([]);
   const [loading, setLoading] = useState(true);
   const [busca, setBusca] = useState('');
-
+  const [modalAberto, setModalAberto] = useState(false);
+  const [idParaExcluir, setIdParaExcluir] = useState<number | null>(null);
   const loadConsumidores = () => {
     setLoading(true);
     api.consumidores.list()
@@ -33,17 +35,28 @@ export default function ListaConsumidores() {
     loadConsumidores();
   }, []);
 
-  const handleDelete = async (id: number) => {
-    if (!confirm('Tem certeza que deseja excluir este consumidor?')) return;
+  // 1. Apenas abre a janela
+  const solicitarExclusao = (id: number) => {
+    setIdParaExcluir(id);
+    setModalAberto(true);
+  };
+
+  // 2. Confirma e deleta de verdade
+  const confirmarExclusao = async () => {
+    if (!idParaExcluir) return;
     try {
-      await api.consumidores.delete(id);
+      await api.consumidores.delete(idParaExcluir);
+      toast.success('Consumidor excluído com sucesso!'); // Feedback Verde
       loadConsumidores();
     } catch (error) {
-      alert('Erro ao excluir. Verifique se o consumidor não possui vínculos ativos.');
+      toast.error('Erro ao excluir. Verifique se existem vínculos ativos.'); // Feedback Vermelho
+    } finally {
+      setModalAberto(false);
+      setIdParaExcluir(null);
     }
   };
 
-  const filtrados = consumidores.filter(c => 
+  const filtrados = consumidores.filter(c =>
     c.nome.toLowerCase().includes(busca.toLowerCase()) ||
     (c.cidade && c.cidade.toLowerCase().includes(busca.toLowerCase()))
   );
@@ -69,7 +82,7 @@ export default function ListaConsumidores() {
         <div className="p-4 border-b border-gray-100 bg-gray-50/50">
           <div className="relative max-w-md">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
-            <input 
+            <input
               type="text"
               placeholder="Buscar por nome ou cidade..."
               className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-DEFAULT focus:border-transparent"
@@ -130,7 +143,7 @@ export default function ListaConsumidores() {
                         <Link to={`/consumidores/${c.consumidor_id}/editar`} className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg">
                           <Edit className="w-5 h-5" />
                         </Link>
-                        <button onClick={() => handleDelete(c.consumidor_id)} className="p-2 text-red-500 hover:bg-red-50 rounded-lg">
+                        <button onClick={() => solicitarExclusao(c.consumidor_id)} className="p-2 text-red-500 hover:bg-red-50 rounded-lg">
                           <Trash2 className="w-5 h-5" />
                         </button>
                       </div>
@@ -142,6 +155,18 @@ export default function ListaConsumidores() {
           </div>
         )}
       </div>
+
+      {/* Componente Modal */}
+      <ModalConfirmacao
+        isOpen={modalAberto}
+        onClose={() => setModalAberto(false)}
+        onConfirm={confirmarExclusao}
+        title="Excluir Consumidor"
+        message="Tem certeza que deseja excluir este consumidor? Se ele tiver vínculos ativos, a operação será bloqueada."
+        isDestructive={true}
+        confirmText="Sim, Excluir"
+      />
+
     </div>
   );
 }

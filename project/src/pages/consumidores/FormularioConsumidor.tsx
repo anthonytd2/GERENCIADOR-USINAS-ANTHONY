@@ -3,6 +3,7 @@ import { useNavigate, useParams, Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { api } from '../../lib/api';
 import { ArrowLeft, Save } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 export default function FormularioConsumidor() {
   const { id } = useParams();
@@ -10,29 +11,42 @@ export default function FormularioConsumidor() {
   const { register, handleSubmit, setValue, formState: { errors } } = useForm();
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
+useEffect(() => {
     if (id && id !== 'novo') {
-      api.consumidores.get(Number(id)).then(data => {
-        if (data) {
-          // Preenche os campos com os nomes em snake_case
-          setValue('nome', data.nome);
-          setValue('documento', data.documento);
-          setValue('cep', data.cep);
-          setValue('endereco', data.endereco);
-          setValue('bairro', data.bairro);
-          setValue('cidade', data.cidade);
-          setValue('uf', data.uf);
-          setValue('media_consumo', data.media_consumo);
-          setValue('valor_kw', data.valor_kw);
-          setValue('percentual_desconto', data.percentual_desconto);
-          setValue('observacao', data.observacao);
-        }
-      });
+      // Opcional: Mostra que está a carregar
+      const toastId = toast.loading('Carregando dados...');
+
+      api.consumidores.get(Number(id))
+        .then(data => {
+          if (data) {
+            setValue('nome', data.nome);
+            setValue('documento', data.documento);
+            setValue('cep', data.cep);
+            setValue('endereco', data.endereco);
+            setValue('bairro', data.bairro);
+            setValue('cidade', data.cidade);
+            setValue('uf', data.uf);
+            setValue('media_consumo', data.media_consumo);
+            setValue('valor_kw', data.valor_kw);
+            setValue('percentual_desconto', data.percentual_desconto);
+            setValue('observacao', data.observacao);
+            
+            // Remove o aviso de carregando se deu certo
+            toast.dismiss(toastId);
+          }
+        }) // <--- FECHA O .then AQUI
+        .catch(() => {
+          // O .catch fica AQUI FORA
+          toast.error('Erro ao carregar dados do consumidor.', { id: toastId });
+        });
     }
   }, [id, setValue]);
 
   const onSubmit = async (data: any) => {
     setLoading(true);
+    // 1. Feedback imediato (Carregando)
+    const toastId = toast.loading('Salvando consumidor...');
+
     try {
       // Conversão segura de números
       const payload = {
@@ -44,13 +58,23 @@ export default function FormularioConsumidor() {
 
       if (id && id !== 'novo') {
         await api.consumidores.update(Number(id), payload);
+        // 2. Sucesso na Edição
+        toast.success('Consumidor atualizado com sucesso!', { id: toastId });
       } else {
         await api.consumidores.create(payload);
+        // 3. Sucesso na Criação
+        toast.success('Consumidor criado com sucesso!', { id: toastId });
       }
-      navigate('/consumidores');
+
+      // 4. Espera um pouquinho para o usuário ler antes de sair
+      setTimeout(() => {
+        navigate('/consumidores');
+      }, 1000);
+
     } catch (error) {
       console.error(error);
-      alert('Erro ao salvar consumidor');
+      // 5. Erro
+      toast.error('Erro ao salvar consumidor. Verifique os dados.', { id: toastId });
     } finally {
       setLoading(false);
     }
@@ -68,7 +92,7 @@ export default function FormularioConsumidor() {
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="bg-white p-8 rounded-2xl shadow-sm border border-gray-200 space-y-6">
-        
+
         {/* DADOS PESSOAIS */}
         <div className="space-y-4">
           <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">Dados Pessoais</h3>

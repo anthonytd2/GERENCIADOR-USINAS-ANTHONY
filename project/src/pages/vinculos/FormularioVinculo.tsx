@@ -48,7 +48,9 @@ export default function FormularioVinculo() {
         consumidor_id: Number(data.consumidor_id),
         percentual: Number(data.percentual),
         data_inicio: data.data_inicio,
-        status_id: 1 // Define status "Ativo" por padrão ao criar
+        // Envia null se estiver vazio
+        data_fim: data.data_fim || null,
+        status_id: 1
       };
 
       // 4. Envia para o Backend
@@ -109,24 +111,40 @@ export default function FormularioVinculo() {
           </select>
         </div>
 
-        <div className="grid grid-cols-2 gap-6">
+        {/* LINHA DE DATAS E VALORES (3 Colunas agora) */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+
+          {/* 1. Percentual */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Percentual (%)</label>
             <input
               type="number"
               defaultValue={100}
-              {...register('percentual')}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+              {...register('percentual', { required: true, min: 0, max: 100 })}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
             />
           </div>
+
+          {/* 2. Data Início */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Data Início</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Início da Injeção (Conexão)</label>
             <input
               type="date"
-              {...register('data_inicio')}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+              {...register('data_inicio', { required: true })}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
             />
           </div>
+
+          {/* 3. Data Fim (NOVO CAMPO) */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Previsão de Desligamento (Opcional)</label>
+            <input
+              type="date"
+              {...register('data_fim')}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+            />
+          </div>
+
         </div>
 
         <button

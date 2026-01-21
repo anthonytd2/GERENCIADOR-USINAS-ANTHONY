@@ -9,7 +9,6 @@ import {
   ArrowRight,
   CheckCircle,
   XCircle,
-  AlertCircle,
   BarChart3,
   Link as LinkIcon,
   Trash2 // <--- Verifique se adicionou este aqui
@@ -90,8 +89,8 @@ export default function ListaVinculos() {
       {/* CABEÇALHO */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h2 className="text-3xl font-bold text-gray-800">Contratos de Energia</h2>
-          <p className="text-gray-500 mt-1">Gerencie a alocação de créditos entre usinas e consumidores</p>
+          <h2 className="text-3xl font-bold text-gray-800">Alocações de Energia</h2>
+          <p className="text-gray-500 mt-1">Gerencie a injeção de créditos (Conexão Usina x Consumidor)</p>
         </div>
         <Link
           to="/vinculos/novo"
@@ -109,7 +108,7 @@ export default function ListaVinculos() {
             <LinkIcon className="w-6 h-6" />
           </div>
           <div>
-            <p className="text-sm text-gray-500 font-medium">Total de Contratos</p>
+            <p className="text-sm text-gray-500 font-medium">Total de Alocações</p>
             <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
           </div>
         </div>
@@ -118,7 +117,7 @@ export default function ListaVinculos() {
             <CheckCircle className="w-6 h-6" />
           </div>
           <div>
-            <p className="text-sm text-gray-500 font-medium">Contratos Ativos</p>
+            <p className="text-sm text-gray-500 font-medium">Alocações Ativas</p>
             <p className="text-2xl font-bold text-gray-900">{stats.ativos}</p>
           </div>
         </div>
@@ -172,12 +171,11 @@ export default function ListaVinculos() {
                   <th className="px-6 py-4 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">Status</th>
                   <th className="px-6 py-4 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">Ações</th>
                 </tr>
+
               </thead>
               <tbody className="divide-y divide-gray-100 bg-white">
                 {filtrados.map((v) => {
-                  // --- LÓGICA DE STATUS CORRIGIDA ---
-                  // Se tiver data fim e ela já passou = Vencido
-                  // Se não tem data fim OU data fim é futura = Ativo
+                  // --- 1. Lógica de Datas ---
                   const hoje = new Date();
                   hoje.setHours(0, 0, 0, 0);
 
@@ -187,11 +185,16 @@ export default function ListaVinculos() {
                     dataFim.setHours(0, 0, 0, 0);
                   }
 
-                  const isVencido = dataFim && dataFim < hoje;
+                  // --- 2. Definição das Variáveis (CORREÇÃO AQUI) ---
+
+                  // A) Verificamos se foi cancelado (FALTAVA ESSA LINHA)
                   const isCancelado = v.status?.descricao === 'Encerrado' || v.status?.descricao === 'Cancelado';
 
-                  // Prioridade: Cancelado Manualmente > Vencido por Data > Ativo
-                  const isAtivo = !isVencido && !isCancelado;
+                  // B) Verificamos se já passou da data de desligamento
+                  const isDesligado = dataFim && dataFim < hoje;
+
+                  // C) Status Final: Injetando se não cancelou e não desligou
+                  const isInjetando = !isCancelado && !isDesligado;
 
                   return (
                     <tr key={v.vinculo_id} className="hover:bg-blue-50/30 transition-colors group">
@@ -253,20 +256,19 @@ export default function ListaVinculos() {
                         </div>
                       </td>
 
-                      {/* COLUNA STATUS (LÓGICA VISUAL APLICADA) */}
+                      {/* COLUNA STATUS (Corrigido: trocado isAtivo por isInjetando) */}
                       <td className="px-6 py-4 text-center">
-                        <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold border uppercase tracking-wide ${isAtivo
+                        <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold border uppercase tracking-wide ${isInjetando
                           ? 'bg-emerald-100 text-emerald-700 border-emerald-200'
                           : 'bg-gray-100 text-gray-500 border-gray-200'
                           }`}>
-                          {isAtivo ? (
+                          {isInjetando ? (
                             <>
-                              <CheckCircle className="w-3 h-3 mr-1.5" /> ATIVO
+                              <CheckCircle className="w-3 h-3 mr-1.5" /> INJETANDO
                             </>
                           ) : (
                             <>
-                              <XCircle className="w-3 h-3 mr-1.5" />
-                              {isCancelado ? 'CANCELADO' : 'VENCIDO'}
+                              <XCircle className="w-3 h-3 mr-1.5" /> DESLIGADO
                             </>
                           )}
                         </span>
@@ -278,7 +280,6 @@ export default function ListaVinculos() {
                       </td>
 
                       {/* AÇÕES */}
-                      {/* AÇÕES (ATUALIZADO) */}
                       <td className="px-6 py-4 text-right whitespace-nowrap text-sm font-medium">
                         <div className="flex justify-end items-center gap-2">
                           <Link
@@ -288,7 +289,6 @@ export default function ListaVinculos() {
                             Detalhes <ArrowRight className="w-4 h-4" />
                           </Link>
 
-                          {/* NOVO BOTÃO DE EXCLUIR */}
                           <button
                             onClick={() => solicitarExclusao(v.vinculo_id)}
                             className="p-2 bg-white border border-gray-200 rounded-lg text-red-500 hover:bg-red-50 hover:border-red-200 transition-all shadow-sm"

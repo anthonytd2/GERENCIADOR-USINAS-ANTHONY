@@ -35,12 +35,12 @@ export interface Consumidor {
   documento?: string;
 }
 
-// Definição do Formulário de Vínculo (o que o usuário digita)
 export interface VinculoFormInput {
   usina_id: string | number;
   consumidor_id: string | number;
   percentual: string | number;
   data_inicio: string;
+  data_fim?: string; // <--- ADICIONE ESTA LINHA
   status_id?: number;
 }
 

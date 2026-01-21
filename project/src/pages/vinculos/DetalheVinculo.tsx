@@ -102,7 +102,7 @@ export default function DetalheVinculo() {
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
           <div>
             <div className="flex items-center gap-3 mb-1">
-              <h1 className="text-3xl font-bold text-gray-800">Contrato #{vinculo.vinculo_id}</h1>
+              <h1 className="text-3xl font-bold text-gray-800">Alocação #{vinculo.vinculo_id}</h1>
               {isAtivo ? (
                 <span className="px-3 py-1 bg-emerald-100 text-emerald-700 text-sm font-bold rounded-full border border-emerald-200 flex items-center gap-1">
                   <CheckCircle className="w-4 h-4" /> ATIVO
@@ -229,13 +229,13 @@ export default function DetalheVinculo() {
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-sm">
           <div>
-            <p className="text-gray-500 mb-1">Início do Contrato</p>
+            <p className="text-gray-500 mb-1">Início da Injeção</p>
             <p className="font-medium text-gray-900 text-lg">
               {vinculo.data_inicio ? new Date(vinculo.data_inicio).toLocaleDateString('pt-BR') : '-'}
             </p>
           </div>
           <div>
-            <p className="text-gray-500 mb-1">Vencimento</p>
+            <p className="text-gray-500 mb-1">Data de Desligamento</p>
             <p className="font-medium text-gray-900 text-lg">
               {vinculo.data_fim ? new Date(vinculo.data_fim).toLocaleDateString('pt-BR') : 'Indeterminado'}
             </p>

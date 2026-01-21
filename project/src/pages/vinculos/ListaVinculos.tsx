@@ -17,19 +17,12 @@ import {
 import Skeleton from '../../components/Skeleton';
 import toast from 'react-hot-toast'; // <--- Adicionar
 import ModalConfirmacao from '../../components/ModalConfirmacao'; // <--- Adicionar
+import { VinculoDetalhado } from '../../types'; // Importando o tipo seguro
 
-interface Vinculo {
-  vinculo_id: number;
-  percentual: number;
-  data_inicio: string;
-  data_fim?: string; // Adicionado para verificação de data
-  status: { descricao: string };
-  usinas: { usina_id: number; nome_proprietario: string; tipo: string };
-  consumidores: { consumidor_id: number; nome: string; cidade: string; uf: string };
-}
 
 export default function ListaVinculos() {
-  const [vinculos, setVinculos] = useState<Vinculo[]>([]);
+  // Agora o TypeScript sabe tudo sobre 'VinculoDetalhado' vindo do arquivo types.ts
+  const [vinculos, setVinculos] = useState<VinculoDetalhado[]>([]);
   const [loading, setLoading] = useState(true);
   const [modalAberto, setModalAberto] = useState(false);
   const [idParaExcluir, setIdParaExcluir] = useState<number | null>(null);
@@ -263,8 +256,8 @@ export default function ListaVinculos() {
                       {/* COLUNA STATUS (LÓGICA VISUAL APLICADA) */}
                       <td className="px-6 py-4 text-center">
                         <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold border uppercase tracking-wide ${isAtivo
-                            ? 'bg-emerald-100 text-emerald-700 border-emerald-200'
-                            : 'bg-gray-100 text-gray-500 border-gray-200'
+                          ? 'bg-emerald-100 text-emerald-700 border-emerald-200'
+                          : 'bg-gray-100 text-gray-500 border-gray-200'
                           }`}>
                           {isAtivo ? (
                             <>

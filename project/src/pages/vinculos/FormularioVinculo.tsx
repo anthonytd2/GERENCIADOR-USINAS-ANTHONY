@@ -3,31 +3,35 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { api } from '../../lib/api';
 import { ArrowLeft, Save } from 'lucide-react';
+import { Usina, Consumidor, VinculoFormInput } from '../../types'; // Importando nosso dicionário
 import toast from 'react-hot-toast';
+
 
 export default function FormularioVinculo() {
   const navigate = useNavigate();
-  const { register, handleSubmit } = useForm();
-  const [usinas, setUsinas] = useState<any[]>([]);
-  const [consumidores, setConsumidores] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
+  // Agora o useForm sabe exatamente quais campos existem!
+  const { register, handleSubmit } = useForm<VinculoFormInput>();
 
+  // As listas agora são blindadas: só aceitam Usinas e Consumidores reais
+  const [usinas, setUsinas] = useState<Usina[]>([]);
+  const [consumidores, setConsumidores] = useState<Consumidor[]>([]);
+  const [loading, setLoading] = useState(false);
   useEffect(() => {
     // Carrega as listas para o usuário selecionar
     Promise.all([
       api.usinas.list(),
       api.consumidores.list()
     ])
-    .then(([uData, cData]) => {
-      setUsinas(Array.isArray(uData) ? uData : []);
-      setConsumidores(Array.isArray(cData) ? cData : []);
-    })
-    .catch(() => {
-      toast.error('Erro ao carregar listas de usinas e consumidores.');
-    });
+      .then(([uData, cData]) => {
+        setUsinas(Array.isArray(uData) ? uData : []);
+        setConsumidores(Array.isArray(cData) ? cData : []);
+      })
+      .catch(() => {
+        toast.error('Erro ao carregar listas de usinas e consumidores.');
+      });
   }, []);
-
-  const onSubmit = async (data: any) => {
+  // O 'data' agora tem tipo, o TypeScript sabe que data.percentual existe
+  const onSubmit = async (data: VinculoFormInput) => {
     setLoading(true);
     // 1. Feedback visual imediato
     const toastId = toast.loading('Criando vínculo...');
@@ -49,10 +53,10 @@ export default function FormularioVinculo() {
 
       // 4. Envia para o Backend
       await api.vinculos.create(payload);
-      
+
       // 5. Sucesso!
       toast.success('Vínculo criado com sucesso!', { id: toastId });
-      
+
       // 6. Redireciona após 1 segundo
       setTimeout(() => {
         navigate('/vinculos');
@@ -78,7 +82,7 @@ export default function FormularioVinculo() {
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="bg-white p-8 rounded-2xl shadow-sm border border-gray-200 space-y-6">
-        
+
         {/* SELEÇÃO DA USINA */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Selecione a Usina</label>
@@ -108,19 +112,19 @@ export default function FormularioVinculo() {
         <div className="grid grid-cols-2 gap-6">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Percentual (%)</label>
-            <input 
-              type="number" 
+            <input
+              type="number"
               defaultValue={100}
-              {...register('percentual')} 
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg" 
+              {...register('percentual')}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg"
             />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Data Início</label>
-            <input 
-              type="date" 
-              {...register('data_inicio')} 
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg" 
+            <input
+              type="date"
+              {...register('data_inicio')}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg"
             />
           </div>
         </div>

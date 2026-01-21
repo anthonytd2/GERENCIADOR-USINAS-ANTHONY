@@ -68,12 +68,12 @@ router.post('/', async (req, res) => {
     // Tratamento automático de dados vazios
     let dataInicio = req.body.data_inicio;
     if (!dataInicio || dataInicio.trim() === '') {
-        dataInicio = new Date().toISOString().split('T')[0];
+      dataInicio = new Date().toISOString().split('T')[0];
     }
 
     let statusId = Number(req.body.status_id);
     if (!statusId || isNaN(statusId)) {
-        statusId = 1;
+      statusId = 1;
     }
 
     const payload = {
@@ -89,6 +89,38 @@ router.post('/', async (req, res) => {
 
     const dadosValidados = vinculoSchema.parse(payload);
 
+    // --- INÍCIO DA VALIDAÇÃO DE CAPACIDADE (ROBUSTA) ---
+
+    // 1. Busca TODOS os vínculos desta usina (sem filtrar status no banco)
+    const { data: vinculosExistentes, error: erroBusca } = await supabase
+      .from('vinculos')
+      .select('percentual, status_id')
+      .eq('usina_id', dadosValidados.usina_id);
+
+    if (erroBusca) throw erroBusca;
+
+    // 2. Filtra no código: Ignora apenas o que for Status 2 (Encerrado)
+    // Se o seu status "Encerrado" for outro ID, mude o número 2 abaixo.
+    const vinculosAtivos = vinculosExistentes.filter(v => v.status_id !== 2);
+
+    // 3. Soma o percentual já usado
+    const totalUsado = vinculosAtivos.reduce((acc, v) => acc + Number(v.percentual), 0);
+    const disponivel = 100 - totalUsado;
+
+    // 4. Verifica se cabe o novo vínculo
+    // Convertemos para Number para garantir que a matemática funcione
+    if (Number(dadosValidados.percentual) > disponivel) {
+      return res.status(400).json({
+        error: 'Capacidade excedida',
+        detalhes: [
+          `A usina já tem ${totalUsado}% alocado.`,
+          `Disponível: ${disponivel}%.`,
+          `Você tentou alocar: ${dadosValidados.percentual}%.`
+        ]
+      });
+    }
+    // --- FIM DA VALIDAÇÃO DE CAPACIDADE ---
+
     const { data, error } = await supabase
       .from('vinculos')
       .insert([dadosValidados])
@@ -96,19 +128,19 @@ router.post('/', async (req, res) => {
       .single();
 
     if (error) {
-        console.error("Erro Supabase:", error);
-        throw error;
+      console.error("Erro Supabase:", error);
+      throw error;
     }
 
     res.status(201).json(data);
 
   } catch (error) {
     console.error('Erro ao criar vínculo:', error);
-    
+
     if (error instanceof z.ZodError) {
       const mensagens = error.errors ? error.errors.map(e => e.message) : ['Dados inválidos'];
-      return res.status(400).json({ 
-        error: 'Dados inválidos', 
+      return res.status(400).json({
+        error: 'Dados inválidos',
         detalhes: mensagens
       });
     }
@@ -122,8 +154,8 @@ router.put('/:id', async (req, res) => {
   try {
     const { id } = req.params;
     const dados = {
-        ...req.body,
-        data_fim: req.body.data_fim || null 
+      ...req.body,
+      data_fim: req.body.data_fim || null
     };
 
     const { data, error } = await supabase
@@ -142,27 +174,27 @@ router.put('/:id', async (req, res) => {
 
 // 5. ENCERRAR
 router.put('/:id/encerrar', async (req, res) => {
-    try {
-      const { id } = req.params;
-      const { data_fim } = req.body;
-      const statusEncerrado = 2; 
-  
-      const { data, error } = await supabase
-        .from('vinculos')
-        .update({ 
-            data_fim: data_fim,
-            status_id: statusEncerrado 
-        })
-        .eq('vinculo_id', id)
-        .select();
-  
-      if (error) throw error;
-      res.json(data);
-    } catch (error) {
-      console.error('Erro ao encerrar:', error);
-      res.status(500).json({ error: 'Erro ao encerrar vínculo' });
-    }
-  });
+  try {
+    const { id } = req.params;
+    const { data_fim } = req.body;
+    const statusEncerrado = 2;
+
+    const { data, error } = await supabase
+      .from('vinculos')
+      .update({
+        data_fim: data_fim,
+        status_id: statusEncerrado
+      })
+      .eq('vinculo_id', id)
+      .select();
+
+    if (error) throw error;
+    res.json(data);
+  } catch (error) {
+    console.error('Erro ao encerrar:', error);
+    res.status(500).json({ error: 'Erro ao encerrar vínculo' });
+  }
+});
 
 // 6. DELETAR
 router.delete('/:id', async (req, res) => {

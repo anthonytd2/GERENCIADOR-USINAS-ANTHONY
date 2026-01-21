@@ -4,11 +4,13 @@ import { useForm } from 'react-hook-form';
 import { api } from '../../lib/api';
 import { ArrowLeft, Save } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { UsinaFormInput } from '../../types'; // <--- Adicione
 
 export default function FormularioUsina() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { register, handleSubmit, setValue, reset, formState: { errors } } = useForm();
+  // Agora o formulário sabe que campos como 'potencia' e 'geracao_estimada' existem
+  const { register, handleSubmit, setValue, formState: { errors } } = useForm<UsinaFormInput>();
   const [loading, setLoading] = useState(false);
 
   // CARREGAR DADOS PARA EDIÇÃO
@@ -39,7 +41,7 @@ export default function FormularioUsina() {
     }
   }, [id, setValue]);
 
-  const onSubmit = async (data: any) => {
+  const onSubmit = async (data: UsinaFormInput) => {
     setLoading(true);
 
     // 1. Inicia o aviso de "Carregando"

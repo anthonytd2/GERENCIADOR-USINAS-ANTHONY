@@ -5,17 +5,9 @@ import { Plus, Edit, Trash2, CheckCircle, XCircle, Filter } from 'lucide-react';
 import Skeleton from '../../components/Skeleton';
 import toast from 'react-hot-toast'; // Para as mensagens bonitas
 import ModalConfirmacao from '../../components/ModalConfirmacao'; // Para a janela de confirmação
+import { Usina } from '../../types'; // <--- Adicione isso
 
-// Interface atualizada para bater com o Banco de Dados (snake_case)
-interface Usina {
-  usina_id: number;
-  nome_proprietario: string;
-  potencia: number;
-  tipo: string;
-  valor_kw_bruto: number;
-  geracao_estimada: number;
-  is_locada: boolean;
-}
+
 
 export default function ListaUsinas() {
   const [usinas, setUsinas] = useState<Usina[]>([]);

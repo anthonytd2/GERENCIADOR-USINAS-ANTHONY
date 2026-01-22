@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { api } from '../../lib/api';
 import { ArrowLeft, Edit, Trash2, Zap, Link as LinkIcon, CheckCircle, XCircle } from 'lucide-react';
+import GerenciadorDocumentos from '../../components/GerenciadorDocumentos';
 
 export default function DetalheUsina() {
   const { id } = useParams();
@@ -39,7 +40,7 @@ export default function DetalheUsina() {
         <Link to="/usinas" className="inline-flex items-center gap-2 text-gray-500 hover:text-gray-900 mb-4 transition-colors">
           <ArrowLeft className="w-5 h-5" /> Voltar
         </Link>
-        
+
         <div className="flex justify-between items-start">
           <div>
             <h1 className="text-4xl font-bold text-gray-900 mb-2">{usina.nome_proprietario}</h1>
@@ -56,7 +57,7 @@ export default function DetalheUsina() {
               <span className="text-gray-500">ID: #{usina.usina_id}</span>
             </div>
           </div>
-          
+
           <div className="flex gap-3">
             <Link to={`/usinas/${id}/editar`} className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium shadow-sm flex items-center gap-2">
               <Edit className="w-4 h-4" /> Editar
@@ -74,7 +75,7 @@ export default function DetalheUsina() {
             <h3 className="text-lg font-bold text-gray-900 mb-6 flex items-center gap-2">
               <Zap className="w-5 h-5 text-blue-600" /> Dados Técnicos
             </h3>
-            
+
             <div className="grid grid-cols-2 gap-8">
               <div>
                 <p className="text-sm text-gray-500 mb-1">Potência Instalada</p>
@@ -131,7 +132,7 @@ export default function DetalheUsina() {
 
         <div className="bg-slate-50 p-8 rounded-2xl border border-slate-100 h-fit">
           <h3 className="text-lg font-bold text-gray-900 mb-6">Contrato Proprietário</h3>
-          
+
           <div className="space-y-4">
             <div>
               <p className="text-sm text-gray-500">Tipo de Pagamento</p>
@@ -147,6 +148,10 @@ export default function DetalheUsina() {
             </div>
           </div>
         </div>
+      </div>
+      {/* --- ÁREA DO COFRE DE DOCUMENTOS --- */}
+      <div className="mt-8">
+        <GerenciadorDocumentos tipoEntidade="usina" entidadeId={Number(id)} />
       </div>
     </div>
   );

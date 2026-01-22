@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { api } from '../../lib/api';
 import { ArrowLeft, Edit, Trash2, MapPin, FileText, Zap } from 'lucide-react';
-
+import GerenciadorDocumentos from '../../components/GerenciadorDocumentos';
 export default function DetalheConsumidor() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -58,7 +58,7 @@ export default function DetalheConsumidor() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        
+
         {/* Cartão de Contato / Endereço */}
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
           <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
@@ -98,6 +98,10 @@ export default function DetalheConsumidor() {
             </div>
           )}
         </div>
+      </div>
+      {/* --- ÁREA DO COFRE DE DOCUMENTOS --- */}
+      <div className="mt-8">
+        <GerenciadorDocumentos tipoEntidade="consumidor" entidadeId={Number(id)} />
       </div>
     </div>
   );

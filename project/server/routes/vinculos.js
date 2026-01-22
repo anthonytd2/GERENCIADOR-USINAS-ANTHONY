@@ -43,7 +43,7 @@ router.get('/:id', async (req, res) => {
       .from('vinculos')
       .select(`
         *,
-        usinas (usina_id, nome_proprietario, tipo),
+        usinas (usina_id, nome_proprietario, tipo, potencia),
         consumidores (consumidor_id, nome, cidade, uf),
         status (*)
       `)

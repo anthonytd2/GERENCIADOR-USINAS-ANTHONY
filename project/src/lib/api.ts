@@ -41,10 +41,10 @@ export const api = {
     get: (id: number) => axiosInstance.get(`/vinculos/${id}`).then((res: any) => res.data),
     create: (data: any) => axiosInstance.post('/vinculos', data).then((res: any) => res.data),
     update: (id: number, data: any) => axiosInstance.put(`/vinculos/${id}`, data).then((res: any) => res.data),
-    
+
     // Função Especial para Encerrar Contrato
     encerrar: (id: number, dataFim: string) => axiosInstance.put(`/vinculos/${id}/encerrar`, { data_fim: dataFim }).then((res: any) => res.data),
-    
+
     delete: (id: number) => axiosInstance.delete(`/vinculos/${id}`).then((res: any) => res.data),
   },
 
@@ -58,7 +58,7 @@ export const api = {
     update: (id: number, data: any) => axiosInstance.put(`/entidades/${id}`, data).then((res: any) => res.data),
     delete: (id: number) => axiosInstance.delete(`/entidades/${id}`).then((res: any) => res.data),
   },
-  
+
   concessionarias: {
     list: () => axiosInstance.get('/concessionarias').then((res: any) => res.data),
     create: (data: any) => axiosInstance.post('/concessionarias', data).then((res: any) => res.data),
@@ -74,9 +74,12 @@ export const api = {
     delete: (id: number) => axiosInstance.delete(`/propostas/${id}`).then((res: any) => res.data),
   },
 
-  // Endpoint Específico para Dashboard (Lucros e Totais)
   dashboard: {
-    getStats: () => axiosInstance.get('/dashboard').then((res: any) => res.data),
+    getResumo: async (mes: string) => {
+      // mes deve ser "YYYY-MM"
+      const response = await axiosInstance.get(`/dashboard/resumo?mes=${mes}`);
+      return response.data;
+    }
   },
 
   // Mantendo compatibilidade com códigos antigos que chamam 'financeiro' ou 'fechamentos'
@@ -92,7 +95,7 @@ export const api = {
     create: (data: any) => axiosInstance.post('/documentos', data).then((res: any) => res.data),
     delete: (id: number) => axiosInstance.delete(`/documentos/${id}`).then((res: any) => res.data),
   },
-  
+
   // Alias para fechamentos (caso seu frontend use 'financeiro')
   financeiro: {
     list: (vinculoId: number) => axiosInstance.get(`/fechamentos/${vinculoId}`).then((res: any) => res.data),
@@ -100,7 +103,7 @@ export const api = {
     update: (id: number, data: any) => axiosInstance.put(`/fechamentos/${id}`, data).then((res: any) => res.data),
     delete: (id: number) => axiosInstance.delete(`/fechamentos/${id}`).then((res: any) => res.data),
   },
-  
+
   // Métodos genéricos auxiliares
   get: (url: string) => axiosInstance.get(url).then((res: any) => res.data),
   post: (url: string, data: any) => axiosInstance.post(url, data).then((res: any) => res.data),

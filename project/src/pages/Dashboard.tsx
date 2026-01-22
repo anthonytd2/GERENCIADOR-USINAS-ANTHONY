@@ -1,129 +1,154 @@
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { api } from '../lib/api';
-import { Users, Zap, Link as LinkIcon, TrendingUp } from 'lucide-react';
-import Skeleton from '../components/Skeleton';
+import { 
+  TrendingUp, 
+  TrendingDown, 
+  Wallet, 
+  Calendar,
+  DollarSign,
+  Activity,
+  Zap,
+  Users,
+  Link as LinkIcon
+} from 'lucide-react';
 
 export default function Dashboard() {
-  const [stats, setStats] = useState({
-    totalConsumidores: 0,
-    totalUsinas: 0,
-    totalVinculos: 0
+  const mesAtual = new Date().toISOString().slice(0, 7);
+  const [mesFiltro, setMesFiltro] = useState(mesAtual);
+  const [loading, setLoading] = useState(true);
+  
+  const [dados, setDados] = useState({
+    contadores: { usinas: 0, consumidores: 0, vinculos: 0 },
+    financeiro: { faturamento: 0, custo: 0, lucro: 0 }
   });
 
-  const [loading, setLoading] = useState(true);
+  const carregarDashboard = async () => {
+    try {
+      setLoading(true);
+      const resposta = await api.dashboard.getResumo(mesFiltro);
+      setDados(resposta);
+    } catch (error) {
+      console.error('Erro ao carregar dashboard', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    api.get('/dashboard/stats')
-      .then((data: any) => {
-        setStats({
-          totalConsumidores: data.totalConsumidores || 0,
-          totalUsinas: data.totalUsinas || 0,
-          totalVinculos: data.totalVinculos || 0
-        });
-      })
-      .catch(console.error)
-      .finally(() => setLoading(false));
-  }, []);
+    carregarDashboard();
+  }, [mesFiltro]);
+
+  const fmt = (v: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v);
 
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-2xl font-bold text-brand-dark mb-6">Visão Geral</h1>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <CardStat 
-            titulo="Consumidores" 
-            valor={stats.totalConsumidores} 
-            icone={<Users className="w-6 h-6" />} 
-            corBg="bg-blue-100" 
-            corTexto="text-blue-700" 
-            loading={loading}
-          />
-          <CardStat 
-            titulo="Usinas Geradoras" 
-            valor={stats.totalUsinas} 
-            icone={<Zap className="w-6 h-6" />} 
-            corBg="bg-amber-100" 
-            corTexto="text-amber-700" 
-            loading={loading}
-          />
-          <CardStat 
-            titulo="Contratos Ativos" 
-            valor={stats.totalVinculos} 
-            icone={<LinkIcon className="w-6 h-6" />} 
-            corBg="bg-green-100" 
-            corTexto="text-green-700" 
-            loading={loading}
-          />
-        </div>
-      </div>
-
-      {/* NOVO: GRÁFICO DE BARRAS CSS */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Gráfico de Faturamento */}
-        <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
-          <div className="flex justify-between items-center mb-6">
-            <h3 className="font-bold text-gray-900 flex items-center gap-2">
-              <TrendingUp className="w-5 h-5 text-emerald-600" />
-              Faturamento Recente (Simulado)
-            </h3>
-            <span className="text-xs font-medium text-emerald-700 bg-emerald-50 px-2 py-1 rounded-full">+12% vs mês anterior</span>
-          </div>
-          
-          <div className="h-48 flex items-end justify-between gap-2">
-            {[45, 60, 35, 70, 55, 80].map((height, i) => (
-              <div key={i} className="w-full flex flex-col items-center gap-2 group">
-                <div className="relative w-full bg-gray-100 rounded-t-lg h-full overflow-hidden">
-                  <div 
-                    className="absolute bottom-0 w-full bg-brand-light group-hover:bg-brand-DEFAULT transition-all duration-500 rounded-t-lg"
-                    style={{ height: `${height}%` }}
-                  ></div>
-                </div>
-                <span className="text-xs text-gray-400 font-medium">
-                  {['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun'][i]}
-                </span>
-              </div>
-            ))}
-          </div>
+    <div className="space-y-8 animate-fade-in-down pb-20">
+      
+      {/* CABEÇALHO */}
+      <div className="flex flex-col md:flex-row justify-between items-end md:items-center gap-4 border-b border-gray-100 pb-6">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-800 flex items-center gap-2">
+            <Activity className="text-blue-600" />
+            Visão Geral
+          </h1>
+          <p className="text-gray-500 mt-1">Bem-vindo ao painel de controle.</p>
         </div>
 
-        {/* Banner de Boas Vindas */}
-        <div className="bg-gradient-to-br from-brand-dark to-brand-DEFAULT rounded-2xl p-8 text-white shadow-lg flex flex-col justify-center">
-          <h2 className="text-2xl font-bold mb-4">Bem-vindo ao Gestão Solar</h2>
-          <p className="text-blue-100 mb-6 leading-relaxed">
-            Seu sistema está rodando perfeitamente. Utilize os atalhos abaixo para ações rápidas.
-          </p>
-          <div className="flex flex-wrap gap-3">
-            <button className="px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg text-sm font-medium transition-colors">
-              + Novo Cliente
-            </button>
-            <button className="px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg text-sm font-medium transition-colors">
-              + Nova Usina
-            </button>
-            <button className="px-4 py-2 bg-white text-brand-dark hover:bg-blue-50 rounded-lg text-sm font-bold shadow-lg transition-colors">
-              Ver Relatórios
-            </button>
+        <div className="flex items-center gap-3 bg-white p-2 rounded-xl border border-gray-200 shadow-sm">
+          <Calendar size={20} className="text-gray-400 ml-2" />
+          <div className="flex flex-col">
+            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Mês Financeiro</span>
+            <input 
+              type="month" 
+              className="text-sm font-bold text-gray-700 outline-none bg-transparent cursor-pointer"
+              value={mesFiltro}
+              onChange={(e) => setMesFiltro(e.target.value)}
+            />
           </div>
         </div>
       </div>
-    </div>
-  );
-}
 
-function CardStat({ titulo, valor, icone, corBg, corTexto, loading }: any) {
-  return (
-    <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm flex items-center gap-4 transition-transform hover:-translate-y-1">
-      <div className={`p-3 ${corBg} ${corTexto} rounded-lg`}>
-        {icone}
+      {/* --- PARTE 1: CONTADORES (VOLTARAM!) --- */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-4">
+          <div className="p-3 bg-orange-100 text-orange-600 rounded-xl">
+            <Zap size={24} />
+          </div>
+          <div>
+            <p className="text-sm text-gray-500 font-medium">Usinas Ativas</p>
+            <h3 className="text-2xl font-bold text-gray-800">{loading ? '...' : dados.contadores.usinas}</h3>
+          </div>
+        </div>
+
+        <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-4">
+          <div className="p-3 bg-blue-100 text-blue-600 rounded-xl">
+            <Users size={24} />
+          </div>
+          <div>
+            <p className="text-sm text-gray-500 font-medium">Consumidores</p>
+            <h3 className="text-2xl font-bold text-gray-800">{loading ? '...' : dados.contadores.consumidores}</h3>
+          </div>
+        </div>
+
+        <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-4">
+          <div className="p-3 bg-purple-100 text-purple-600 rounded-xl">
+            <LinkIcon size={24} />
+          </div>
+          <div>
+            <p className="text-sm text-gray-500 font-medium">Contratos (Vínculos)</p>
+            <h3 className="text-2xl font-bold text-gray-800">{loading ? '...' : dados.contadores.vinculos}</h3>
+          </div>
+        </div>
       </div>
-      <div>
-        <p className="text-sm text-gray-500 font-medium">{titulo}</p>
-        {loading ? (
-          <Skeleton className="h-8 w-16 mt-1" />
-        ) : (
-          <p className="text-2xl font-bold text-gray-900">{valor}</p>
-        )}
+
+      {/* --- PARTE 2: FINANCEIRO (CORRIGIDO) --- */}
+      <h2 className="text-lg font-bold text-gray-700 mt-8">Resultado Financeiro ({mesFiltro.split('-').reverse().join('/')})</h2>
+      
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        
+        {/* FATURAMENTO */}
+        <div className="bg-white p-6 rounded-2xl border-l-4 border-blue-500 shadow-sm relative overflow-hidden">
+          <div className="absolute top-0 right-0 p-4 opacity-5">
+            <DollarSign size={100} />
+          </div>
+          <p className="text-xs font-bold text-blue-500 uppercase tracking-wider mb-2">Faturamento Total</p>
+          <h3 className="text-3xl font-black text-gray-800">
+            {loading ? '...' : fmt(dados.financeiro.faturamento)}
+          </h3>
+          <p className="text-xs text-gray-400 mt-2">Soma dos boletos gerados</p>
+        </div>
+
+        {/* CUSTO OPERACIONAL */}
+        <div className="bg-white p-6 rounded-2xl border-l-4 border-red-500 shadow-sm relative overflow-hidden">
+          <div className="absolute top-0 right-0 p-4 opacity-5">
+            <TrendingDown size={100} />
+          </div>
+          <p className="text-xs font-bold text-red-500 uppercase tracking-wider mb-2">Custo Operacional</p>
+          <h3 className="text-3xl font-black text-gray-800">
+            {loading ? '...' : fmt(dados.financeiro.custo)}
+          </h3>
+          <p className="text-xs text-gray-400 mt-2">Pagamentos Usina + Fio B</p>
+        </div>
+
+        {/* LUCRO LÍQUIDO */}
+        <div className="bg-green-50 p-6 rounded-2xl border border-green-200 shadow-md relative overflow-hidden">
+          <div className="absolute top-0 right-0 p-4 opacity-10">
+            <Wallet size={100} className="text-green-600" />
+          </div>
+          <p className="text-xs font-bold text-green-700 uppercase tracking-wider mb-2">Lucro Líquido</p>
+          <h3 className="text-4xl font-black text-green-700">
+            {loading ? '...' : fmt(dados.financeiro.lucro)}
+          </h3>
+          <p className="text-xs text-green-600/70 mt-2 font-medium">O que sobrou no caixa</p>
+        </div>
+
       </div>
+
+      <div className="bg-white rounded-2xl border border-gray-100 p-8 text-center shadow-sm">
+        <TrendingUp className="mx-auto text-gray-200 mb-4" size={48} />
+        <h3 className="text-lg font-bold text-gray-400">Gráficos de Evolução</h3>
+        <p className="text-gray-400 text-sm">Em breve o histórico aparecerá aqui.</p>
+      </div>
+
     </div>
   );
 }

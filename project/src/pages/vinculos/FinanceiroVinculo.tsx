@@ -2,9 +2,12 @@ import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { api } from '../../lib/api';
 import { supabaseClient as supabase } from '../../lib/supabaseClient';
-import { ArrowLeft, FileText, Upload, Trash2, DollarSign, Download, Edit2, X, Zap, TrendingUp, Calculator, Wallet } from 'lucide-react';
-import toast from 'react-hot-toast'; // <--- PASSO 1: IMPORTAR TOAST
-import ModalConfirmacao from '../../components/ModalConfirmacao'; // <--- PASSO 2: IMPORTAR MODAL
+
+// AQUI: Juntei tudo numa linha só e removi a linha duplicada com "..."
+import { ArrowLeft, FileText, Upload, Trash2, DollarSign, Download, Edit2, X, Zap, TrendingUp, Calculator, Wallet, BatteryCharging } from 'lucide-react';
+
+import toast from 'react-hot-toast'; 
+import ModalConfirmacao from '../../components/ModalConfirmacao'; 
 import { gerarRelatorioPDF } from '../../utils/gerarRelatorioPDF';
 
 interface Fechamento {
@@ -26,6 +29,7 @@ interface Fechamento {
   valor_recebido: number;
   arquivo_url?: string;
   recibo_url?: string;
+  saldo_acumulado_kwh?: number;
 }
 
 interface VinculoDetalhado {
@@ -62,6 +66,7 @@ export default function FinanceiroVinculo() {
     outras_taxas: '',
     valor_pago_fatura: '',
     percentual_desconto: '',
+    saldo_acumulado_kwh: '',
     arquivo: null as File | null,
     recibo: null as File | null,
     arquivo_url_existente: null as string | null,
@@ -185,6 +190,7 @@ export default function FinanceiroVinculo() {
         valor_pago_fatura: Number(formData.valor_pago_fatura),
         economia_gerada: calculos.economia,
         valor_recebido: calculos.totalReceberCliente,
+        saldo_acumulado_kwh: Number(formData.saldo_acumulado_kwh) || 0,
         arquivo_url: finalPlanilhaUrl,
         recibo_url: finalReciboUrl,
       };
@@ -221,6 +227,7 @@ export default function FinanceiroVinculo() {
       outras_taxas: String(item.outras_taxas || ''),
       valor_pago_fatura: String(item.valor_pago_fatura || ''),
       percentual_desconto: percentualInferido,
+      saldo_acumulado_kwh: String(item.saldo_acumulado_kwh || ''),
       arquivo: null, recibo: null,
       arquivo_url_existente: item.arquivo_url || null,
       recibo_url_existente: item.recibo_url || null
@@ -270,6 +277,15 @@ export default function FinanceiroVinculo() {
               </Link>
               <span className="bg-green-100 text-green-800 px-2 rounded-full text-xs font-bold">Desc. Contrato: {vinculo.consumidores?.percentual_desconto}%</span>
             </div>
+          </div>
+        </div>
+        <div className="bg-orange-50 px-6 py-2 rounded-xl border border-orange-200 flex items-center gap-3 shadow-sm mx-4">
+          <div className="p-2 bg-orange-100 rounded-lg text-orange-600"><BatteryCharging size={20} /></div>
+          <div>
+            <p className="text-xs font-bold text-orange-600 uppercase">Saldo de Créditos</p>
+            <p className="text-xl font-black text-gray-800">
+              {fechamentos.length > 0 ? fechamentos[0].saldo_acumulado_kwh : 0} kWh
+            </p>
           </div>
         </div>
         {!showForm && (
@@ -371,6 +387,19 @@ export default function FinanceiroVinculo() {
                       value={formData.valor_pago_fatura} onChange={e => setFormData({ ...formData, valor_pago_fatura: e.target.value })} />
                   </div>
 
+                  <div className="col-span-2 mt-2 pt-2 border-t border-green-200">
+                    <label className="text-xs font-black text-orange-600 block mb-1 uppercase flex items-center gap-1">
+                      <BatteryCharging size={14} /> Saldo Acumulado (kWh)
+                    </label>
+                    <input
+                      type="number"
+                      className="w-full p-2 rounded border border-orange-200 bg-orange-50 font-bold text-gray-800"
+                      placeholder="Valor da Fatura Copel"
+                      value={formData.saldo_acumulado_kwh}
+                      onChange={e => setFormData({ ...formData, saldo_acumulado_kwh: e.target.value })}
+                    />
+                  </div>
+
                   <div className="col-span-2 border-t border-green-200 pt-3 mt-2">
                     <div className="flex justify-between items-center mb-2">
                       <span className="text-sm text-gray-600">Total Pagaria Copel:</span>
@@ -450,6 +479,7 @@ export default function FinanceiroVinculo() {
           <thead className="bg-gray-50 text-gray-500 font-bold uppercase text-xs">
             <tr>
               <th className="px-6 py-4 text-left">Mês</th>
+              <th className="px-6 py-4 text-right text-orange-600">Saldo (kWh)</th>
               <th className="px-6 py-4 text-right">Compensada</th>
               <th className="px-6 py-4 text-right text-yellow-600">Lucro (Spread)</th>
               <th className="px-6 py-4 text-right text-green-600">Economia</th>
@@ -463,6 +493,9 @@ export default function FinanceiroVinculo() {
               <tr key={f.fechamento_id} className="hover:bg-blue-50/20 transition-colors">
                 <td className="px-6 py-4 font-bold text-gray-800 capitalize">
                   {new Date(f.mes_referencia).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric', timeZone: 'UTC' })}
+                </td>
+                <td className="px-6 py-4 text-right font-bold text-orange-600 bg-orange-50/30">
+                  {f.saldo_acumulado_kwh} kWh
                 </td>
                 <td className="px-6 py-4 text-right text-gray-600">{f.energia_compensada} kWh</td>
                 <td className="px-6 py-4 text-right font-bold text-yellow-600">R$ {f.spread?.toFixed(2)}</td>

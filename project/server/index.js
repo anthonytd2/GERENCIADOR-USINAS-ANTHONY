@@ -2,8 +2,6 @@ import 'dotenv/config'; // Adicione isto na linha 1
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-
-// Importação das Rotas
 import usinasRoutes from './routes/usinas.js';
 import vinculosRoutes from './routes/vinculos.js';
 import consumidoresRoutes from './routes/consumidores.js'; // <--- ESTA LINHA É CRÍTICA
@@ -36,7 +34,7 @@ app.use('/api/documentos', documentosRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/propostas', propostasRoutes);
 app.use('/api/entidades', entidadesRoutes);
-
+app.use('/api/dashboard', dashboardRoutes);
 // Rota de Teste (Raiz)
 app.get('/', (req, res) => {
   res.json({ message: 'API Gestão Usinas Solar Online 🚀' });

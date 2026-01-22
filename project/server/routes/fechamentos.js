@@ -41,12 +41,12 @@ router.post('/', async (req, res) => {
       tarifa_com_imposto: body.tarifa_com_imposto,
       iluminacao_publica: body.iluminacao_publica,
       outras_taxas: body.outras_taxas,
-      valor_pago_fatura: body.valor_pago_fatura, // O que o cliente pagou na conta de luz
+      valor_pago_fatura: body.valor_pago_fatura, 
       economia_gerada: body.economia_gerada,
-      valor_recebido: body.valor_recebido, // Total a cobrar do cliente
-
+      valor_recebido: body.valor_recebido, 
       arquivo_url: body.arquivo_url,
-      recibo_url: body.recibo_url
+      recibo_url: body.recibo_url,
+      saldo_acumulado_kwh: body.saldo_acumulado_kwh
     };
 
     const { data, error } = await supabase
@@ -67,7 +67,7 @@ router.post('/', async (req, res) => {
 router.put('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const body = req.body;
+    const body = req.body; // Aqui pegamos os dados que vieram do Frontend
 
     // Atualiza apenas os campos permitidos
     const payload = {
@@ -86,22 +86,28 @@ router.put('/:id', async (req, res) => {
       valor_pago_fatura: body.valor_pago_fatura,
       economia_gerada: body.economia_gerada,
       valor_recebido: body.valor_recebido,
+      
+      // CORREÇÃO AQUI: Tem que ter o "body." na frente
+      saldo_acumulado_kwh: body.saldo_acumulado_kwh, 
+
       updated_at: new Date()
     };
 
+    // Verifica se tem arquivos para atualizar (opcional)
     if (body.arquivo_url !== undefined) payload.arquivo_url = body.arquivo_url;
     if (body.recibo_url !== undefined) payload.recibo_url = body.recibo_url;
 
     const { data, error } = await supabase
       .from('fechamentos')
       .update(payload)
-      .eq('fechamento_id', id) // Atualizado
+      .eq('fechamento_id', id)
       .select()
       .single();
 
     if (error) throw error;
     res.json(data);
   } catch (error) {
+    console.error('Erro ao atualizar:', error); // Isso ajuda a ver o erro real no terminal
     res.status(500).json({ error: error.message });
   }
 });

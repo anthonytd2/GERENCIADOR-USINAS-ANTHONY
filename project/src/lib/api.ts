@@ -34,8 +34,13 @@ export const api = {
     create: (data: any) => axiosInstance.post('/consumidores', data).then((res: any) => res.data),
     update: (id: number, data: any) => axiosInstance.put(`/consumidores/${id}`, data).then((res: any) => res.data),
     delete: (id: number) => axiosInstance.delete(`/consumidores/${id}`).then((res: any) => res.data),
-  },
 
+    // --- NOVAS FUNÇÕES PARA FILIAIS (UCs) ---
+    getUnidades: (id: number) => axiosInstance.get(`/consumidores/${id}/unidades`).then((res: any) => res.data),
+    createUnidade: (id: number, data: any) => axiosInstance.post(`/consumidores/${id}/unidades`, data).then((res: any) => res.data),
+    updateUnidade: (ucId: number, data: any) => axiosInstance.put(`/consumidores/unidades/${ucId}`, data).then((res: any) => res.data),
+    deleteUnidade: (ucId: number) => axiosInstance.delete(`/consumidores/unidades/${ucId}`).then((res: any) => res.data),
+  },
   vinculos: {
     list: () => axiosInstance.get('/vinculos').then((res: any) => res.data),
     get: (id: number) => axiosInstance.get(`/vinculos/${id}`).then((res: any) => res.data),

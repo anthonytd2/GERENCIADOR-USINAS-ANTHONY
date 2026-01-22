@@ -92,4 +92,77 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
+// =========================================
+// NOVAS ROTAS PARA AS UNIDADES CONSUMIDORAS (FILIAIS)
+// Cole isso ANTES do "export default router;"
+// =========================================
+
+// 6. LISTAR TODAS AS UCs DE UM CONSUMIDOR
+router.get('/:id/unidades', async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('unidades_consumidoras')
+      .select('*')
+      .eq('consumidor_id', req.params.id)
+      .order('id', { ascending: true });
+
+    if (error) throw error;
+    res.json(data);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// 7. CRIAR NOVA UC (FILIAL)
+router.post('/:id/unidades', async (req, res) => {
+  try {
+    const consumidor_id = req.params.id;
+    // Pega os dados enviados e força o ID do consumidor pai
+    const novaUC = { ...req.body, consumidor_id };
+
+    const { data, error } = await supabase
+      .from('unidades_consumidoras')
+      .insert([novaUC])
+      .select()
+      .single();
+
+    if (error) throw error;
+    res.status(201).json(data);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// 8. ATUALIZAR UMA UC ESPECÍFICA
+router.put('/unidades/:id', async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('unidades_consumidoras')
+      .update(req.body)
+      .eq('id', req.params.id) // ID da tabela unidades_consumidoras
+      .select()
+      .single();
+
+    if (error) throw error;
+    res.json(data);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// 9. DELETAR UMA UC ESPECÍFICA
+router.delete('/unidades/:id', async (req, res) => {
+  try {
+    const { error } = await supabase
+      .from('unidades_consumidoras')
+      .delete()
+      .eq('id', req.params.id);
+
+    if (error) throw error;
+    res.json({ message: 'Unidade Consumidora excluída' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 export default router;

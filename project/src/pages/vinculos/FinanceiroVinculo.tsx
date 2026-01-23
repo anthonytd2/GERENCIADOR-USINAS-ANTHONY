@@ -2,9 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { api } from '../../lib/api';
 import { supabaseClient as supabase } from '../../lib/supabaseClient';
-
-// AQUI: Juntei tudo numa linha só e removi a linha duplicada com "..."
-import { ArrowLeft, FileText, Upload, Trash2, DollarSign, Download, Edit2, X, Zap, TrendingUp, Calculator, Wallet, BatteryCharging } from 'lucide-react';
+import { ArrowLeft, FileText, Upload, Trash2, DollarSign, Download, Edit2, X, Zap, TrendingUp, Calculator, Wallet, BatteryCharging, Building2 } from 'lucide-react';
 
 import toast from 'react-hot-toast'; 
 import ModalConfirmacao from '../../components/ModalConfirmacao'; 
@@ -20,7 +18,7 @@ interface Fechamento {
   tusd_fio_b: number;
   total_fio_b: number;
   valor_fatura_geradora: number;
-  spread: number; // Lucro da Empresa
+  spread: number;
   tarifa_com_imposto: number;
   iluminacao_publica: number;
   outras_taxas: number;
@@ -30,6 +28,12 @@ interface Fechamento {
   arquivo_url?: string;
   recibo_url?: string;
   saldo_acumulado_kwh?: number;
+  // CORREÇÃO 1: Adicionei os campos da UC aqui
+  unidade_consumidora_id?: number;
+  unidades_consumidoras?: {
+    codigo_uc: string;
+    endereco: string;
+  };
 }
 
 interface VinculoDetalhado {
@@ -38,23 +42,32 @@ interface VinculoDetalhado {
   status: { descricao: string };
   consumidores: { nome: string; documento: string; percentual_desconto: number };
   usinas: { nome_proprietario: string; nome: string };
+  // CORREÇÃO 1: Adicionei a lista de UCs aqui também
+  unidades_vinculadas?: {
+    unidade_consumidora_id: number;
+    unidades_consumidoras: {
+        codigo_uc: string;
+        endereco: string;
+    }
+  }[];
 }
 
 export default function FinanceiroVinculo() {
   const { id } = useParams();
   const [vinculo, setVinculo] = useState<VinculoDetalhado | null>(null);
   const [fechamentos, setFechamentos] = useState<Fechamento[]>([]);
+  const [ucsVinculadas, setUcsVinculadas] = useState<any[]>([]); 
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
 
-  // Estados para o Modal de Exclusão
   const [modalExclusaoAberto, setModalExclusaoAberto] = useState(false);
   const [idParaExcluir, setIdParaExcluir] = useState<number | null>(null);
 
   // Estados do formulário
   const [formData, setFormData] = useState({
+    unidade_consumidora_id: '', // CORREÇÃO 2: Inicializando o campo
     mes_referencia: '',
     consumo_rede: '',
     energia_compensada: '',
@@ -90,6 +103,11 @@ export default function FinanceiroVinculo() {
       const dadosVinculo = await api.vinculos.get(Number(id));
       setVinculo(dadosVinculo);
 
+      // CORREÇÃO 3: Limpei o código duplicado e deixei só o necessário
+      if (dadosVinculo.unidades_vinculadas) {
+        setUcsVinculadas(dadosVinculo.unidades_vinculadas);
+      }
+
       if (!editingId && !formData.percentual_desconto) {
         setFormData(prev => ({
           ...prev,
@@ -102,7 +120,7 @@ export default function FinanceiroVinculo() {
         setFechamentos(Array.isArray(dadosFechamentos) ? dadosFechamentos : []);
       } catch (e) { setFechamentos([]); }
     } catch (error) {
-      toast.error('Erro ao carregar dados do sistema.'); // <--- TOAST DE ERRO
+      toast.error('Erro ao carregar dados do sistema.'); 
     } finally { setLoading(false); }
   };
 
@@ -158,14 +176,13 @@ export default function FinanceiroVinculo() {
   const handleSalvar = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Pequena validação antes de salvar
     if (!formData.mes_referencia) {
       toast.error('Selecione o Mês de Referência!');
       return;
     }
 
     setUploading(true);
-    const toastId = toast.loading('Salvando dados financeiros...'); // <--- LOADER BONITO
+    const toastId = toast.loading('Salvando dados financeiros...'); 
 
     try {
       let finalPlanilhaUrl = formData.arquivo_url_existente;
@@ -175,6 +192,7 @@ export default function FinanceiroVinculo() {
 
       const payload = {
         vinculo_id: Number(id),
+        unidade_consumidora_id: formData.unidade_consumidora_id ? Number(formData.unidade_consumidora_id) : null,
         mes_referencia: formData.mes_referencia,
         energia_compensada: Number(formData.energia_compensada),
         consumo_rede: Number(formData.consumo_rede),
@@ -198,11 +216,11 @@ export default function FinanceiroVinculo() {
       if (editingId) await api.fechamentos.update(editingId, payload);
       else await api.fechamentos.create(payload);
 
-      toast.success('Cálculo salvo com sucesso!', { id: toastId }); // <--- SUCESSO (substitui o loader)
+      toast.success('Cálculo salvo com sucesso!', { id: toastId }); 
       setShowForm(false); setEditingId(null); carregarDados();
     } catch (error) {
       console.error(error);
-      toast.error('Erro ao salvar. Verifique os dados.', { id: toastId }); // <--- ERRO
+      toast.error('Erro ao salvar. Verifique os dados.', { id: toastId }); 
     } finally { setUploading(false); }
   };
 
@@ -216,6 +234,7 @@ export default function FinanceiroVinculo() {
     }
 
     setFormData({
+      unidade_consumidora_id: String(item.unidade_consumidora_id || ''), // CORREÇÃO 4: Carregar a UC ao editar
       mes_referencia: item.mes_referencia,
       consumo_rede: String(item.consumo_rede || ''),
       energia_compensada: String(item.energia_compensada || ''),
@@ -235,13 +254,11 @@ export default function FinanceiroVinculo() {
     setShowForm(true); window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Função que ABRE o modal (não exclui ainda)
   const solicitarExclusao = (id: number) => {
     setIdParaExcluir(id);
     setModalExclusaoAberto(true);
   };
 
-  // Função que EFETIVAMENTE exclui (chamada pelo Modal)
   const confirmarExclusao = async () => {
     if (!idParaExcluir) return;
     try {
@@ -292,7 +309,11 @@ export default function FinanceiroVinculo() {
           <button onClick={() => {
             setShowForm(true);
             setEditingId(null);
-            setFormData(prev => ({ ...prev, percentual_desconto: String(vinculo.consumidores?.percentual_desconto || 0) }));
+            setFormData(prev => ({ 
+                ...prev, 
+                unidade_consumidora_id: '', 
+                percentual_desconto: String(vinculo.consumidores?.percentual_desconto || 0) 
+            }));
           }} className="w-full md:w-auto bg-blue-600 text-white px-6 py-3 rounded-xl flex items-center justify-center gap-2 hover:bg-blue-700 shadow-lg shadow-blue-500/20 transition-all font-bold transform hover:scale-105 active:scale-95">
             <DollarSign size={20} /> Novo Fechamento
           </button>
@@ -310,10 +331,32 @@ export default function FinanceiroVinculo() {
           </div>
 
           <form onSubmit={handleSalvar}>
-            <div className="mb-8">
-              <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Mês de Referência</label>
-              <input required type="date" className="w-full md:w-1/3 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none shadow-sm"
-                value={formData.mes_referencia} onChange={e => setFormData({ ...formData, mes_referencia: e.target.value })} />
+
+            <div className="flex flex-col md:flex-row gap-4 mb-8">
+              {/* SELETOR DE UC (NOVO) */}
+              <div className="w-full md:w-1/2">
+                <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Unidade Consumidora (UC)</label>
+                <select
+                  required
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                  value={formData.unidade_consumidora_id}
+                  onChange={e => setFormData({ ...formData, unidade_consumidora_id: e.target.value })}
+                >
+                  <option value="">Selecione a UC...</option>
+                  {ucsVinculadas.map(u => (
+                    <option key={u.id} value={u.unidade_consumidora_id}>
+                      UC {u.unidades_consumidoras.codigo_uc} - {u.unidades_consumidoras.endereco}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* MÊS DE REFERÊNCIA */}
+              <div className="w-full md:w-1/2">
+                <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Mês de Referência</label>
+                <input required type="date" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none shadow-sm"
+                  value={formData.mes_referencia} onChange={e => setFormData({ ...formData, mes_referencia: e.target.value })} />
+              </div>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -479,6 +522,8 @@ export default function FinanceiroVinculo() {
           <thead className="bg-gray-50 text-gray-500 font-bold uppercase text-xs">
             <tr>
               <th className="px-6 py-4 text-left">Mês</th>
+              {/* CORREÇÃO 5: Coluna UC */}
+              <th className="px-6 py-4 text-left text-blue-600">UC</th>
               <th className="px-6 py-4 text-right text-orange-600">Saldo (kWh)</th>
               <th className="px-6 py-4 text-right">Compensada</th>
               <th className="px-6 py-4 text-right text-yellow-600">Lucro (Spread)</th>
@@ -494,6 +539,14 @@ export default function FinanceiroVinculo() {
                 <td className="px-6 py-4 font-bold text-gray-800 capitalize">
                   {new Date(f.mes_referencia).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric', timeZone: 'UTC' })}
                 </td>
+                {/* CORREÇÃO 5: Dado da UC */}
+                <td className="px-6 py-4 text-left font-bold text-blue-600 text-xs">
+                    {f.unidades_consumidoras ? (
+                        <span className="flex items-center gap-1">
+                            <Building2 size={12}/> UC {f.unidades_consumidoras.codigo_uc}
+                        </span>
+                    ) : '-'}
+                </td>
                 <td className="px-6 py-4 text-right font-bold text-orange-600 bg-orange-50/30">
                   {f.saldo_acumulado_kwh} kWh
                 </td>
@@ -506,7 +559,6 @@ export default function FinanceiroVinculo() {
                   {f.recibo_url && <a href={f.recibo_url} target="_blank" className="text-green-400 hover:text-green-600 p-1 hover:bg-green-50 rounded"><Download size={18} /></a>}
                 </td>
                 <td className="px-6 py-4 text-right flex items-center justify-end gap-2">
-                  {/* BOTÃO NOVO: PDF */}
                   <button
                     onClick={() => gerarRelatorioPDF(f, vinculo?.consumidores?.nome || 'Cliente', f.mes_referencia)}
                     className="text-white bg-red-500 hover:bg-red-600 p-2 rounded-lg transition-colors"
@@ -530,7 +582,6 @@ export default function FinanceiroVinculo() {
         {fechamentos.length === 0 && <div className="p-12 text-center text-gray-400">Nenhum registro encontrado.</div>}
       </div>
 
-      {/* RENDERIZAÇÃO DO MODAL NO FINAL DO COMPONENTE */}
       <ModalConfirmacao
         isOpen={modalExclusaoAberto}
         onClose={() => setModalExclusaoAberto(false)}

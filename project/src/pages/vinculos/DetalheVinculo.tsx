@@ -23,6 +23,14 @@ interface VinculoDetalhado {
     potencia: number;
     tipo: string;
   };
+  unidades_vinculadas?: {
+    id: number;
+    unidades_consumidoras: {
+      codigo_uc: string;
+      endereco: string;
+      bairro: string;
+    }
+  }[];
 }
 
 export default function DetalheVinculo() {
@@ -219,6 +227,37 @@ export default function DetalheVinculo() {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* --- NOVO BLOCO: LISTA DE UNIDADES CONSUMIDORAS --- */}
+      <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
+        <div className="flex items-center gap-2 mb-4">
+          <div className="p-2 bg-purple-100 text-purple-700 rounded-lg">
+            <Zap className="w-5 h-5" />
+          </div>
+          <h3 className="font-bold text-gray-800 text-lg">Unidades Consumidoras Vinculadas</h3>
+        </div>
+
+        {!vinculo.unidades_vinculadas || vinculo.unidades_vinculadas.length === 0 ? (
+          <p className="text-gray-500 italic p-4 bg-gray-50 rounded-lg text-center">
+            Nenhuma unidade específica selecionada (Vínculo Global).
+          </p>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {vinculo.unidades_vinculadas.map((item) => (
+              <div key={item.id} className="flex items-start gap-3 p-4 bg-gray-50 rounded-xl border border-gray-100 hover:border-purple-200 transition-colors">
+                <div className="mt-1">
+                  <CheckCircle className="w-5 h-5 text-purple-600" />
+                </div>
+                <div>
+                  <p className="font-bold text-gray-900 text-lg">UC {item.unidades_consumidoras.codigo_uc}</p>
+                  <p className="text-sm text-gray-500">{item.unidades_consumidoras.endereco}</p>
+                  <p className="text-xs text-gray-400 mt-1 uppercase font-bold">{item.unidades_consumidoras.bairro}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* DETALHES GERAIS */}

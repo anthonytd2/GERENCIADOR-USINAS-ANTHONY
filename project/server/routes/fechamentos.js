@@ -8,8 +8,11 @@ router.get('/:vinculoId', async (req, res) => {
   try {
     const { data, error } = await supabase
       .from('fechamentos')
-      .select('*')
-      .eq('vinculo_id', req.params.vinculoId) // Atualizado
+      .select(`
+        *,
+        unidades_consumidoras (codigo_uc, endereco, bairro)
+      `)
+      .eq('vinculo_id', req.params.vinculoId)
       .order('mes_referencia', { ascending: false }); // Atualizado
 
     if (error) throw error;
@@ -26,10 +29,11 @@ router.post('/', async (req, res) => {
 
     // Payload limpo com snake_case
     const payload = {
+      unidade_consumidora_id: body.unidade_consumidora_id, // <--- ADICIONE ESTA LINHA
       vinculo_id: body.vinculo_id,
       mes_referencia: body.mes_referencia,
       energia_compensada: body.energia_compensada,
-      
+
       consumo_rede: body.consumo_rede,
       tarifa_kwh: body.tarifa_kwh,
       total_bruto: body.total_bruto,
@@ -41,9 +45,9 @@ router.post('/', async (req, res) => {
       tarifa_com_imposto: body.tarifa_com_imposto,
       iluminacao_publica: body.iluminacao_publica,
       outras_taxas: body.outras_taxas,
-      valor_pago_fatura: body.valor_pago_fatura, 
+      valor_pago_fatura: body.valor_pago_fatura,
       economia_gerada: body.economia_gerada,
-      valor_recebido: body.valor_recebido, 
+      valor_recebido: body.valor_recebido,
       arquivo_url: body.arquivo_url,
       recibo_url: body.recibo_url,
       saldo_acumulado_kwh: body.saldo_acumulado_kwh
@@ -71,6 +75,7 @@ router.put('/:id', async (req, res) => {
 
     // Atualiza apenas os campos permitidos
     const payload = {
+      unidade_consumidora_id: body.unidade_consumidora_id, // <--- ADICIONE ESTA LINHA
       mes_referencia: body.mes_referencia,
       energia_compensada: body.energia_compensada,
       consumo_rede: body.consumo_rede,
@@ -86,9 +91,9 @@ router.put('/:id', async (req, res) => {
       valor_pago_fatura: body.valor_pago_fatura,
       economia_gerada: body.economia_gerada,
       valor_recebido: body.valor_recebido,
-      
+
       // CORREÇÃO AQUI: Tem que ter o "body." na frente
-      saldo_acumulado_kwh: body.saldo_acumulado_kwh, 
+      saldo_acumulado_kwh: body.saldo_acumulado_kwh,
 
       updated_at: new Date()
     };

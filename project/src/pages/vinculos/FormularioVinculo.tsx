@@ -2,22 +2,22 @@ import { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { api } from '../../lib/api';
-import { ArrowLeft, Save } from 'lucide-react';
-import { Usina, Consumidor, VinculoFormInput } from '../../types'; // Importando nosso dicionário
+import { Usina, Consumidor, VinculoFormInput } from '../../types';
 import toast from 'react-hot-toast';
-
+import { ArrowLeft, Save } from 'lucide-react';
 
 export default function FormularioVinculo() {
   const navigate = useNavigate();
-  // Agora o useForm sabe exatamente quais campos existem!
+
+  // Removi o 'watch' pois não precisamos mais monitorar o consumidor selecionado
   const { register, handleSubmit } = useForm<VinculoFormInput>();
 
-  // As listas agora são blindadas: só aceitam Usinas e Consumidores reais
   const [usinas, setUsinas] = useState<Usina[]>([]);
   const [consumidores, setConsumidores] = useState<Consumidor[]>([]);
   const [loading, setLoading] = useState(false);
+
+  // Carrega as listas iniciais (Mantido)
   useEffect(() => {
-    // Carrega as listas para o usuário selecionar
     Promise.all([
       api.usinas.list(),
       api.consumidores.list()
@@ -30,45 +30,53 @@ export default function FormularioVinculo() {
         toast.error('Erro ao carregar listas de usinas e consumidores.');
       });
   }, []);
-  // O 'data' agora tem tipo, o TypeScript sabe que data.percentual existe
+
   const onSubmit = async (data: VinculoFormInput) => {
     setLoading(true);
-    // 1. Feedback visual imediato
     const toastId = toast.loading('Criando vínculo...');
 
     try {
-      // 2. Validação de Regra de Negócio
+      // Validação de Regra de Negócio (Mantida)
       if (Number(data.percentual) > 100) {
         throw new Error('O percentual não pode ser maior que 100%.');
       }
 
-      // 3. Prepara os dados
+      // Prepara os dados (Sem a lista de UCs)
       const payload = {
         usina_id: Number(data.usina_id),
         consumidor_id: Number(data.consumidor_id),
         percentual: Number(data.percentual),
         data_inicio: data.data_inicio,
-        // Envia null se estiver vazio
         data_fim: data.data_fim || null,
-        status_id: 1
+        status_id: 1,
+        // unidades_selecionadas removido daqui
       };
 
-      // 4. Envia para o Backend
       await api.vinculos.create(payload);
 
-      // 5. Sucesso!
       toast.success('Vínculo criado com sucesso!', { id: toastId });
 
-      // 6. Redireciona após 1 segundo
       setTimeout(() => {
         navigate('/vinculos');
       }, 1000);
 
     } catch (error: any) {
-      console.error(error);
-      const msg = error.message || 'Erro ao criar vínculo';
-      // 7. Erro visual
-      toast.error(msg, { id: toastId });
+      console.error("Erro no envio:", error);
+
+      // Tratamento de Erro detalhado (Mantido exatamente como você pediu)
+      const msgBackend = error.response?.data?.error;
+      const detalhesBackend = error.response?.data?.detalhes;
+
+      if (detalhesBackend && detalhesBackend.length > 0) {
+        toast.error(`${msgBackend}: ${detalhesBackend[0]}`, { id: toastId, duration: 6000 });
+      }
+      else if (msgBackend) {
+        toast.error(msgBackend, { id: toastId });
+      }
+      else {
+        const msgTecnica = error.message || 'Erro desconhecido';
+        toast.error(`Erro ao criar vínculo: ${msgTecnica}`, { id: toastId });
+      }
     } finally {
       setLoading(false);
     }
@@ -111,7 +119,9 @@ export default function FormularioVinculo() {
           </select>
         </div>
 
-        {/* LINHA DE DATAS E VALORES (3 Colunas agora) */}
+        {/* A ÁREA DE SELEÇÃO DE UCs FOI REMOVIDA DAQUI */}
+
+        {/* LINHA DE DATAS E VALORES */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
 
           {/* 1. Percentual */}
@@ -135,7 +145,7 @@ export default function FormularioVinculo() {
             />
           </div>
 
-          {/* 3. Data Fim (NOVO CAMPO) */}
+          {/* 3. Data Fim */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Previsão de Desligamento (Opcional)</label>
             <input

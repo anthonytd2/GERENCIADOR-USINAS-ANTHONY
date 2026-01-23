@@ -4,52 +4,57 @@ import { useForm } from 'react-hook-form';
 import { api } from '../../lib/api';
 import { Usina, Consumidor, VinculoFormInput } from '../../types';
 import toast from 'react-hot-toast';
-import { ArrowLeft, Save } from 'lucide-react';
+import { ArrowLeft, Save, FileText, Activity } from 'lucide-react';
+
+// CORREÇÃO AQUI: Usamos 'Omit' para evitar o conflito de tipos
+interface VinculoFormInputExtended extends Omit<VinculoFormInput, 'status_id'> {
+  observacoes?: string;
+  status_id?: number | string;
+}
 
 export default function FormularioVinculo() {
   const navigate = useNavigate();
 
-  // Removi o 'watch' pois não precisamos mais monitorar o consumidor selecionado
-  const { register, handleSubmit } = useForm<VinculoFormInput>();
+  const { register, handleSubmit } = useForm<VinculoFormInputExtended>();
 
   const [usinas, setUsinas] = useState<Usina[]>([]);
   const [consumidores, setConsumidores] = useState<Consumidor[]>([]);
+  const [statusList, setStatusList] = useState<any[]>([]); 
   const [loading, setLoading] = useState(false);
 
-  // Carrega as listas iniciais (Mantido)
   useEffect(() => {
     Promise.all([
       api.usinas.list(),
-      api.consumidores.list()
+      api.consumidores.list(),
+      api.status.list()
     ])
-      .then(([uData, cData]) => {
+      .then(([uData, cData, sData]) => {
         setUsinas(Array.isArray(uData) ? uData : []);
         setConsumidores(Array.isArray(cData) ? cData : []);
+        setStatusList(Array.isArray(sData) ? sData : []);
       })
       .catch(() => {
-        toast.error('Erro ao carregar listas de usinas e consumidores.');
+        toast.error('Erro ao carregar listas do sistema.');
       });
   }, []);
 
-  const onSubmit = async (data: VinculoFormInput) => {
+  const onSubmit = async (data: VinculoFormInputExtended) => {
     setLoading(true);
     const toastId = toast.loading('Criando vínculo...');
 
     try {
-      // Validação de Regra de Negócio (Mantida)
       if (Number(data.percentual) > 100) {
         throw new Error('O percentual não pode ser maior que 100%.');
       }
 
-      // Prepara os dados (Sem a lista de UCs)
       const payload = {
         usina_id: Number(data.usina_id),
         consumidor_id: Number(data.consumidor_id),
         percentual: Number(data.percentual),
         data_inicio: data.data_inicio,
         data_fim: data.data_fim || null,
-        status_id: 1,
-        // unidades_selecionadas removido daqui
+        status_id: Number(data.status_id) || 1, // Garante que envia número
+        observacoes: data.observacoes || null
       };
 
       await api.vinculos.create(payload);
@@ -63,7 +68,6 @@ export default function FormularioVinculo() {
     } catch (error: any) {
       console.error("Erro no envio:", error);
 
-      // Tratamento de Erro detalhado (Mantido exatamente como você pediu)
       const msgBackend = error.response?.data?.error;
       const detalhesBackend = error.response?.data?.detalhes;
 
@@ -96,7 +100,7 @@ export default function FormularioVinculo() {
         {/* SELEÇÃO DA USINA */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Selecione a Usina</label>
-          <select {...register('usina_id', { required: true })} className="w-full px-4 py-2 border border-gray-300 rounded-lg">
+          <select {...register('usina_id', { required: true })} className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white outline-none focus:ring-2 focus:ring-blue-500">
             <option value="">Selecione...</option>
             {usinas.map(u => (
               <option key={u.usina_id} value={u.usina_id}>
@@ -109,7 +113,7 @@ export default function FormularioVinculo() {
         {/* SELEÇÃO DO CONSUMIDOR */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Selecione o Consumidor</label>
-          <select {...register('consumidor_id', { required: true })} className="w-full px-4 py-2 border border-gray-300 rounded-lg">
+          <select {...register('consumidor_id', { required: true })} className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white outline-none focus:ring-2 focus:ring-blue-500">
             <option value="">Selecione...</option>
             {consumidores.map(c => (
               <option key={c.consumidor_id} value={c.consumidor_id}>
@@ -119,48 +123,72 @@ export default function FormularioVinculo() {
           </select>
         </div>
 
-        {/* A ÁREA DE SELEÇÃO DE UCs FOI REMOVIDA DAQUI */}
+        {/* STATUS INICIAL */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
+            <Activity className="w-4 h-4 text-blue-600" /> Status Inicial do Contrato
+          </label>
+          <select 
+            {...register('status_id')} 
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="">Selecione o status...</option>
+            {statusList.map(s => (
+              <option key={s.status_id} value={s.status_id}>
+                {s.descricao}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* OBSERVAÇÕES */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
+            <FileText className="w-4 h-4 text-gray-500" /> Observações (Opcional)
+          </label>
+          <textarea
+            {...register('observacoes')}
+            placeholder="Ex: Protocolo Copel nº 123456... Aguardando vistoria..."
+            rows={3}
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg resize-none outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
 
         {/* LINHA DE DATAS E VALORES */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-
-          {/* 1. Percentual */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Percentual (%)</label>
             <input
               type="number"
               defaultValue={100}
               {...register('percentual', { required: true, min: 0, max: 100 })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
 
-          {/* 2. Data Início */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Início da Injeção (Conexão)</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Início da Injeção</label>
             <input
               type="date"
               {...register('data_inicio', { required: true })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
 
-          {/* 3. Data Fim */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Previsão de Desligamento (Opcional)</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Fim (Opcional)</label>
             <input
               type="date"
               {...register('data_fim')}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
-
         </div>
 
         <button
           type="submit"
           disabled={loading}
-          className="w-full py-3 bg-brand-DEFAULT text-white rounded-xl hover:bg-brand-dark font-bold shadow-lg transition-all flex justify-center items-center gap-2"
+          className="w-full py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 font-bold shadow-lg transition-all flex justify-center items-center gap-2"
         >
           <Save className="w-5 h-5" />
           {loading ? 'Salvando...' : 'Criar Vínculo'}

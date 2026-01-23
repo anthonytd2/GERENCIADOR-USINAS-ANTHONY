@@ -11,16 +11,19 @@ import {
   XCircle,
   BarChart3,
   Link as LinkIcon,
-  Trash2 // <--- Verifique se adicionou este aqui
+  Trash2,
+  Activity,
+  Calendar,
+  AlertTriangle,
+  FileText
 } from 'lucide-react';
 import Skeleton from '../../components/Skeleton';
-import toast from 'react-hot-toast'; // <--- Adicionar
-import ModalConfirmacao from '../../components/ModalConfirmacao'; // <--- Adicionar
-import { VinculoDetalhado } from '../../types'; // Importando o tipo seguro
+import toast from 'react-hot-toast';
+import ModalConfirmacao from '../../components/ModalConfirmacao';
+import { VinculoDetalhado } from '../../types';
 
 
 export default function ListaVinculos() {
-  // Agora o TypeScript sabe tudo sobre 'VinculoDetalhado' vindo do arquivo types.ts
   const [vinculos, setVinculos] = useState<VinculoDetalhado[]>([]);
   const [loading, setLoading] = useState(true);
   const [modalAberto, setModalAberto] = useState(false);
@@ -35,11 +38,10 @@ export default function ListaVinculos() {
         const lista = Array.isArray(data) ? data : [];
         setVinculos(lista);
 
-        // Calcular KPIs (Considerando Data)
-        const hoje = new Date();
+        // Calcular KPIs (Considerando Status real)
         const ativos = lista.filter(v => {
-          const fim = v.data_fim ? new Date(v.data_fim) : null;
-          return !fim || fim >= hoje;
+          const s = v.status?.descricao?.toLowerCase() || '';
+          return s.includes('ativo') || s.includes('injetando') || s.includes('troca');
         }).length;
 
         const somaPercentual = lista.reduce((acc, curr) => acc + (Number(curr.percentual) || 0), 0);
@@ -58,13 +60,11 @@ export default function ListaVinculos() {
     loadVinculos();
   }, []);
 
-  // 1. Abre a janela
   const solicitarExclusao = (id: number) => {
     setIdParaExcluir(id);
     setModalAberto(true);
   };
 
-  // 2. Deleta de verdade
   const confirmarExclusao = async () => {
     if (!idParaExcluir) return;
     try {
@@ -77,6 +77,29 @@ export default function ListaVinculos() {
       setModalAberto(false);
       setIdParaExcluir(null);
     }
+  };
+
+  // --- FUNÇÃO AUXILIAR PARA COR E ÍCONE DO STATUS ---
+  const getStatusBadge = (statusDesc: string) => {
+    const s = statusDesc?.toLowerCase() || '';
+
+    if (s.includes('ativo') || s.includes('injetando')) {
+      return { style: 'bg-emerald-100 text-emerald-700 border-emerald-200', icon: CheckCircle, label: statusDesc };
+    }
+    if (s.includes('encerrado') || s.includes('cancelado')) {
+      return { style: 'bg-gray-100 text-gray-500 border-gray-200', icon: XCircle, label: statusDesc };
+    }
+    if (s.includes('divergência') || s.includes('divergencia')) {
+      return { style: 'bg-red-100 text-red-700 border-red-200', icon: AlertTriangle, label: statusDesc };
+    }
+    if (s.includes('troca') || s.includes('análise') || s.includes('pendente')) {
+      return { style: 'bg-amber-100 text-amber-700 border-amber-200', icon: Activity, label: statusDesc };
+    }
+    if (s.includes('aguardando')) {
+      return { style: 'bg-blue-100 text-blue-700 border-blue-200', icon: Calendar, label: statusDesc };
+    }
+    // Padrão
+    return { style: 'bg-gray-100 text-gray-600 border-gray-200', icon: FileText, label: statusDesc || 'Indefinido' };
   };
 
   const filtrados = vinculos.filter(v =>
@@ -101,7 +124,7 @@ export default function ListaVinculos() {
         </Link>
       </div>
 
-      {/* CARDS DE KPI (RESUMO) */}
+      {/* CARDS DE KPI */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm flex items-center gap-4">
           <div className="p-3 bg-blue-100 text-blue-700 rounded-lg">
@@ -117,7 +140,7 @@ export default function ListaVinculos() {
             <CheckCircle className="w-6 h-6" />
           </div>
           <div>
-            <p className="text-sm text-gray-500 font-medium">Alocações Ativas</p>
+            <p className="text-sm text-gray-500 font-medium">Alocações Ativas/Em Processo</p>
             <p className="text-2xl font-bold text-gray-900">{stats.ativos}</p>
           </div>
         </div>
@@ -171,30 +194,13 @@ export default function ListaVinculos() {
                   <th className="px-6 py-4 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">Status</th>
                   <th className="px-6 py-4 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">Ações</th>
                 </tr>
-
               </thead>
               <tbody className="divide-y divide-gray-100 bg-white">
                 {filtrados.map((v) => {
-                  // --- 1. Lógica de Datas ---
-                  const hoje = new Date();
-                  hoje.setHours(0, 0, 0, 0);
-
-                  let dataFim = null;
-                  if (v.data_fim) {
-                    dataFim = new Date(v.data_fim);
-                    dataFim.setHours(0, 0, 0, 0);
-                  }
-
-                  // --- 2. Definição das Variáveis (CORREÇÃO AQUI) ---
-
-                  // A) Verificamos se foi cancelado (FALTAVA ESSA LINHA)
-                  const isCancelado = v.status?.descricao === 'Encerrado' || v.status?.descricao === 'Cancelado';
-
-                  // B) Verificamos se já passou da data de desligamento
-                  const isDesligado = dataFim && dataFim < hoje;
-
-                  // C) Status Final: Injetando se não cancelou e não desligou
-                  const isInjetando = !isCancelado && !isDesligado;
+                  
+                  // Identifica o status visual correto
+                  const statusConfig = getStatusBadge(v.status?.descricao);
+                  const StatusIcon = statusConfig.icon;
 
                   return (
                     <tr key={v.vinculo_id} className="hover:bg-blue-50/30 transition-colors group">
@@ -256,27 +262,12 @@ export default function ListaVinculos() {
                         </div>
                       </td>
 
-                      {/* COLUNA STATUS (Corrigido: trocado isAtivo por isInjetando) */}
+                      {/* COLUNA STATUS (AGORA DINÂMICA) */}
                       <td className="px-6 py-4 text-center">
-                        <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold border uppercase tracking-wide ${isInjetando
-                          ? 'bg-emerald-100 text-emerald-700 border-emerald-200'
-                          : 'bg-gray-100 text-gray-500 border-gray-200'
-                          }`}>
-                          {isInjetando ? (
-                            <>
-                              <CheckCircle className="w-3 h-3 mr-1.5" /> INJETANDO
-                            </>
-                          ) : (
-                            <>
-                              <XCircle className="w-3 h-3 mr-1.5" /> DESLIGADO
-                            </>
-                          )}
+                        <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold border uppercase tracking-wide ${statusConfig.style}`}>
+                          <StatusIcon className="w-3 h-3 mr-1.5" />
+                          {statusConfig.label}
                         </span>
-                        {dataFim && (
-                          <div className="text-[10px] text-gray-400 mt-1">
-                            Até {dataFim.toLocaleDateString('pt-BR')}
-                          </div>
-                        )}
                       </td>
 
                       {/* AÇÕES */}

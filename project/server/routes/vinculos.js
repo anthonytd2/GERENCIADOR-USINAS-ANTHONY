@@ -11,7 +11,8 @@ const vinculoSchema = z.object({
   percentual: z.number().min(0).max(100, 'Percentual deve ser entre 0 e 100'),
   data_inicio: z.string().min(1, 'Data de início é obrigatória'),
   status_id: z.number().int().positive('Status inválido'),
-  data_fim: z.string().optional().nullable()
+  data_fim: z.string().optional().nullable(),
+  observacoes: z.string().optional().nullable() // <--- ADICIONE ESTA LINHA
 });
 
 // 1. LISTAR TODOS
@@ -101,7 +102,8 @@ router.post('/', async (req, res) => {
       percentual: Number(req.body.percentual),
       status_id: statusId,
       data_inicio: dataInicio,
-      data_fim: req.body.data_fim || null
+      data_fim: req.body.data_fim || null,
+      observacoes: req.body.observacoes || null // <--- ADICIONE ESTA LINHA
     };
 
     const dadosValidados = vinculoSchema.parse(payload);

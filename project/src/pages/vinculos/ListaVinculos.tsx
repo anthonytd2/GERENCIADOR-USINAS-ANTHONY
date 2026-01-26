@@ -80,7 +80,7 @@ export default function ListaVinculos() {
   };
 
   // --- FUNÇÃO AUXILIAR PARA COR E ÍCONE DO STATUS ---
-  const getStatusBadge = (statusDesc: string) => {
+  const getStatusBadge = (statusDesc?: string) => {
     const s = statusDesc?.toLowerCase() || '';
 
     if (s.includes('ativo') || s.includes('injetando')) {
@@ -197,7 +197,7 @@ export default function ListaVinculos() {
               </thead>
               <tbody className="divide-y divide-gray-100 bg-white">
                 {filtrados.map((v) => {
-                  
+
                   // Identifica o status visual correto
                   const statusConfig = getStatusBadge(v.status?.descricao);
                   const StatusIcon = statusConfig.icon;

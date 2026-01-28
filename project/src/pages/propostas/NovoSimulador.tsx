@@ -6,17 +6,18 @@ import { Save, Calculator, FileText, User, Zap, CheckCircle, ArrowLeft } from 'l
 // @ts-ignore
 import html2pdf from 'html2pdf.js';
 import CurrencyInput from 'react-currency-input-field';
+// IMPORTAMOS O NOVO ARQUIVO DE PDF AQUI:
+import { PropostaPDF } from './PropostaPDF';
 
-// Função auxiliar para limpar dinheiro (Ex: "R$ 1.200,50" vira 1200.50)
+// Função auxiliar para limpar dinheiro
 const parseMoney = (value: any) => {
   if (!value) return 0;
   if (typeof value === 'number') return value;
-  // Tira tudo que não é número ou vírgula/ponto
   let clean = value.replace(/[^\d,.-]/g, '');
-  // Troca vírgula por ponto (padrão americano)
   clean = clean.replace(',', '.');
   return parseFloat(clean) || 0;
 };
+
 export default function NovoSimulador() {
   const navigate = useNavigate();
   const { id } = useParams();
@@ -91,14 +92,11 @@ export default function NovoSimulador() {
               setTipoCliente('prospect');
             }
 
-            // Tenta recalcular se já tiver dados
             if (savedData.consumoKwh && savedData.valorTusd) {
-              // Pequeno delay para garantir estado
               setTimeout(() => {
-                // Dentro do useEffect, dentro do setTimeout:
                 const dadosCalc: DadosSimulacao = {
                   consumoKwh: Number(savedData.consumoKwh),
-                  valorTusd: parseMoney(savedData.valorTusd), // Troquei Number por parseMoney
+                  valorTusd: parseMoney(savedData.valorTusd), 
                   valorTe: parseMoney(savedData.valorTe),
                   valorBandeira: parseMoney(savedData.valorBandeira),
                   valorIluminacao: parseMoney(savedData.valorIluminacao),
@@ -142,14 +140,11 @@ export default function NovoSimulador() {
     }
   };
 
-  // Handler para inputs normais (Texto, kWh, Porcentagem)
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setForm(prev => ({ ...prev, [name]: value }));
   };
 
-  // --- NOVO HANDLER PARA MOEDA (R$) ---
-  // A biblioteca nos dá o "value" limpo (ex: "1500.50")
   const handleValorChange = (value: string | undefined, name: string) => {
     setForm(prev => ({ ...prev, [name]: value || '' }));
   };
@@ -157,8 +152,7 @@ export default function NovoSimulador() {
   const handleSimular = (e: React.FormEvent) => {
     e.preventDefault();
     const dados: DadosSimulacao = {
-      consumoKwh: Number(form.consumoKwh), // kWh geralmente é número simples
-      // AQUI ESTAVA O ERRO: Usamos parseMoney agora
+      consumoKwh: Number(form.consumoKwh),
       valorTusd: parseMoney(form.valorTusd),
       valorTe: parseMoney(form.valorTe),
       valorBandeira: parseMoney(form.valorBandeira),
@@ -206,7 +200,7 @@ export default function NovoSimulador() {
       margin: 0,
       filename: `Proposta_${form.nome.replace(/\s+/g, '_')}.pdf`,
       image: { type: 'jpeg' as const, quality: 0.98 },
-      html2canvas: { scale: 2, useCORS: true },
+      html2canvas: { scale: 2, useCORS: true, scrollY: 0 },
       jsPDF: { unit: 'mm' as const, format: 'a4' as const, orientation: 'portrait' as const }
     };
     html2pdf().set(opt).from(pdfTemplateRef.current).save();
@@ -442,7 +436,7 @@ export default function NovoSimulador() {
                 </div>
               </div>
 
-              {/* Tabela Comparativa */}
+              {/* Tabela Comparativa (Tela) */}
               <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
                 <div className="p-4 bg-gray-50 border-b flex justify-between items-center">
                   <h3 className="font-bold text-gray-800">Raio-X da Economia</h3>
@@ -457,8 +451,8 @@ export default function NovoSimulador() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
-                    <tr><td className="px-6 py-3 text-gray-600">TUSD (Uso do Sistema)</td><td className="px-6 py-3 text-right">{fmt(resultado.dadosOriginais.valorTusd)}</td><td className="px-6 py-3 text-right text-orange-600 font-medium">{fmt(resultado.detalhes.novoTusd)} *</td></tr>
-                    <tr><td className="px-6 py-3 text-gray-600">TE (Energia)</td><td className="px-6 py-3 text-right">{fmt(resultado.dadosOriginais.valorTe)}</td><td className="px-6 py-3 text-right text-green-600 font-bold">0,00</td></tr>
+                    <tr><td className="px-6 py-3 text-gray-600">TUSD (Fio B + Encargos)</td><td className="px-6 py-3 text-right">{fmt(resultado.dadosOriginais.valorTusd)}</td><td className="px-6 py-3 text-right text-orange-600 font-medium">{fmt(resultado.detalhes.novoTusd)} *</td></tr>
+                    <tr><td className="px-6 py-3 text-gray-600">TE (Energia Elétrica)</td><td className="px-6 py-3 text-right">{fmt(resultado.dadosOriginais.valorTe)}</td><td className="px-6 py-3 text-right text-green-600 font-bold">0,00</td></tr>
                     <tr><td className="px-6 py-3 text-gray-600">Bandeira Tarifária</td><td className="px-6 py-3 text-right">{fmt(resultado.dadosOriginais.valorBandeira)}</td><td className="px-6 py-3 text-right text-green-600 font-bold">0,00</td></tr>
                     <tr><td className="px-6 py-3 text-gray-600">Iluminação Pública</td><td className="px-6 py-3 text-right">{fmt(resultado.dadosOriginais.valorIluminacao)}</td><td className="px-6 py-3 text-right text-gray-800">{fmt(resultado.dadosOriginais.valorIluminacao)}</td></tr>
                     <tr><td className="px-6 py-3 text-gray-600">Outros / Multas</td><td className="px-6 py-3 text-right">{fmt(resultado.dadosOriginais.valorOutros)}</td><td className="px-6 py-3 text-right text-gray-800">{fmt(resultado.dadosOriginais.valorOutros)}</td></tr>
@@ -482,68 +476,12 @@ export default function NovoSimulador() {
         </div>
       </div>
 
-      {/* PDF TEMPLATE */}
-      {resultado && (
-        <div className="fixed left-[-9999px]">
-          <div ref={pdfTemplateRef} className="w-[210mm] min-h-[297mm] bg-white p-[15mm] font-sans text-gray-800">
-            <div className="flex justify-between items-end border-b-2 border-blue-600 pb-6 mb-8">
-              <div>
-                <h1 className="text-4xl font-extrabold text-blue-900 tracking-tight">PROPOSTA COMERCIAL</h1>
-                <p className="text-lg text-gray-500 font-medium mt-1">Locação de Usina Solar</p>
-              </div>
-              <div className="text-right">
-                <div className="bg-gray-100 p-3 rounded-lg text-sm">
-                  <p><strong>Cliente:</strong> {form.nome}</p>
-                  <p><strong>UC:</strong> {form.uc || 'N/A'}</p>
-                  <p><strong>Data:</strong> {new Date().toLocaleDateString()}</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex gap-4 mb-8">
-              <div className="flex-1 bg-green-50 border border-green-200 rounded-xl p-6 text-center">
-                <p className="text-green-800 font-semibold mb-2">Economia Mensal Estimada</p>
-                <h2 className="text-5xl font-bold text-green-600">{fmt(resultado.economiaRealCliente)}</h2>
-              </div>
-              <div className="flex-1 bg-blue-50 border border-blue-200 rounded-xl p-6 text-center">
-                <p className="text-blue-800 font-semibold mb-2">Redução Total na Fatura</p>
-                <h2 className="text-5xl font-bold text-blue-600">{fmtP(resultado.percentualReducaoTotal)}</h2>
-              </div>
-            </div>
-
-            <h3 className="text-lg font-bold text-gray-700 mb-4 border-l-4 border-blue-500 pl-3">Detalhamento de Custos</h3>
-            <table className="w-full text-sm mb-8 border-collapse">
-              <thead>
-                <tr className="bg-gray-800 text-white">
-                  <th className="p-3 text-left">Descrição</th>
-                  <th className="p-3 text-right">Cenário Atual</th>
-                  <th className="p-3 text-right">Com Bionova</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr className="border-b"><td className="p-3">TUSD (Fio B + Encargos)</td><td className="p-3 text-right">{fmt(resultado.dadosOriginais.valorTusd)}</td><td className="p-3 text-right font-medium">{fmt(resultado.detalhes.novoTusd)}</td></tr>
-                <tr className="border-b"><td className="p-3">TE (Energia Elétrica)</td><td className="p-3 text-right">{fmt(resultado.dadosOriginais.valorTe)}</td><td className="p-3 text-right font-bold text-green-600">0,00</td></tr>
-                <tr className="border-b"><td className="p-3">Bandeira Tarifária</td><td className="p-3 text-right">{fmt(resultado.dadosOriginais.valorBandeira)}</td><td className="p-3 text-right font-bold text-green-600">0,00</td></tr>
-                <tr className="border-b"><td className="p-3">Iluminação Pública</td><td className="p-3 text-right">{fmt(resultado.dadosOriginais.valorIluminacao)}</td><td className="p-3 text-right">{fmt(resultado.dadosOriginais.valorIluminacao)}</td></tr>
-                <tr className="border-b"><td className="p-3">Outros / Multas</td><td className="p-3 text-right">{fmt(resultado.dadosOriginais.valorOutros)}</td><td className="p-3 text-right">{fmt(resultado.dadosOriginais.valorOutros)}</td></tr>
-                <tr className="bg-gray-100 font-bold border-t-2">
-                  <td className="p-3">Fatura Distribuidora (A Pagar)</td><td className="p-3 text-right">{fmt(resultado.faturaAtual)}</td><td className="p-3 text-right">{fmt(resultado.novaFaturaDistribuidora)}</td>
-                </tr>
-                <tr className="bg-blue-50 text-blue-900 font-bold">
-                  <td className="p-3">+ Assinatura Bionova</td><td className="p-3 text-right">-</td><td className="p-3 text-right">{fmt(resultado.pagamentoUsina)}</td>
-                </tr>
-                <tr className="bg-gray-800 text-white text-lg font-bold">
-                  <td className="p-4">TOTAL FINAL</td><td className="p-4 text-right opacity-70 line-through decoration-white">{fmt(resultado.faturaAtual)}</td><td className="p-4 text-right text-green-400">{fmt(resultado.novoCustoTotal)}</td>
-                </tr>
-              </tbody>
-            </table>
-
-            <div className="mt-10 border-t pt-4 text-center text-xs text-gray-400">
-              <p>Bionova Energia Solar - Proposta válida por 10 dias.</p>
-            </div>
-          </div>
+      {/* --- RENDERIZAÇÃO DO PDF ESCONDIDA (USANDO O NOVO COMPONENTE) --- */}
+      <div className="fixed left-[-9999px]">
+        <div ref={pdfTemplateRef}>
+          <PropostaPDF form={form} resultado={resultado} />
         </div>
-      )}
+      </div>
 
     </div>
   );

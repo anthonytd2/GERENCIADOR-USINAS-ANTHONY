@@ -11,6 +11,7 @@
     "start": "node server/index.js"
   },
   "dependencies": {
+    "@hello-pangea/dnd": "^18.0.1",
     "@supabase/supabase-js": "^2.90.0",
     "axios": "^1.13.2",
     "cors": "^2.8.5",

@@ -23,6 +23,8 @@ export default function FormularioUsina() {
             console.log("Dados carregados:", data); // Para diagnóstico
             // Forçamos o preenchimento campo a campo para garantir
             setValue('nome_proprietario', data.nome_proprietario);
+            setValue('cpf_cnpj', data.cpf_cnpj); 
+            setValue('endereco_proprietario', data.endereco_proprietario);
             setValue('potencia', data.potencia);
             setValue('geracao_estimada', data.geracao_estimada);
             setValue('valor_kw_bruto', data.valor_kw_bruto);
@@ -180,6 +182,33 @@ export default function FormularioUsina() {
             <option value="Percentual">Percentual (%)</option>
             <option value="Permuta">Permuta</option>
           </select>
+        </div>
+
+        {/* --- BLOCO NOVO: DADOS PARA CONTRATO --- */}
+        <div className="pt-6 border-t border-gray-100">
+          <h3 className="text-sm font-bold text-gray-900 mb-4 flex items-center gap-2">
+            Dados para Contrato <span className="text-xs font-normal text-gray-500">(Opcional)</span>
+          </h3>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">CPF ou CNPJ</label>
+              <input
+                {...register('cpf_cnpj')}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                placeholder="000.000.000-00"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Endereço Completo</label>
+              <input
+                {...register('endereco_proprietario')}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                placeholder="Rua, Número, Cidade - UF"
+              />
+            </div>
+          </div>
         </div>
 
         {/* OBSERVAÇÃO */}

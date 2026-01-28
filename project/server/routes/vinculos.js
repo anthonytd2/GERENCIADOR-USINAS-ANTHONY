@@ -36,18 +36,27 @@ router.get('/', async (req, res) => {
   }
 });
 
-// 2. BUSCAR UM (COM AS UCs VINCULADAS)
+// 2. BUSCAR UM (COM AS UCs VINCULADAS E DADOS COMPLETOS DO CONSUMIDOR)
 router.get('/:id', async (req, res) => {
   try {
     const { id } = req.params;
 
-    // A. Busca o vínculo principal
+    // A. Busca o vínculo principal com TODOS os dados do consumidor e da usina
     const { data: vinculo, error } = await supabase
       .from('vinculos')
       .select(`
         *,
-        usinas (usina_id, nome_proprietario, tipo, potencia),
-        consumidores (consumidor_id, nome, cidade, uf),
+        usinas (usina_id, nome_proprietario, tipo, potencia, cpf_cnpj, endereco_proprietario),
+        consumidores (
+            consumidor_id, 
+            nome, 
+            documento, 
+            endereco, 
+            bairro, 
+            cidade, 
+            uf, 
+            cep
+        ),
         status (*)
       `)
       .eq('vinculo_id', id)
@@ -56,7 +65,7 @@ router.get('/:id', async (req, res) => {
     if (error) throw error;
     if (!vinculo) return res.status(404).json({ error: 'Vínculo não encontrado' });
 
-    // B. Busca as UCs vinculadas (NOVO!)
+    // B. Busca as UCs vinculadas (Mantido)
     const { data: ucsVinculadas, error: erroUcs } = await supabase
       .from('vinculos_unidades')
       .select(`

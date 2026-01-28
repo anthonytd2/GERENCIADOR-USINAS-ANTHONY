@@ -4,24 +4,20 @@ import { usinaSchema } from '../validators/schemas.js';
 
 const router = express.Router();
 
-// 1. LISTAR TODAS (Código Limpo e Otimizado)
+// 1. LISTAR TODAS
 router.get('/', async (req, res) => {
   try {
-    // Busca Usinas e Vínculos numa única consulta eficiente
     const { data, error } = await supabase
       .from('usinas')
-      .select('*, vinculos(vinculo_id)'); // Traz apenas o ID do vínculo para verificar se está locada
+      .select('*, vinculos(vinculo_id)');
 
     if (error) throw error;
 
-    // Processamento rápido para o status
     const usinasFormatadas = data.map(usina => ({
       ...usina,
-      // Se tiver vínculos ativos, marca como true
       is_locada: usina.vinculos && usina.vinculos.length > 0
     }));
 
-    // Ordenação alfabética
     usinasFormatadas.sort((a, b) => 
       (a.nome_proprietario || '').localeCompare(b.nome_proprietario || '')
     );
@@ -33,13 +29,13 @@ router.get('/', async (req, res) => {
   }
 });
 
-// 2. BUSCAR UMA (Pelo ID padrão)
+// 2. BUSCAR UMA
 router.get('/:id', async (req, res) => {
   try {
     const { data, error } = await supabase
       .from('usinas')
       .select('*')
-      .eq('usina_id', req.params.id) // Nome correto da coluna
+      .eq('usina_id', req.params.id)
       .single();
 
     if (error) throw error;
@@ -55,7 +51,7 @@ router.get('/:id/vinculos', async (req, res) => {
     const { data, error } = await supabase
       .from('vinculos')
       .select('*, consumidores(nome), status(descricao)')
-      .eq('usina_id', req.params.id); // Nome correto da chave estrangeira
+      .eq('usina_id', req.params.id);
 
     if (error) throw error;
     res.json(data);
@@ -64,10 +60,17 @@ router.get('/:id/vinculos', async (req, res) => {
   }
 });
 
-// 4. CRIAR
+// 4. CRIAR (POST) - AQUI ESTÁ A ALTERAÇÃO IMPORTANTE
 router.post('/', async (req, res) => {
   try {
+    // O schema limpa os dados, mas pode estar desatualizado
     const dadosLimpos = usinaSchema.parse(req.body);
+
+    // --- FORÇAR A INCLUSÃO DOS CAMPOS NOVOS ---
+    if (req.body.cpf_cnpj !== undefined) dadosLimpos.cpf_cnpj = req.body.cpf_cnpj;
+    if (req.body.endereco_proprietario !== undefined) dadosLimpos.endereco_proprietario = req.body.endereco_proprietario;
+    // -------------------------------------------
+
     const { data, error } = await supabase
       .from('usinas')
       .insert([dadosLimpos])
@@ -77,16 +80,21 @@ router.post('/', async (req, res) => {
     if (error) throw error;
     res.status(201).json(data);
   } catch (error) {
-    // Trata erro de validação do Zod ou do Banco
     const msg = error.issues ? error.issues.map(i => i.message).join(' | ') : error.message;
     res.status(500).json({ error: msg });
   }
 });
 
-// 5. ATUALIZAR
+// 5. ATUALIZAR (PUT) - AQUI TAMBÉM
 router.put('/:id', async (req, res) => {
   try {
     const dadosLimpos = usinaSchema.partial().parse(req.body);
+
+    // --- FORÇAR A INCLUSÃO DOS CAMPOS NOVOS NA EDIÇÃO ---
+    if (req.body.cpf_cnpj !== undefined) dadosLimpos.cpf_cnpj = req.body.cpf_cnpj;
+    if (req.body.endereco_proprietario !== undefined) dadosLimpos.endereco_proprietario = req.body.endereco_proprietario;
+    // ----------------------------------------------------
+
     const { data, error } = await supabase
       .from('usinas')
       .update(dadosLimpos)

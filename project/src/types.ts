@@ -43,27 +43,27 @@ export interface Consumidor {
   consumidor_id: number;
   nome: string;
   documento?: string; // CPF ou CNPJ
-  
+
   // Contato e Endereço
   endereco?: string;
   bairro?: string;
   cidade?: string;
   uf?: string;
   cep?: string;
-  
+
   // Detalhes Comerciais
   media_consumo?: number;
   percentual_desconto?: number;
   valor_kw?: number;
   tipo_desconto?: 'porcentagem' | 'valor_fixo' | string;
-  
+
   // Contrato
   tempo_contrato_anos?: number;
   inicio_contrato?: string; // Date string
   vencimento_contrato?: string; // Date string
   vendedor?: string;
   observacao?: string;
-  
+
   unidade_consumidora?: string; // Campo legado ou texto livre
 
   // Relacionamento (pode vir populado)
@@ -90,7 +90,7 @@ export interface Usina {
   usina_id: number;
   nome_proprietario: string;
   potencia: number;        // integer no banco
-  tipo: string;           
+  tipo: string;
   valor_kw_bruto: number;
   geracao_estimada: number;
   is_locada?: boolean;
@@ -115,6 +115,10 @@ export interface UsinaFormInput {
   inicio_contrato?: string;
   vencimento_contrato?: string;
   tipo_pagamento?: string;
+
+  // --- ADICIONE ESTAS DUAS LINHAS AQUI ---
+  cpf_cnpj?: string;
+  endereco_proprietario?: string;
 }
 
 // ==========================================
@@ -142,7 +146,7 @@ export interface VinculoDetalhado {
   status?: { descricao: string };
   usinas?: Usina;
   consumidores?: Consumidor;
-  
+
   // Tabela n-pra-n: vinculos_unidades
   unidades_vinculadas?: {
     id: number;
@@ -172,13 +176,13 @@ export interface Fechamento {
   vinculo_id?: number;
   unidade_consumidora_id?: number;
   mes_referencia: string; // date no banco
-  
+
   // Valores Calculados
   energia_compensada: number;
   valor_recebido: number;
   valor_pago: number;
   spread: number;
-  
+
   // Detalhes da Conta
   tarifa_energia?: number;
   custo_fio_b?: number;
@@ -199,7 +203,7 @@ export interface Fechamento {
   // Arquivos
   arquivo_url?: string;
   recibo_url?: string;
-  
+
   created_at?: string;
   updated_at?: string;
 }
@@ -225,7 +229,7 @@ export interface Proposta {
   consumidor_id?: number;
   nome_cliente_prospect?: string;
   concessionaria_id?: number;
-  
+
   dados_simulacao: {
     consumoMedia?: number;
     valorContaAtual?: number;
@@ -234,7 +238,7 @@ export interface Proposta {
     percentualDesconto?: number;
     // Adicione outros campos do JSON conforme necessário
   };
-  
+
   status: string; // 'Rascunho' | 'Enviada' ...
   arquivo_url?: string;
   created_at?: string;

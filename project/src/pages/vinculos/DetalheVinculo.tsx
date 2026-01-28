@@ -4,6 +4,7 @@ import { api } from '../../lib/api';
 import { ArrowLeft, Ban, Zap, DollarSign, Calendar, FileText, CheckCircle, ExternalLink, Activity, AlertTriangle, Pencil } from 'lucide-react';
 import toast from 'react-hot-toast';
 import ModalEditarVinculo from '../../components/ModalEditarVinculo'; // <--- Importamos o modal novo aqui!
+import { gerarContratoComodatoConsumidor } from '../../utils/gerarContratoWord';
 
 interface VinculoDetalhado {
   vinculo_id: number;
@@ -41,7 +42,7 @@ export default function DetalheVinculo() {
   const navigate = useNavigate();
   const [vinculo, setVinculo] = useState<VinculoDetalhado | null>(null);
   const [loading, setLoading] = useState(true);
-  
+
   // Controle do Modal de Edição
   const [modalEdicaoAberto, setModalEdicaoAberto] = useState(false);
 
@@ -121,13 +122,21 @@ export default function DetalheVinculo() {
           <div>
             <div className="flex items-center gap-3 mb-1">
               <h1 className="text-3xl font-bold text-gray-800">Alocação #{vinculo.vinculo_id}</h1>
-              
+
               <span className={`px-3 py-1 text-sm font-bold rounded-full border flex items-center gap-1 ${statusConfig.style}`}>
                 <StatusIcon className="w-4 h-4" /> {statusConfig.label?.toUpperCase()}
               </span>
 
+              {/* BOTÃO GERAR CONTRATO CONSUMIDOR */}
+              <button
+                onClick={() => gerarContratoComodatoConsumidor(vinculo)}
+                className="px-4 py-2 bg-purple-600 text-white border border-purple-700 rounded-lg hover:bg-purple-700 font-medium shadow-sm flex items-center gap-2"
+              >
+                <FileText className="w-4 h-4" /> Comodato Consumidor
+              </button>
+
               {/* BOTÃO DE EDITAR (LÁPIS) */}
-              <button 
+              <button
                 onClick={() => setModalEdicaoAberto(true)}
                 className="p-1.5 bg-gray-100 hover:bg-gray-200 rounded-full text-gray-500 transition-colors border border-gray-200"
                 title="Editar Status e Observações"

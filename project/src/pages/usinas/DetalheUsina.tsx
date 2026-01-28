@@ -1,8 +1,11 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { api } from '../../lib/api';
-import { ArrowLeft, Edit, Trash2, Zap, Link as LinkIcon, CheckCircle, XCircle } from 'lucide-react';
+import { ArrowLeft, Edit, Trash2, Zap, Link as LinkIcon, CheckCircle, XCircle, FileText } from 'lucide-react';
 import GerenciadorDocumentos from '../../components/GerenciadorDocumentos';
+import { gerarContratoComodato, gerarContratoGestaoUsina } from '../../utils/gerarContratoWord';
+import { DollarSign } from 'lucide-react'; // Adicione DollarSign se quiser um ícone de dinheiro
+
 
 export default function DetalheUsina() {
   const { id } = useParams();
@@ -59,9 +62,30 @@ export default function DetalheUsina() {
           </div>
 
           <div className="flex gap-3">
+            {/* BOTÃO COMODATO (JÁ EXISTE) */}
+            <button
+              onClick={() => gerarContratoComodato(usina)}
+              className="px-4 py-2 bg-blue-600 text-white border border-blue-700 rounded-lg hover:bg-blue-700 font-medium shadow-sm flex items-center gap-2"
+            >
+              <FileText className="w-4 h-4" /> Comodato
+            </button>
+
+            {/* --- NOVO BOTÃO: GESTÃO FINANCEIRA --- */}
+            <button
+              onClick={() => gerarContratoGestaoUsina(usina)}
+              className="px-4 py-2 bg-green-600 text-white border border-green-700 rounded-lg hover:bg-green-700 font-medium shadow-sm flex items-center gap-2"
+            >
+              <DollarSign className="w-4 h-4" /> Contrato Gestão
+            </button>
+            {/* ------------------------------------- */}
+
+
+            {/* --- BOTÃO EDITAR --- */}
             <Link to={`/usinas/${id}/editar`} className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium shadow-sm flex items-center gap-2">
               <Edit className="w-4 h-4" /> Editar
             </Link>
+
+            {/* --- BOTÃO EXCLUIR --- */}
             <button onClick={handleDelete} className="px-4 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 font-medium flex items-center gap-2">
               <Trash2 className="w-4 h-4" /> Excluir
             </button>
@@ -149,6 +173,7 @@ export default function DetalheUsina() {
           </div>
         </div>
       </div>
+
       {/* --- ÁREA DO COFRE DE DOCUMENTOS --- */}
       <div className="mt-8">
         <GerenciadorDocumentos tipoEntidade="usina" entidadeId={Number(id)} />

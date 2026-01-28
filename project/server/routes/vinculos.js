@@ -41,7 +41,7 @@ router.get('/:id', async (req, res) => {
   try {
     const { id } = req.params;
 
-    // A. Busca o vínculo principal com TODOS os dados do consumidor e da usina
+    // A. Busca o vínculo principal com TODOS os dados
     const { data: vinculo, error } = await supabase
       .from('vinculos')
       .select(`
@@ -55,7 +55,8 @@ router.get('/:id', async (req, res) => {
             bairro, 
             cidade, 
             uf, 
-            cep
+            cep,
+            percentual_desconto
         ),
         status (*)
       `)
@@ -65,7 +66,7 @@ router.get('/:id', async (req, res) => {
     if (error) throw error;
     if (!vinculo) return res.status(404).json({ error: 'Vínculo não encontrado' });
 
-    // B. Busca as UCs vinculadas (Mantido)
+    // B. Busca as UCs vinculadas (Tabela de ligação)
     const { data: ucsVinculadas, error: erroUcs } = await supabase
       .from('vinculos_unidades')
       .select(`
@@ -77,8 +78,30 @@ router.get('/:id', async (req, res) => {
 
     if (erroUcs) throw erroUcs;
 
-    // C. Junta tudo na resposta
-    res.json({ ...vinculo, unidades_vinculadas: ucsVinculadas });
+    // --- C. LÓGICA INTELIGENTE (FALLBACK) ---
+    // Se não tiver nenhuma UC vinculada especificamente, buscamos TODAS do cliente
+    let listaUcsFinal = ucsVinculadas || [];
+
+    if (listaUcsFinal.length === 0 && vinculo.consumidor_id) {
+       const { data: todasUcs } = await supabase
+         .from('unidades_consumidoras')
+         .select('codigo_uc, endereco, bairro')
+         .eq('consumidor_id', vinculo.consumidor_id)
+         .eq('ativo', true);
+
+       if (todasUcs && todasUcs.length > 0) {
+         // Formatamos para ficar igual ao padrão que o Front espera
+         listaUcsFinal = todasUcs.map(uc => ({
+           id: 0, // ID fictício
+           unidade_consumidora_id: 0,
+           unidades_consumidoras: uc
+         }));
+       }
+    }
+    // ----------------------------------------
+
+    // D. Junta tudo na resposta
+    res.json({ ...vinculo, unidades_vinculadas: listaUcsFinal });
 
   } catch (error) {
     console.error('Erro ao buscar detalhe do vínculo:', error);

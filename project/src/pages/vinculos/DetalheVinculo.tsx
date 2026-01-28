@@ -4,7 +4,7 @@ import { api } from '../../lib/api';
 import { ArrowLeft, Ban, Zap, DollarSign, Calendar, FileText, CheckCircle, ExternalLink, Activity, AlertTriangle, Pencil } from 'lucide-react';
 import toast from 'react-hot-toast';
 import ModalEditarVinculo from '../../components/ModalEditarVinculo'; // <--- Importamos o modal novo aqui!
-import { gerarContratoComodatoConsumidor } from '../../utils/gerarContratoWord';
+import { gerarContratoComodatoConsumidor, gerarContratoGestaoConsumidor } from '../../utils/gerarContratoWord';
 
 interface VinculoDetalhado {
   vinculo_id: number;
@@ -133,6 +133,14 @@ export default function DetalheVinculo() {
                 className="px-4 py-2 bg-purple-600 text-white border border-purple-700 rounded-lg hover:bg-purple-700 font-medium shadow-sm flex items-center gap-2"
               >
                 <FileText className="w-4 h-4" /> Comodato Consumidor
+              </button>
+
+              {/* --- NOVO BOTÃO: GESTÃO FINANCEIRA --- */}
+              <button
+                onClick={() => gerarContratoGestaoConsumidor(vinculo)}
+                className="px-4 py-2 bg-emerald-600 text-white border border-emerald-700 rounded-lg hover:bg-emerald-700 font-medium shadow-sm flex items-center gap-2"
+              >
+                <DollarSign className="w-4 h-4" /> Contrato Gestão
               </button>
 
               {/* BOTÃO DE EDITAR (LÁPIS) */}

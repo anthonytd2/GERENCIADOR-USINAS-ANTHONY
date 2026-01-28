@@ -18,7 +18,7 @@ router.get('/', async (req, res) => {
       is_locada: usina.vinculos && usina.vinculos.length > 0
     }));
 
-    usinasFormatadas.sort((a, b) => 
+    usinasFormatadas.sort((a, b) =>
       (a.nome_proprietario || '').localeCompare(b.nome_proprietario || '')
     );
 
@@ -69,7 +69,7 @@ router.post('/', async (req, res) => {
     // --- FORÇAR A INCLUSÃO DOS CAMPOS NOVOS ---
     if (req.body.cpf_cnpj !== undefined) dadosLimpos.cpf_cnpj = req.body.cpf_cnpj;
     if (req.body.endereco_proprietario !== undefined) dadosLimpos.endereco_proprietario = req.body.endereco_proprietario;
-    // -------------------------------------------
+    if (req.body.rg !== undefined) dadosLimpos.rg = req.body.rg;
 
     const { data, error } = await supabase
       .from('usinas')
@@ -93,7 +93,7 @@ router.put('/:id', async (req, res) => {
     // --- FORÇAR A INCLUSÃO DOS CAMPOS NOVOS NA EDIÇÃO ---
     if (req.body.cpf_cnpj !== undefined) dadosLimpos.cpf_cnpj = req.body.cpf_cnpj;
     if (req.body.endereco_proprietario !== undefined) dadosLimpos.endereco_proprietario = req.body.endereco_proprietario;
-    // ----------------------------------------------------
+    if (req.body.rg !== undefined) dadosLimpos.rg = req.body.rg;
 
     const { data, error } = await supabase
       .from('usinas')

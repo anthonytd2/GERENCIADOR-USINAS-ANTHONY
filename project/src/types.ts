@@ -89,6 +89,10 @@ export interface ConsumidorFormInput {
 export interface Usina {
   usina_id: number;
   nome_proprietario: string;
+  cpf_cnpj?: string;
+  rg?: string;               // <--- NOVO
+  endereco_proprietario?: string;
+  profissao?: string;
   potencia: number;        // integer no banco
   tipo: string;
   valor_kw_bruto: number;
@@ -115,8 +119,7 @@ export interface UsinaFormInput {
   inicio_contrato?: string;
   vencimento_contrato?: string;
   tipo_pagamento?: string;
-
-  // --- ADICIONE ESTAS DUAS LINHAS AQUI ---
+  rg?: string;
   cpf_cnpj?: string;
   endereco_proprietario?: string;
 }

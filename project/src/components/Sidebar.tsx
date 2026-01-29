@@ -1,11 +1,11 @@
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Sun, Users, Link as LinkIcon, FileText, Calculator, LogOut } from 'lucide-react';
+// 1. ADICIONE BarChart3 AQUI NOS IMPORTS
+import { LayoutDashboard, Sun, Users, Link as LinkIcon, FileText, Calculator, LogOut, BarChart3 } from 'lucide-react';
 
 export default function Sidebar() {
   const location = useLocation();
 
   const isActive = (path: string) => {
-    // Verifica se o caminho atual começa com o path do menu
     if (path === '/' && location.pathname !== '/') return false;
     return location.pathname.startsWith(path);
   };
@@ -16,8 +16,9 @@ export default function Sidebar() {
     { icon: Sun, label: 'Usinas', path: '/usinas' },
     { icon: LinkIcon, label: 'Vínculos', path: '/vinculos' },
     { icon: FileText, label: 'Recibos', path: '/recibos' },
-    // CORREÇÃO AQUI: Mudamos de '/simulacoes' para '/propostas' para bater com o App.tsx
     { icon: Calculator, label: 'Simulações', path: '/propostas' },
+    // 2. ITEM NOVO ADICIONADO AQUI
+    { icon: BarChart3, label: 'Relatórios', path: '/relatorios' },
   ];
 
   return (

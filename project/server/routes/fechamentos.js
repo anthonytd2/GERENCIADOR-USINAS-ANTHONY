@@ -3,6 +3,47 @@ import { supabase } from '../db.js';
 
 const router = express.Router();
 
+// --- FUNÇÃO AUXILIAR PARA DESCOBRIR A UNIDADE CONSUMIDORA ---
+async function descobrirUnidadeConsumidora(vinculoId, ucIdInformado) {
+  // Se já veio o ID correto, usa ele
+  if (ucIdInformado) return ucIdInformado;
+
+  // Se não veio ID da UC, mas temos o Vínculo, vamos buscar no banco
+  if (vinculoId) {
+    // 1. Acha o consumidor do vínculo
+    const { data: vinculo } = await supabase
+      .from('vinculos')
+      .select('consumidor_id')
+      .eq('vinculo_id', vinculoId)
+      .single();
+
+    if (vinculo) {
+      // 2. Acha a UC do consumidor
+      const { data: uc } = await supabase
+        .from('unidades_consumidoras')
+        .select('unidade_consumidora_id') // Tenta buscar pelo nome correto
+        .eq('consumidor_id', vinculo.consumidor_id)
+        .limit(1)
+        .single();
+
+      if (uc) return uc.unidade_consumidora_id;
+      
+      // Tentativa extra (caso a coluna se chame apenas 'id')
+      const { data: ucSimples } = await supabase
+        .from('unidades_consumidoras')
+        .select('id')
+        .eq('consumidor_id', vinculo.consumidor_id)
+        .limit(1)
+        .single();
+        
+      if (ucSimples) return ucSimples.id;
+    }
+  }
+  return null; // Não achou nada
+}
+// -----------------------------------------------------------
+
+
 // LISTAR FECHAMENTOS DO VÍNCULO
 router.get('/:vinculoId', async (req, res) => {
   try {
@@ -13,7 +54,7 @@ router.get('/:vinculoId', async (req, res) => {
         unidades_consumidoras (codigo_uc, endereco, bairro)
       `)
       .eq('vinculo_id', req.params.vinculoId)
-      .order('mes_referencia', { ascending: false }); // Atualizado
+      .order('mes_referencia', { ascending: false });
 
     if (error) throw error;
     res.json(data);
@@ -22,18 +63,20 @@ router.get('/:vinculoId', async (req, res) => {
   }
 });
 
+
 // CRIAR (POST)
 router.post('/', async (req, res) => {
   try {
     const body = req.body;
+    
+    // Usa a função inteligente para achar o ID
+    const ucIdParaSalvar = await descobrirUnidadeConsumidora(body.vinculo_id, body.unidade_consumidora_id);
 
-    // Payload limpo com snake_case
     const payload = {
-      unidade_consumidora_id: body.unidade_consumidora_id, // <--- ADICIONE ESTA LINHA
+      unidade_consumidora_id: ucIdParaSalvar, // <--- ID Automático
       vinculo_id: body.vinculo_id,
       mes_referencia: body.mes_referencia,
       energia_compensada: body.energia_compensada,
-
       consumo_rede: body.consumo_rede,
       tarifa_kwh: body.tarifa_kwh,
       total_bruto: body.total_bruto,
@@ -41,7 +84,6 @@ router.post('/', async (req, res) => {
       total_fio_b: body.total_fio_b,
       valor_fatura_geradora: body.valor_fatura_geradora,
       spread: body.spread,
-
       tarifa_com_imposto: body.tarifa_com_imposto,
       iluminacao_publica: body.iluminacao_publica,
       outras_taxas: body.outras_taxas,
@@ -62,20 +104,22 @@ router.post('/', async (req, res) => {
     if (error) throw error;
     res.status(201).json(data);
   } catch (error) {
-    console.error('Erro ao criar fechamento:', error);
+    console.error('Erro ao criar:', error);
     res.status(500).json({ error: error.message });
   }
 });
 
-// ATUALIZAR (PUT)
+
+// ATUALIZAR (PUT) - CORRIGIDO AGORA
 router.put('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const body = req.body; // Aqui pegamos os dados que vieram do Frontend
+    const body = req.body;
 
-    // Atualiza apenas os campos permitidos
+    // 1. Tenta descobrir o ID correto da UC novamente (caso tenha mudado)
+    const ucIdParaSalvar = await descobrirUnidadeConsumidora(body.vinculo_id, body.unidade_consumidora_id);
+
     const payload = {
-      unidade_consumidora_id: body.unidade_consumidora_id, // <--- ADICIONE ESTA LINHA
       mes_referencia: body.mes_referencia,
       energia_compensada: body.energia_compensada,
       consumo_rede: body.consumo_rede,
@@ -91,14 +135,16 @@ router.put('/:id', async (req, res) => {
       valor_pago_fatura: body.valor_pago_fatura,
       economia_gerada: body.economia_gerada,
       valor_recebido: body.valor_recebido,
-
-      // CORREÇÃO AQUI: Tem que ter o "body." na frente
       saldo_acumulado_kwh: body.saldo_acumulado_kwh,
-
       updated_at: new Date()
     };
 
-    // Verifica se tem arquivos para atualizar (opcional)
+    // 2. Só tenta atualizar a Unidade Consumidora se a gente tiver certeza de qual é.
+    // Se for null ou undefined, a gente NÃO manda no update, para manter a que já existe no banco.
+    if (ucIdParaSalvar) {
+      payload.unidade_consumidora_id = ucIdParaSalvar;
+    }
+
     if (body.arquivo_url !== undefined) payload.arquivo_url = body.arquivo_url;
     if (body.recibo_url !== undefined) payload.recibo_url = body.recibo_url;
 
@@ -112,10 +158,11 @@ router.put('/:id', async (req, res) => {
     if (error) throw error;
     res.json(data);
   } catch (error) {
-    console.error('Erro ao atualizar:', error); // Isso ajuda a ver o erro real no terminal
+    console.error('Erro ao atualizar:', error);
     res.status(500).json({ error: error.message });
   }
 });
+
 
 // EXCLUIR
 router.delete('/:id', async (req, res) => {
@@ -123,7 +170,7 @@ router.delete('/:id', async (req, res) => {
     const { error } = await supabase
       .from('fechamentos')
       .delete()
-      .eq('fechamento_id', req.params.id); // Atualizado
+      .eq('fechamento_id', req.params.id);
 
     if (error) throw error;
     res.json({ message: 'Sucesso' });

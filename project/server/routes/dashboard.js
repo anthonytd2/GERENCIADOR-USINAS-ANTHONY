@@ -12,42 +12,50 @@ router.get('/resumo', async (req, res) => {
     }
 
     // 1. Buscando as Contagens (Usinas, Consumidores, Vínculos)
-    // O count: 'exact' conta quantos registros existem na tabela
     const { count: totalUsinas } = await supabase.from('usinas').select('*', { count: 'exact', head: true });
     const { count: totalConsumidores } = await supabase.from('consumidores').select('*', { count: 'exact', head: true });
     const { count: totalVinculos } = await supabase.from('vinculos').select('*', { count: 'exact', head: true });
 
+    // --- NOVO: Buscamos a lista de IDs de Vínculos Ativos para filtrar o lixo ---
+    const { data: listaVinculosAtivos } = await supabase
+      .from('vinculos')
+      .select('vinculo_id');
+    
     // 2. Buscando o Financeiro do Mês
     const dataInicio = `${mes}-01`;
 
-    // --- CORREÇÃO: Calcula se o mês termina dia 28, 29, 30 ou 31 ---
     const [ano, mesNum] = mes.split('-');
     const ultimoDia = new Date(Number(ano), Number(mesNum), 0).getDate();
     const dataFim = `${mes}-${ultimoDia}`;
 
     const { data: fechamentos, error } = await supabase
       .from('fechamentos')
-      .select('valor_recebido, spread')
+      .select('valor_recebido, spread, vinculo_id') // Adicionei vinculo_id para checar
       .gte('mes_referencia', dataInicio)
       .lte('mes_referencia', dataFim);
 
     if (error) throw error;
 
-    // 3. Matemática Financeira (Conta de Padaria para não errar)
-    const financeiro = fechamentos.reduce(
-      (acc, item) => {
-        const entrou = Number(item.valor_recebido) || 0;
-        const sobrou = Number(item.spread) || 0; // Lucro
+    // 3. Matemática Financeira (Com Filtro Anti-Fantasma)
+    const financeiro = fechamentos
+      // FILTRO: Só deixa passar se o vínculo existe na lista de ativos
+      .filter(item => {
+        if (!listaVinculosAtivos) return false;
+        return listaVinculosAtivos.some(v => v.vinculo_id === item.vinculo_id);
+      })
+      .reduce(
+        (acc, item) => {
+          const entrou = Number(item.valor_recebido) || 0;
+          const sobrou = Number(item.spread) || 0; // Lucro
 
-        acc.faturamento += entrou;
-        acc.lucro += sobrou;
-        return acc;
-      },
-      { faturamento: 0, lucro: 0 }
-    );
+          acc.faturamento += entrou;
+          acc.lucro += sobrou;
+          return acc;
+        },
+        { faturamento: 0, lucro: 0 }
+      );
 
-    // O Custo é a diferença: Tudo que entrou MENOS o que sobrou de lucro.
-    // Isso inclui Fio B, Fatura Geradora, Impostos, tudo.
+    // O Custo é a diferença
     const custoReal = financeiro.faturamento - financeiro.lucro;
 
     // 4. Retorna tudo junto
@@ -70,37 +78,35 @@ router.get('/resumo', async (req, res) => {
   }
 });
 
-// --- CORREÇÃO DEFINITIVA: Rota Histórico ---
+// --- Rota Histórico (Com correção de Lixo) ---
 router.get('/historico', async (req, res) => {
   try {
     const hoje = new Date();
     const mesesParaBuscar = [];
 
-    // 1. Gera a lista dos últimos 6 meses (ex: ['2025-08', '2025-09'...])
+    // 1. Gera a lista dos últimos 6 meses
     for (let i = 5; i >= 0; i--) {
-      // Cria uma data voltando 'i' meses
       const d = new Date(hoje.getFullYear(), hoje.getMonth() - i, 1);
-      const mesStr = d.toISOString().slice(0, 7); // Pega só YYYY-MM
+      const mesStr = d.toISOString().slice(0, 7);
       mesesParaBuscar.push(mesStr);
     }
 
-    // 2. Proteção contra datas inválidas (O Bug do dia 31)
-
-    // Data Inicial (Dia 01 é sempre seguro)
+    // 2. Datas de busca
     const inicio = `${mesesParaBuscar[0]}-01`;
-
-    // Data Final (Calcula o último dia real do mês)
     const mesFinal = mesesParaBuscar[5];
     const [anoFim, mesFimNum] = mesFinal.split('-');
-    // O '0' no Date pega o último dia do mês anterior ao índice informado. 
-    // Como mesFimNum é string "02", vira índice 2 (Março). Dia 0 de Março = Fim de Fevereiro.
     const ultimoDiaFim = new Date(Number(anoFim), Number(mesFimNum), 0).getDate();
     const fim = `${mesFinal}-${ultimoDiaFim}`;
+
+    // --- NOVO: Busca Vínculos Ativos para o Histórico também ---
+    const { data: listaVinculosAtivos } = await supabase
+      .from('vinculos')
+      .select('vinculo_id');
 
     // 3. Busca no Banco
     const { data: dados, error } = await supabase
       .from('fechamentos')
-      .select('mes_referencia, valor_recebido, spread')
+      .select('mes_referencia, valor_recebido, spread, vinculo_id')
       .gte('mes_referencia', inicio)
       .lte('mes_referencia', fim);
 
@@ -108,8 +114,17 @@ router.get('/historico', async (req, res) => {
 
     // 4. Organiza os dados para o Gráfico
     const historico = mesesParaBuscar.map(mes => {
-      // Filtra registros do mês atual do loop
-      const registrosDoMes = dados.filter(d => d.mes_referencia && d.mes_referencia.startsWith(mes));
+      // Filtra registros do mês atual E que tenham vínculo ativo
+      const registrosDoMes = dados.filter(d => {
+        const isMesCorreto = d.mes_referencia && d.mes_referencia.startsWith(mes);
+        
+        // FILTRO ANTI-FANTASMA
+        const isVinculoAtivo = listaVinculosAtivos 
+          ? listaVinculosAtivos.some(v => v.vinculo_id === d.vinculo_id) 
+          : false;
+
+        return isMesCorreto && isVinculoAtivo;
+      });
 
       // Soma
       const totais = registrosDoMes.reduce((acc, reg) => ({
@@ -117,10 +132,10 @@ router.get('/historico', async (req, res) => {
         lucro: acc.lucro + (Number(reg.spread) || 0)
       }), { faturamento: 0, lucro: 0 });
 
-      // Formatação da Legenda (Ex: "Jan/26")
-      const dataMes = new Date(mes + '-15'); // Dia 15 para evitar fuso horário
+      // Formatação da Legenda
+      const dataMes = new Date(mes + '-15');
       const nomeMes = dataMes.toLocaleString('pt-BR', { month: 'short' }).replace('.', '');
-      const anoDoMes = mes.split('-')[0].slice(2); // Pega '26' de '2026'
+      const anoDoMes = mes.split('-')[0].slice(2);
 
       return {
         mes: (nomeMes.charAt(0).toUpperCase() + nomeMes.slice(1)) + '/' + anoDoMes,

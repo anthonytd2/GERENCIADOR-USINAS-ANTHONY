@@ -88,6 +88,10 @@ export const api = {
     }
   },
 
+  relatorios: {
+    rentabilidade: (mes: string) => axiosInstance.get(`/relatorios/rentabilidade?mes=${mes}`).then((res: any) => res.data),
+  },
+
   // Mantendo compatibilidade com códigos antigos que chamam 'financeiro' ou 'fechamentos'
   fechamentos: {
     list: (vinculoId: number) => axiosInstance.get(`/fechamentos/${vinculoId}`).then((res: any) => res.data),

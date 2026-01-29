@@ -27,6 +27,8 @@ import GerenciadorRecibos from './pages/recibos/GerenciadorRecibos';
 import ListaPropostas from './pages/propostas/ListaPropostas';
 import NovoSimulador from './pages/propostas/NovoSimulador';
 
+import RelatorioRentabilidade from './pages/relatorios/RelatorioRentabilidade';
+
 function App() {
   return (
     <BrowserRouter>
@@ -65,6 +67,7 @@ function App() {
 
           {/* --- OUTRAS --- */}
           <Route path="/financeiro" element={<FechamentoMensal />} />
+          <Route path="/relatorios" element={<RelatorioRentabilidade />} />
           <Route path="/recibos" element={<GerenciadorRecibos />} />
           
           <Route path="*" element={<Navigate to="/" replace />} />

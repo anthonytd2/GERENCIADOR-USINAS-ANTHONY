@@ -82,8 +82,12 @@ export const api = {
 
   dashboard: {
     getResumo: async (mes: string) => {
-      // mes deve ser "YYYY-MM"
       const response = await axiosInstance.get(`/dashboard/resumo?mes=${mes}`);
+      return response.data;
+    },
+    // --- NOVA FUNÇÃO ---
+    getHistorico: async (ano: string | number) => {
+      const response = await axiosInstance.get(`/dashboard/historico?ano=${ano}`);
       return response.data;
     }
   },

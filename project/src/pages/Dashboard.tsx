@@ -90,7 +90,7 @@ export default function Dashboard() {
         <div className="flex items-center gap-3 bg-white p-2 rounded-xl border border-gray-200 shadow-sm hover:border-blue-300 transition-colors">
           <Calendar size={20} className="text-blue-500 ml-2" />
           <div className="flex flex-col">
-            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Mês dos Cards</span>
+            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Mês de Referência</span>
             <input
               type="month"
               className="text-sm font-bold text-gray-700 outline-none bg-transparent cursor-pointer"

@@ -97,7 +97,7 @@ useEffect(() => {
         <div className="space-y-4">
           <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">Dados Pessoais</h3>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Nome Completo</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Nome Completo (Titular)</label>
             <input
               {...register('nome', { required: true })}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"

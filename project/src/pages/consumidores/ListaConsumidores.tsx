@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../../lib/api';
-import { Plus, Search, Edit, Trash2, MapPin, Zap, User, ArrowRight } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, MapPin, Zap, User, ArrowRight, Wallet } from 'lucide-react';
 import Skeleton from '../../components/Skeleton';
 import toast from 'react-hot-toast';
 import ModalConfirmacao from '../../components/ModalConfirmacao';
@@ -74,13 +74,13 @@ export default function ListaConsumidores() {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
-            <User className="text-blue-600" />
-            Consumidores
+            <User className="text-blue-600 fill-blue-600" />
+            Carteira de Clientes
           </h1>
-          <p className="text-gray-500 mt-1">Gerencie os clientes que recebem créditos de energia.</p>
+          <p className="text-gray-500 mt-1">Gerencie os consumidores que recebem créditos.</p>
         </div>
 
-        {/* BOTÃO NOVO CONSUMIDOR (CORRIGIDO) */}
+        {/* BOTÃO NOVO CONSUMIDOR */}
         <Link
           to="/consumidores/novo"
           className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white font-bold rounded-xl shadow-lg shadow-blue-200 hover:bg-blue-700 hover:-translate-y-1 transition-all"
@@ -96,13 +96,13 @@ export default function ListaConsumidores() {
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
           <input
             type="text"
-            placeholder="Buscar por nome, cidade ou documento..."
+            placeholder="Buscar cliente por nome, cidade ou documento..."
             className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all outline-none font-medium"
             value={busca}
             onChange={e => setBusca(e.target.value)}
           />
         </div>
-        <div className="text-sm text-gray-400 font-medium hidden md:block">
+        <div className="text-sm text-gray-400 font-medium hidden md:block px-2">
           {filtrados.length} {filtrados.length === 1 ? 'cliente encontrado' : 'clientes encontrados'}
         </div>
       </div>
@@ -111,7 +111,7 @@ export default function ListaConsumidores() {
       {loading ? (
         <div className="grid grid-cols-1 gap-4">
           {[1, 2, 3, 4].map(i => (
-            <Skeleton key={i} className="h-24 w-full rounded-2xl" />
+            <Skeleton key={i} className="h-28 w-full rounded-2xl" />
           ))}
         </div>
       ) : filtrados.length === 0 ? (
@@ -128,48 +128,53 @@ export default function ListaConsumidores() {
             <Link 
               to={`/consumidores/${c.consumidor_id}`} 
               key={c.consumidor_id}
-              className="group bg-white p-5 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md hover:border-blue-200 transition-all flex flex-col md:flex-row items-center gap-6"
+              className="group bg-white p-5 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md hover:border-blue-200 transition-all flex flex-col md:flex-row items-center gap-6 relative overflow-hidden"
             >
+              {/* Faixa lateral decorativa (Azul) */}
+              <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-blue-500 group-hover:bg-blue-600 transition-colors"></div>
+
               {/* AVATAR COM INICIAL */}
-              <div className="flex-shrink-0">
-                <div className="w-14 h-14 rounded-full bg-gradient-to-br from-blue-500 to-blue-700 text-white flex items-center justify-center text-xl font-bold shadow-blue-200 shadow-lg">
+              <div className="flex-shrink-0 pl-2">
+                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white flex items-center justify-center text-xl font-bold shadow-lg shadow-blue-100">
                   {c.nome.charAt(0).toUpperCase()}
                 </div>
               </div>
 
               {/* DADOS DO CLIENTE */}
-              <div className="flex-1 text-center md:text-left">
+              <div className="flex-1 text-center md:text-left min-w-[200px]">
                 <h3 className="text-lg font-bold text-gray-900 group-hover:text-blue-700 transition-colors">
                   {c.nome}
                 </h3>
-                <div className="flex flex-wrap items-center justify-center md:justify-start gap-4 mt-2 text-sm text-gray-500">
+                <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 mt-1 text-sm text-gray-500">
                   {c.cidade && (
-                    <span className="flex items-center gap-1 bg-gray-50 px-2 py-1 rounded-md border border-gray-200">
-                      <MapPin className="w-3.5 h-3.5" />
+                    <span className="flex items-center gap-1 bg-gray-50 px-2 py-0.5 rounded-md border border-gray-200">
+                      <MapPin className="w-3 h-3 text-gray-400" />
                       {c.cidade}/{c.uf}
                     </span>
                   )}
                   {c.documento && (
-                    <span className="font-mono text-xs">{c.documento}</span>
+                    <span className="font-mono text-xs text-gray-400 flex items-center gap-1">
+                       <Wallet className="w-3 h-3" />
+                       {c.documento}
+                    </span>
                   )}
                 </div>
               </div>
 
               {/* CONSUMO E INFO FINANCEIRA */}
               <div className="flex flex-col items-center md:items-end min-w-[140px] border-t md:border-t-0 md:border-l border-gray-100 pt-4 md:pt-0 md:pl-6 w-full md:w-auto">
-                <span className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Média Consumo</span>
-                <div className="flex items-center gap-1.5 text-gray-900 font-bold text-lg">
-                  <Zap className="w-4 h-4 text-yellow-500 fill-yellow-500" />
-                  {c.media_consumo?.toLocaleString('pt-BR')} <span className="text-xs text-gray-400 font-normal">kWh</span>
+                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Média Consumo</span>
+                <div className="flex items-center gap-1.5 text-gray-900 font-bold text-xl">
+                  <Zap className="w-5 h-5 text-yellow-500 fill-yellow-500" />
+                  {c.media_consumo?.toLocaleString('pt-BR')} <span className="text-xs text-gray-400 font-normal mt-1">kWh</span>
                 </div>
               </div>
 
- {/* AÇÕES RÁPIDAS (Sempre Visíveis) */}
+              {/* AÇÕES RÁPIDAS (Sempre Visíveis) */}
               <div className="flex items-center gap-2 border-l pl-4 ml-4 border-gray-100">
                  <button 
                   onClick={(e) => {
                     e.preventDefault();
-                    // Navega para edição
                     window.location.href = `/consumidores/${c.consumidor_id}/editar`;
                   }}
                   className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"

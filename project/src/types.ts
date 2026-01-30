@@ -43,34 +43,24 @@ export interface Consumidor {
   consumidor_id: number;
   nome: string;
   documento?: string; // CPF ou CNPJ
-
-  // Contato e Endereço
   endereco?: string;
   bairro?: string;
   cidade?: string;
   uf?: string;
   cep?: string;
-
-  // Detalhes Comerciais
   media_consumo?: number;
   percentual_desconto?: number;
   valor_kw?: number;
   tipo_desconto?: 'porcentagem' | 'valor_fixo' | string;
-
-  // Contrato
   tempo_contrato_anos?: number;
   inicio_contrato?: string; // Date string
   vencimento_contrato?: string; // Date string
   vendedor?: string;
   observacao?: string;
-
   unidade_consumidora?: string; // Campo legado ou texto livre
-
-  // Relacionamento (pode vir populado)
   unidades_consumidoras_lista?: UnidadeConsumidora[];
 }
 
-// Formulário de Criação
 export interface ConsumidorFormInput {
   nome: string;
   documento?: string;
@@ -84,16 +74,19 @@ export interface ConsumidorFormInput {
 }
 
 // ==========================================
-// 5. USINAS (GERADORES)
+// 5. USINAS (ATUALIZADO)
 // ==========================================
 export interface Usina {
   usina_id: number;
   nome_proprietario: string;
   cpf_cnpj?: string;
-  rg?: string;               // <--- NOVO
+  rg?: string;              
   endereco_proprietario?: string;
+  telefone?: string; // <--- NOVO
+  email?: string;    // <--- NOVO
+  numero_uc?: string;
   profissao?: string;
-  potencia: number;        // integer no banco
+  potencia: number;        
   tipo: string;
   valor_kw_bruto: number;
   geracao_estimada: number;
@@ -104,9 +97,10 @@ export interface Usina {
   observacao?: string;
   tipo_remuneracao?: 'energia_consumida' | 'energia_injetada' | string;
   valor_kwh_custo?: number;
+  
 }
 
-// Formulário de Criação
+// Formulário de Criação/Edição de Usina
 export interface UsinaFormInput {
   nome_proprietario: string;
   potencia: number | string;
@@ -122,6 +116,9 @@ export interface UsinaFormInput {
   rg?: string;
   cpf_cnpj?: string;
   endereco_proprietario?: string;
+  telefone?: string; // <--- NOVO
+  email?: string;    // <--- NOVO
+  numero_uc?: string;
 }
 
 // ==========================================

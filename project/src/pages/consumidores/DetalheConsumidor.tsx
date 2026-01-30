@@ -91,12 +91,12 @@ export default function DetalheConsumidor() {
             <h1 className="text-3xl font-bold text-gray-900">{consumidor.nome}</h1>
             <div className="flex items-center gap-2 text-gray-500 mt-1">
               <FileText className="w-4 h-4" />
-              <span>{consumidor.documento || 'Sem documento'} (Matriz)</span>
+
             </div>
           </div>
           <div className="flex gap-2">
             <Link to={`/consumidores/${id}/editar`} className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 flex items-center gap-2">
-              <Edit className="w-4 h-4" /> Editar Matriz
+              <Edit className="w-4 h-4" /> Editar
             </Link>
             <button onClick={handleDelete} className="px-4 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 flex items-center gap-2">
               <Trash2 className="w-4 h-4" /> Excluir
@@ -141,7 +141,7 @@ export default function DetalheConsumidor() {
       <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 mb-8">
         <div className="flex justify-between items-center mb-6">
           <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-            <Building2 className="w-5 h-5 text-purple-600" /> Unidades Consumidoras (Filiais)
+            <Building2 className="w-5 h-5 text-purple-600" /> Unidades Consumidoras
           </h3>
           <button onClick={() => setShowModalUC(true)} className="px-3 py-1.5 bg-purple-600 text-white text-sm font-bold rounded-lg hover:bg-purple-700 flex items-center gap-1">
             <Plus className="w-4 h-4" /> Nova UC
@@ -149,7 +149,7 @@ export default function DetalheConsumidor() {
         </div>
 
         {unidades.length === 0 ? (
-          <p className="text-gray-500 text-center py-4 bg-gray-50 rounded-lg">Nenhuma filial cadastrada.</p>
+          <p className="text-gray-500 text-center py-4 bg-gray-50 rounded-lg">Nenhuma cadastrada.</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm text-left">

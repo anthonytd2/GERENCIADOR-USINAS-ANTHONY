@@ -60,16 +60,10 @@ router.get('/:id/vinculos', async (req, res) => {
   }
 });
 
-// 4. CRIAR (POST) - AQUI ESTÁ A ALTERAÇÃO IMPORTANTE
+// 4. CRIAR (POST)
 router.post('/', async (req, res) => {
   try {
-    // O schema limpa os dados, mas pode estar desatualizado
     const dadosLimpos = usinaSchema.parse(req.body);
-
-    // --- FORÇAR A INCLUSÃO DOS CAMPOS NOVOS ---
-    if (req.body.cpf_cnpj !== undefined) dadosLimpos.cpf_cnpj = req.body.cpf_cnpj;
-    if (req.body.endereco_proprietario !== undefined) dadosLimpos.endereco_proprietario = req.body.endereco_proprietario;
-    if (req.body.rg !== undefined) dadosLimpos.rg = req.body.rg;
 
     const { data, error } = await supabase
       .from('usinas')
@@ -77,23 +71,22 @@ router.post('/', async (req, res) => {
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {
+      console.error("ERRO SUPABASE (CRIAR):", error.message); // <--- Mostra o erro real no terminal
+      throw error;
+    }
     res.status(201).json(data);
   } catch (error) {
+    console.error("ERRO SERVIDOR (CRIAR):", error);
     const msg = error.issues ? error.issues.map(i => i.message).join(' | ') : error.message;
     res.status(500).json({ error: msg });
   }
 });
 
-// 5. ATUALIZAR (PUT) - AQUI TAMBÉM
+// 5. ATUALIZAR (PUT)
 router.put('/:id', async (req, res) => {
   try {
     const dadosLimpos = usinaSchema.partial().parse(req.body);
-
-    // --- FORÇAR A INCLUSÃO DOS CAMPOS NOVOS NA EDIÇÃO ---
-    if (req.body.cpf_cnpj !== undefined) dadosLimpos.cpf_cnpj = req.body.cpf_cnpj;
-    if (req.body.endereco_proprietario !== undefined) dadosLimpos.endereco_proprietario = req.body.endereco_proprietario;
-    if (req.body.rg !== undefined) dadosLimpos.rg = req.body.rg;
 
     const { data, error } = await supabase
       .from('usinas')
@@ -102,9 +95,13 @@ router.put('/:id', async (req, res) => {
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {
+      console.error("ERRO SUPABASE (ATUALIZAR):", error.message); // <--- Mostra o erro real no terminal
+      throw error;
+    }
     res.json(data);
   } catch (error) {
+    console.error("ERRO SERVIDOR (ATUALIZAR):", error);
     res.status(500).json({ error: error.message });
   }
 });

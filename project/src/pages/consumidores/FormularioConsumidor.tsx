@@ -11,16 +11,19 @@ export default function FormularioConsumidor() {
   const { register, handleSubmit, setValue, formState: { errors } } = useForm();
   const [loading, setLoading] = useState(false);
 
-useEffect(() => {
+  // --- NOVO: Estado para controlar qual campo aparece ---
+  // Começa como 'desconto' por padrão
+  const [tipoCobranca, setTipoCobranca] = useState<'desconto' | 'fixo'>('desconto');
+
+  useEffect(() => {
     if (id && id !== 'novo') {
-      // Opcional: Mostra que está a carregar
       const toastId = toast.loading('Carregando dados...');
 
       api.consumidores.get(Number(id))
         .then(data => {
           if (data) {
             setValue('nome', data.nome);
-            setValue('documento', data.documento);
+            setValue('documento', data.documento); // Ajuste se seu backend usa cpf_cnpj
             setValue('cep', data.cep);
             setValue('endereco', data.endereco);
             setValue('bairro', data.bairro);
@@ -30,13 +33,19 @@ useEffect(() => {
             setValue('valor_kw', data.valor_kw);
             setValue('percentual_desconto', data.percentual_desconto);
             setValue('observacao', data.observacao);
-            
-            // Remove o aviso de carregando se deu certo
+
+            // --- LÓGICA INTELIGENTE: Descobre qual o tipo de cobrança desse cliente ---
+            // Se ele tem Valor kW definido e Desconto zerado, é FIXO. Caso contrário, é DESCONTO.
+            if (Number(data.valor_kw) > 0 && Number(data.percentual_desconto) === 0) {
+              setTipoCobranca('fixo');
+            } else {
+              setTipoCobranca('desconto');
+            }
+
             toast.dismiss(toastId);
           }
-        }) // <--- FECHA O .then AQUI
+        })
         .catch(() => {
-          // O .catch fica AQUI FORA
           toast.error('Erro ao carregar dados do consumidor.', { id: toastId });
         });
     }
@@ -44,37 +53,45 @@ useEffect(() => {
 
   const onSubmit = async (data: any) => {
     setLoading(true);
-    // 1. Feedback imediato (Carregando)
     const toastId = toast.loading('Salvando consumidor...');
 
     try {
-      // Conversão segura de números
+      // --- LIMPEZA DE DADOS ANTES DE SALVAR ---
+      // Se escolheu 'desconto', forçamos o valor_kw a ser 0 (para não salvar lixo)
+      // Se escolheu 'fixo', forçamos o desconto a ser 0
+      let valorFinalKw = 0;
+      let valorFinalDesconto = 0;
+
+      if (tipoCobranca === 'fixo') {
+        valorFinalKw = Number(data.valor_kw) || 0;
+        valorFinalDesconto = 0;
+      } else {
+        valorFinalKw = 0; // Opcional: ou mantém 0 se for desconto
+        valorFinalDesconto = Number(data.percentual_desconto) || 0;
+      }
+
       const payload = {
         ...data,
         media_consumo: Number(data.media_consumo) || 0,
-        valor_kw: Number(data.valor_kw) || 0,
-        percentual_desconto: Number(data.percentual_desconto) || 0,
+        valor_kw: valorFinalKw,
+        percentual_desconto: valorFinalDesconto,
       };
 
       if (id && id !== 'novo') {
         await api.consumidores.update(Number(id), payload);
-        // 2. Sucesso na Edição
         toast.success('Consumidor atualizado com sucesso!', { id: toastId });
       } else {
         await api.consumidores.create(payload);
-        // 3. Sucesso na Criação
         toast.success('Consumidor criado com sucesso!', { id: toastId });
       }
 
-      // 4. Espera um pouquinho para o usuário ler antes de sair
       setTimeout(() => {
         navigate('/consumidores');
       }, 1000);
 
     } catch (error) {
       console.error(error);
-      // 5. Erro
-      toast.error('Erro ao salvar consumidor. Verifique os dados.', { id: toastId });
+      toast.error('Erro ao salvar consumidor.', { id: toastId });
     } finally {
       setLoading(false);
     }
@@ -142,23 +159,82 @@ useEffect(() => {
           </div>
         </div>
 
-        {/* DADOS COMERCIAIS */}
+        {/* --- DADOS COMERCIAIS (MODIFICADO) --- */}
         <div className="space-y-4">
           <h3 className="text-lg font-semibold text-gray-900 border-b pb-2 pt-2">Dados Comerciais</h3>
+
           <div className="grid grid-cols-2 gap-4">
+            {/* Campo Média de Consumo (Sempre visível) */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Média Consumo (kWh)</label>
-              <input type="number" step="0.01" {...register('media_consumo')} className="w-full px-4 py-2 border border-gray-300 rounded-lg" />
+              <input
+                type="number"
+                step="0.01"
+                {...register('media_consumo')}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+              />
             </div>
+
+            {/* SELETOR DE TIPO DE COBRANÇA */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Valor kW (R$)</label>
-              <input type="number" step="0.01" {...register('valor_kw')} className="w-full px-4 py-2 border border-gray-300 rounded-lg" />
+              <label className="block text-sm font-medium text-gray-700 mb-1">Forma de Cobrança</label>
+              <select
+                value={tipoCobranca}
+                onChange={(e) => {
+                  setTipoCobranca(e.target.value as 'desconto' | 'fixo');
+                  // Quando troca, limpa o campo oposto visualmente (opcional, mas bom pra UX)
+                  if (e.target.value === 'desconto') setValue('valor_kw', '');
+                  else setValue('percentual_desconto', '');
+                }}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 cursor-pointer hover:border-blue-400 transition-colors"
+              >
+                <option value="desconto">Aplicar Desconto (%)</option>
+                <option value="fixo">Valor Fixo do kWh (R$)</option>
+              </select>
             </div>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Desconto (%)</label>
-            <input type="number" step="0.01" {...register('percentual_desconto')} className="w-full px-4 py-2 border border-gray-300 rounded-lg" />
+
+          {/* CAMPOS CONDICIONAIS */}
+          <div className="p-4 bg-gray-50 rounded-xl border border-gray-100 animate-fade-in-down">
+            {tipoCobranca === 'desconto' ? (
+              // --- CENÁRIO A: DESCONTO (%) ---
+              <div>
+                <label className="block text-sm font-bold text-blue-700 mb-1">Percentual de Desconto Garantido (%)</label>
+                <div className="relative">
+                  <input
+                    type="number"
+                    step="0.01"
+                    placeholder="Ex: 15"
+                    {...register('percentual_desconto')}
+                    className="w-full pl-4 pr-12 py-3 border-2 border-blue-100 rounded-lg focus:border-blue-500 focus:ring-0 text-lg font-bold text-gray-700"
+                  />
+                  <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none">
+                    <span className="text-gray-400 font-bold">%</span>
+                  </div>
+                </div>
+                <p className="text-xs text-gray-500 mt-1">O cliente pagará a tarifa da concessionária menos esse desconto.</p>
+              </div>
+            ) : (
+              // --- CENÁRIO B: VALOR FIXO (R$) ---
+              <div>
+                <label className="block text-sm font-bold text-green-700 mb-1">Valor Fixo do kWh (R$)</label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                    <span className="text-gray-400 font-bold">R$</span>
+                  </div>
+                  <input
+                    type="number"
+                    step="0.0001"
+                    placeholder="Ex: 0.85"
+                    {...register('valor_kw')}
+                    className="w-full pl-12 pr-4 py-3 border-2 border-green-100 rounded-lg focus:border-green-500 focus:ring-0 text-lg font-bold text-gray-700"
+                  />
+                </div>
+                <p className="text-xs text-gray-500 mt-1">O cliente pagará exatamente esse valor por cada kWh compensado.</p>
+              </div>
+            )}
           </div>
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Observações</label>
             <textarea {...register('observacao')} rows={3} className="w-full px-4 py-2 border border-gray-300 rounded-lg"></textarea>

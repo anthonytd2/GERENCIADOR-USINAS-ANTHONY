@@ -1,26 +1,30 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../../lib/api';
-import { Plus, Search, Edit, Trash2, MapPin, Zap } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, MapPin, Zap, User, ArrowRight } from 'lucide-react';
 import Skeleton from '../../components/Skeleton';
-import toast from 'react-hot-toast'; // <--- Adicionar
-import ModalConfirmacao from '../../components/ModalConfirmacao'; // <--- Adicionar
-// Interface atualizada para o novo padrão do banco
+import toast from 'react-hot-toast';
+import ModalConfirmacao from '../../components/ModalConfirmacao';
+
 interface Consumidor {
   consumidor_id: number;
   nome: string;
   cidade: string;
   uf: string;
   media_consumo: number;
-  status?: string; // Opcional, caso venha do banco
+  status?: string;
+  documento?: string; // CPF/CNPJ opcional
 }
 
 export default function ListaConsumidores() {
   const [consumidores, setConsumidores] = useState<Consumidor[]>([]);
   const [loading, setLoading] = useState(true);
   const [busca, setBusca] = useState('');
+  
+  // Controle de Modal de Exclusão
   const [modalAberto, setModalAberto] = useState(false);
   const [idParaExcluir, setIdParaExcluir] = useState<number | null>(null);
+
   const loadConsumidores = () => {
     setLoading(true);
     api.consumidores.list()
@@ -35,138 +39,172 @@ export default function ListaConsumidores() {
     loadConsumidores();
   }, []);
 
-  // 1. Apenas abre a janela
-  const solicitarExclusao = (id: number) => {
+  // --- Lógica de Exclusão ---
+  const solicitarExclusao = (id: number, e: React.MouseEvent) => {
+    e.preventDefault(); // Evita navegar ao clicar na lixeira
+    e.stopPropagation();
     setIdParaExcluir(id);
     setModalAberto(true);
   };
 
-  // 2. Confirma e deleta de verdade
   const confirmarExclusao = async () => {
     if (!idParaExcluir) return;
     try {
       await api.consumidores.delete(idParaExcluir);
-      toast.success('Consumidor excluído com sucesso!'); // Feedback Verde
+      toast.success('Consumidor excluído com sucesso!');
       loadConsumidores();
     } catch (error) {
-      toast.error('Erro ao excluir. Verifique se existem vínculos ativos.'); // Feedback Vermelho
+      toast.error('Não foi possível excluir. Verifique se existem vínculos ativos.');
     } finally {
       setModalAberto(false);
       setIdParaExcluir(null);
     }
   };
 
+  // Filtro de Busca
   const filtrados = consumidores.filter(c =>
     c.nome.toLowerCase().includes(busca.toLowerCase()) ||
     (c.cidade && c.cidade.toLowerCase().includes(busca.toLowerCase()))
   );
 
   return (
-    <div>
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+    <div className="space-y-6 animate-fade-in-down pb-20">
+      
+      {/* CABEÇALHO */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h2 className="text-3xl font-bold text-brand-dark">Consumidores</h2>
-          <p className="text-gray-500 mt-1">Gerencie sua carteira de clientes</p>
+          <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
+            <User className="text-blue-600" />
+            Consumidores
+          </h1>
+          <p className="text-gray-500 mt-1">Gerencie os clientes que recebem créditos de energia.</p>
         </div>
+
+        {/* BOTÃO NOVO CONSUMIDOR (CORRIGIDO) */}
         <Link
           to="/consumidores/novo"
-          className="flex items-center gap-2 px-5 py-3 bg-brand-DEFAULT text-white rounded-xl hover:bg-brand-dark shadow-lg shadow-blue-900/20 transition-all hover:-translate-y-1"
+          className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white font-bold rounded-xl shadow-lg shadow-blue-200 hover:bg-blue-700 hover:-translate-y-1 transition-all"
         >
           <Plus className="w-5 h-5" />
           <span>Novo Consumidor</span>
         </Link>
       </div>
 
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-        {/* Barra de Busca */}
-        <div className="p-4 border-b border-gray-100 bg-gray-50/50">
-          <div className="relative max-w-md">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
-            <input
-              type="text"
-              placeholder="Buscar por nome ou cidade..."
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-DEFAULT focus:border-transparent"
-              value={busca}
-              onChange={e => setBusca(e.target.value)}
-            />
-          </div>
+      {/* BARRA DE BUSCA E FILTROS */}
+      <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-4">
+        <div className="relative flex-1 max-w-lg">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
+          <input
+            type="text"
+            placeholder="Buscar por nome, cidade ou documento..."
+            className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all outline-none font-medium"
+            value={busca}
+            onChange={e => setBusca(e.target.value)}
+          />
         </div>
-
-        {loading ? (
-          <div className="p-6 space-y-4">
-            {[1, 2, 3].map(i => (
-              <Skeleton key={i} className="h-16 w-full rounded-xl" />
-            ))}
-          </div>
-        ) : filtrados.length === 0 ? (
-          <div className="p-12 text-center text-gray-500">
-            Nenhum consumidor encontrado.
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-100">
-              <thead className="bg-slate-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Cliente</th>
-                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Localização</th>
-                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Média Consumo</th>
-                  <th className="px-6 py-3 text-right text-xs font-bold text-gray-500 uppercase">Ações</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {filtrados.map((c) => (
-                  <tr key={c.consumidor_id} className="hover:bg-slate-50 transition-colors group">
-                    <td className="px-6 py-4">
-                      <Link to={`/consumidores/${c.consumidor_id}`} className="flex items-center gap-3">
-                        <div className="h-10 w-10 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-sm">
-                          {c.nome.charAt(0).toUpperCase()}
-                        </div>
-                        <div className="font-semibold text-gray-900 group-hover:text-blue-600">
-                          {c.nome}
-                        </div>
-                      </Link>
-                    </td>
-                    <td className="px-6 py-4 text-gray-600">
-                      <div className="flex items-center gap-1">
-                        <MapPin className="w-4 h-4 text-gray-400" />
-                        {c.cidade ? `${c.cidade}/${c.uf}` : '-'}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-1 font-medium text-gray-900">
-                        <Zap className="w-4 h-4 text-yellow-500" />
-                        {c.media_consumo?.toLocaleString('pt-BR')} kWh
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <div className="flex justify-end gap-2">
-                        <Link to={`/consumidores/${c.consumidor_id}/editar`} className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg">
-                          <Edit className="w-5 h-5" />
-                        </Link>
-                        <button onClick={() => solicitarExclusao(c.consumidor_id)} className="p-2 text-red-500 hover:bg-red-50 rounded-lg">
-                          <Trash2 className="w-5 h-5" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+        <div className="text-sm text-gray-400 font-medium hidden md:block">
+          {filtrados.length} {filtrados.length === 1 ? 'cliente encontrado' : 'clientes encontrados'}
+        </div>
       </div>
 
-      {/* Componente Modal */}
+      {/* LISTA DE CARDS (VISUAL MODERNO) */}
+      {loading ? (
+        <div className="grid grid-cols-1 gap-4">
+          {[1, 2, 3, 4].map(i => (
+            <Skeleton key={i} className="h-24 w-full rounded-2xl" />
+          ))}
+        </div>
+      ) : filtrados.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-16 bg-white rounded-3xl border border-dashed border-gray-300 text-center">
+          <div className="bg-gray-50 p-4 rounded-full mb-4">
+            <User className="w-8 h-8 text-gray-400" />
+          </div>
+          <h3 className="text-lg font-bold text-gray-900">Nenhum consumidor encontrado</h3>
+          <p className="text-gray-500 max-w-xs mt-2">Tente buscar por outro termo ou cadastre um novo cliente.</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 gap-4">
+          {filtrados.map((c) => (
+            <Link 
+              to={`/consumidores/${c.consumidor_id}`} 
+              key={c.consumidor_id}
+              className="group bg-white p-5 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md hover:border-blue-200 transition-all flex flex-col md:flex-row items-center gap-6"
+            >
+              {/* AVATAR COM INICIAL */}
+              <div className="flex-shrink-0">
+                <div className="w-14 h-14 rounded-full bg-gradient-to-br from-blue-500 to-blue-700 text-white flex items-center justify-center text-xl font-bold shadow-blue-200 shadow-lg">
+                  {c.nome.charAt(0).toUpperCase()}
+                </div>
+              </div>
+
+              {/* DADOS DO CLIENTE */}
+              <div className="flex-1 text-center md:text-left">
+                <h3 className="text-lg font-bold text-gray-900 group-hover:text-blue-700 transition-colors">
+                  {c.nome}
+                </h3>
+                <div className="flex flex-wrap items-center justify-center md:justify-start gap-4 mt-2 text-sm text-gray-500">
+                  {c.cidade && (
+                    <span className="flex items-center gap-1 bg-gray-50 px-2 py-1 rounded-md border border-gray-200">
+                      <MapPin className="w-3.5 h-3.5" />
+                      {c.cidade}/{c.uf}
+                    </span>
+                  )}
+                  {c.documento && (
+                    <span className="font-mono text-xs">{c.documento}</span>
+                  )}
+                </div>
+              </div>
+
+              {/* CONSUMO E INFO FINANCEIRA */}
+              <div className="flex flex-col items-center md:items-end min-w-[140px] border-t md:border-t-0 md:border-l border-gray-100 pt-4 md:pt-0 md:pl-6 w-full md:w-auto">
+                <span className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Média Consumo</span>
+                <div className="flex items-center gap-1.5 text-gray-900 font-bold text-lg">
+                  <Zap className="w-4 h-4 text-yellow-500 fill-yellow-500" />
+                  {c.media_consumo?.toLocaleString('pt-BR')} <span className="text-xs text-gray-400 font-normal">kWh</span>
+                </div>
+              </div>
+
+ {/* AÇÕES RÁPIDAS (Sempre Visíveis) */}
+              <div className="flex items-center gap-2 border-l pl-4 ml-4 border-gray-100">
+                 <button 
+                  onClick={(e) => {
+                    e.preventDefault();
+                    // Navega para edição
+                    window.location.href = `/consumidores/${c.consumidor_id}/editar`;
+                  }}
+                  className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                  title="Editar"
+                >
+                  <Edit className="w-5 h-5" />
+                </button>
+                <button 
+                  onClick={(e) => solicitarExclusao(c.consumidor_id, e)}
+                  className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                  title="Excluir"
+                >
+                  <Trash2 className="w-5 h-5" />
+                </button>
+                
+                {/* Seta para entrar no detalhe */}
+                <div className="p-2 text-blue-500 hover:bg-blue-50 rounded-lg transition-colors">
+                  <ArrowRight className="w-5 h-5" />
+                </div>
+              </div>
+            </Link>
+          ))}
+        </div>
+      )}
+
+      {/* Modal de Confirmação */}
       <ModalConfirmacao
         isOpen={modalAberto}
         onClose={() => setModalAberto(false)}
         onConfirm={confirmarExclusao}
         title="Excluir Consumidor"
-        message="Tem certeza que deseja excluir este consumidor? Se ele tiver vínculos ativos, a operação será bloqueada."
+        message="Tem certeza absoluta? Essa ação não pode ser desfeita e removerá o histórico deste cliente se não houver vínculos."
         isDestructive={true}
-        confirmText="Sim, Excluir"
+        confirmText="Sim, Excluir Definitivamente"
       />
-
     </div>
   );
 }

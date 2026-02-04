@@ -46,11 +46,18 @@ export const api = {
     get: (id: number) => axiosInstance.get(`/vinculos/${id}`).then((res: any) => res.data),
     create: (data: any) => axiosInstance.post('/vinculos', data).then((res: any) => res.data),
     update: (id: number, data: any) => axiosInstance.put(`/vinculos/${id}`, data).then((res: any) => res.data),
-
-    // Função Especial para Encerrar Contrato
     encerrar: (id: number, dataFim: string) => axiosInstance.put(`/vinculos/${id}/encerrar`, { data_fim: dataFim }).then((res: any) => res.data),
-
     delete: (id: number) => axiosInstance.delete(`/vinculos/${id}`).then((res: any) => res.data),
+    getAuditorias: (id: number) => axiosInstance.get(`/vinculos/${id}/auditorias`).then((res: any) => res.data),
+    createAuditoria: (id: number, data: any) => axiosInstance.post(`/vinculos/${id}/auditorias`, data).then((res: any) => res.data),
+    updateAuditoria: (auditoriaId: number, data: any) => axiosInstance.put(`/vinculos/auditorias/${auditoriaId}`, data).then((res: any) => res.data),
+    deleteAuditoria: (auditoriaId: number) => axiosInstance.delete(`/vinculos/auditorias/${auditoriaId}`).then((res: any) => res.data),
+    addUnidadeRateio: (id: number, data: { unidade_consumidora_id: number, percentual_rateio: number }) =>
+      axiosInstance.post(`/vinculos/${id}/unidades`, data).then((res: any) => res.data),
+    updateUnidadeRateio: (linkId: number, percentual: number) =>
+      axiosInstance.put(`/vinculos/unidades_vinculadas/${linkId}`, { percentual_rateio: percentual }).then((res: any) => res.data),
+    removeUnidadeRateio: (linkId: number) =>
+      axiosInstance.delete(`/vinculos/unidades_vinculadas/${linkId}`).then((res: any) => res.data),
   },
 
   status: {

@@ -2,7 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast'; // <--- IMPORTANTE
 import Layout from './components/Layout';
 import Dashboard from './pages/Dashboard';
-
+import AuditoriaPage from './pages/vinculos/AuditoriaPage';
 // Usinas
 import ListaUsinas from './pages/usinas/ListaUsinas';
 import FormularioUsina from './pages/usinas/FormularioUsina';
@@ -54,7 +54,7 @@ function App() {
           <Route path="/vinculos/novo" element={<FormularioVinculo />} />
           <Route path="/vinculos/:id" element={<DetalheVinculo />} />
           <Route path="/vinculos/:id/financeiro" element={<FinanceiroVinculo />} />
-
+          <Route path="/vinculos/:id/auditoria" element={<AuditoriaPage />} />
           {/* --- ROTAS DE PROPOSTAS (CORRIGIDO) --- */}
           {/* Lista */}
           <Route path="/propostas" element={<ListaPropostas />} />

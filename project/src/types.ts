@@ -262,3 +262,76 @@ export interface Recibo {
   referencia?: string;
   link_pdf?: string;
 }
+
+export interface AuditoriaVinculo {
+  id: number;
+  vinculo_id: number;
+  mes_referencia: string;
+  
+  // Dados da Usina
+  data_leitura_gerador?: string;
+  
+  // --- CAMPO QUE FALTAVA (LEGADO) ---
+  data_leitura_consumidor?: string; 
+  // ----------------------------------
+
+  geracao_usina: number;
+  consumo_proprio_usina: number;
+
+  // Dados Totais (Esses campos existem no Pai como somatória ou legado)
+  saldo_anterior: number;
+  creditos_injetados: number;
+  creditos_consumidos: number;
+  saldo_final: number;
+
+  // Lista de Faturas (Novo Sistema)
+  faturas?: AuditoriaFatura[]; 
+
+  status: string;
+  observacao?: string;
+  created_at?: string;
+}
+
+export interface AuditoriaFormInput {
+  mes_referencia: string;
+  geracao_total: number | string;
+  consumo_proprio_usina: number | string;
+  energia_injetada_fatura: number | string;
+  consumo_rede_fatura: number | string;
+  saldo_acumulado_fatura: number | string;
+  observacao?: string;
+}
+
+export interface AuditoriaFatura {
+  id?: number;
+  unidade_id: number;
+  percentual_aplicado: number;
+  
+  // Campos visuais (vindos do join)
+  codigo_uc?: string;
+  endereco?: string;
+  unidades_consumidoras?: {
+    codigo_uc: string;
+    endereco: string;
+  };
+
+  data_leitura?: string;
+  saldo_anterior: number;
+  creditos_injetados: number;
+  creditos_consumidos: number;
+  saldo_final: number;
+}
+
+export interface UnidadeVinculada {
+  id: number; // ID do vínculo da unidade
+  vinculo_id: number;
+  unidade_consumidora_id: number;
+  percentual_rateio: number; // <--- NOVO
+  unidades_consumidoras: {
+    id: number;
+    codigo_uc: string;
+    endereco: string;
+    bairro: string;
+    cidade?: string;
+  };
+}

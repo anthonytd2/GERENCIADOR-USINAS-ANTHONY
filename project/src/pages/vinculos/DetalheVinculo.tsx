@@ -1,10 +1,14 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { api } from '../../lib/api';
-import { ArrowLeft, Ban, Zap, DollarSign, Calendar, FileText, CheckCircle, ExternalLink, Activity, AlertTriangle, Pencil } from 'lucide-react';
+import { 
+  ArrowLeft, Ban, Zap, DollarSign, Calendar, FileText, CheckCircle, 
+  ExternalLink, Activity, AlertTriangle, Pencil, FileDown, Settings 
+} from 'lucide-react';
 import toast from 'react-hot-toast';
-import ModalEditarVinculo from '../../components/ModalEditarVinculo'; // <--- Importamos o modal novo aqui!
+import ModalEditarVinculo from '../../components/ModalEditarVinculo';
 import { gerarContratoComodatoConsumidor, gerarContratoGestaoConsumidor } from '../../utils/gerarContratoWord';
+import ModalConfigurarRateio from '../../components/ModalConfigurarRateio'; // Importado
 
 interface VinculoDetalhado {
   vinculo_id: number;
@@ -12,7 +16,7 @@ interface VinculoDetalhado {
   data_inicio: string;
   data_fim?: string;
   observacoes?: string;
-  status_id?: number; // Importante para a edição
+  status_id?: number;
   status: { descricao: string };
   consumidores: {
     consumidor_id: number;
@@ -29,6 +33,7 @@ interface VinculoDetalhado {
   };
   unidades_vinculadas?: {
     id: number;
+    percentual_rateio?: number; // Adicionei para não dar erro no map
     unidades_consumidoras: {
       codigo_uc: string;
       endereco: string;
@@ -42,21 +47,17 @@ export default function DetalheVinculo() {
   const navigate = useNavigate();
   const [vinculo, setVinculo] = useState<VinculoDetalhado | null>(null);
   const [loading, setLoading] = useState(true);
-
-  // Controle do Modal de Edição
+  
+  // Modais
   const [modalEdicaoAberto, setModalEdicaoAberto] = useState(false);
+  const [modalRateioAberto, setModalRateioAberto] = useState(false);
 
-  // Extraí a função de carregar para poder chamar ela de novo após salvar
   const loadData = () => {
     if (id) {
       setLoading(true);
       api.vinculos.get(Number(id))
-        .then((data: any) => {
-          setVinculo(data);
-        })
-        .catch(error => {
-          console.error("Erro ao carregar vínculo:", error);
-        })
+        .then((data: any) => setVinculo(data))
+        .catch(error => console.error("Erro ao carregar vínculo:", error))
         .finally(() => setLoading(false));
     }
   };
@@ -67,15 +68,12 @@ export default function DetalheVinculo() {
 
   const handleEncerrar = async () => {
     if (!confirm('ATENÇÃO: Tem certeza que deseja encerrar este contrato?')) return;
-
     const toastId = toast.loading('Encerrando contrato...');
     try {
       const dataFim = new Date().toISOString().split('T')[0];
       await api.vinculos.encerrar(Number(id), dataFim);
-
       toast.success('Vínculo encerrado com sucesso!', { id: toastId });
-      loadData(); // Recarrega os dados
-
+      loadData();
     } catch (error) {
       console.error(error);
       toast.error('Erro ao encerrar vínculo.', { id: toastId });
@@ -84,26 +82,14 @@ export default function DetalheVinculo() {
 
   const getStatusBadge = (statusDesc: string) => {
     const s = statusDesc?.toLowerCase() || '';
-
-    if (s.includes('ativo') || s.includes('injetando')) {
-      return { style: 'bg-emerald-100 text-emerald-700 border-emerald-200', icon: CheckCircle, label: statusDesc };
-    }
-    if (s.includes('encerrado') || s.includes('cancelado')) {
-      return { style: 'bg-gray-100 text-gray-500 border-gray-200', icon: Ban, label: statusDesc };
-    }
-    if (s.includes('divergência') || s.includes('divergencia')) {
-      return { style: 'bg-red-100 text-red-700 border-red-200', icon: AlertTriangle, label: statusDesc };
-    }
-    if (s.includes('troca') || s.includes('análise') || s.includes('pendente')) {
-      return { style: 'bg-amber-100 text-amber-700 border-amber-200', icon: Activity, label: statusDesc };
-    }
-    if (s.includes('aguardando')) {
-      return { style: 'bg-blue-100 text-blue-700 border-blue-200', icon: Calendar, label: statusDesc };
-    }
+    if (s.includes('ativo') || s.includes('injetando')) return { style: 'bg-emerald-100 text-emerald-700 border-emerald-200', icon: CheckCircle, label: statusDesc };
+    if (s.includes('encerrado') || s.includes('cancelado')) return { style: 'bg-gray-100 text-gray-500 border-gray-200', icon: Ban, label: statusDesc };
+    if (s.includes('divergência')) return { style: 'bg-red-100 text-red-700 border-red-200', icon: AlertTriangle, label: statusDesc };
+    if (s.includes('pendente') || s.includes('análise')) return { style: 'bg-amber-100 text-amber-700 border-amber-200', icon: Activity, label: statusDesc };
     return { style: 'bg-gray-100 text-gray-700 border-gray-200', icon: FileText, label: statusDesc || 'Indefinido' };
   };
 
-  if (loading) return <div className="p-12 text-center text-gray-500">Carregando detalhes...</div>;
+  if (loading) return <div className="p-12 text-center text-gray-500 animate-pulse">Carregando detalhes...</div>;
   if (!vinculo) return <div className="p-12 text-center text-red-500 font-bold">Contrato não encontrado.</div>;
 
   const isEncerrado = vinculo.status?.descricao === 'Encerrado' || vinculo.status?.descricao === 'Cancelado';
@@ -111,175 +97,188 @@ export default function DetalheVinculo() {
   const StatusIcon = statusConfig.icon;
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6">
-      {/* HEADER E NAVEGAÇÃO */}
+    <div className="max-w-6xl mx-auto space-y-6 pb-20 animate-fade-in-down">
+
+      {/* 1. NAVEGAÇÃO E CABEÇALHO LIMPO */}
       <div>
-        <Link to="/vinculos" className="inline-flex items-center gap-2 text-gray-500 hover:text-blue-600 mb-4 transition-colors font-medium">
+        <Link to="/vinculos" className="inline-flex items-center gap-2 text-gray-500 hover:text-gray-900 mb-6 transition-colors font-medium">
           <ArrowLeft className="w-5 h-5" /> Voltar à Lista
         </Link>
 
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
-            <div className="flex items-center gap-3 mb-1">
-              <h1 className="text-3xl font-bold text-gray-800">Alocação #{vinculo.vinculo_id}</h1>
-
+            <div className="flex items-center gap-3">
+              <h1 className="text-3xl font-bold text-gray-900">Alocação #{vinculo.vinculo_id}</h1>
               <span className={`px-3 py-1 text-sm font-bold rounded-full border flex items-center gap-1 ${statusConfig.style}`}>
                 <StatusIcon className="w-4 h-4" /> {statusConfig.label?.toUpperCase()}
               </span>
-
-              {/* BOTÃO GERAR CONTRATO CONSUMIDOR */}
-              <button
-                onClick={() => gerarContratoComodatoConsumidor(vinculo)}
-                className="px-4 py-2 bg-purple-600 text-white border border-purple-700 rounded-lg hover:bg-purple-700 font-medium shadow-sm flex items-center gap-2"
-              >
-                <FileText className="w-4 h-4" /> Comodato Consumidor
-              </button>
-
-              {/* --- NOVO BOTÃO: GESTÃO FINANCEIRA --- */}
-              <button
-                onClick={() => gerarContratoGestaoConsumidor(vinculo)}
-                className="px-4 py-2 bg-emerald-600 text-white border border-emerald-700 rounded-lg hover:bg-emerald-700 font-medium shadow-sm flex items-center gap-2"
-              >
-                <DollarSign className="w-4 h-4" /> Contrato Gestão
-              </button>
-
-              {/* BOTÃO DE EDITAR (LÁPIS) */}
-              <button
-                onClick={() => setModalEdicaoAberto(true)}
-                className="p-1.5 bg-gray-100 hover:bg-gray-200 rounded-full text-gray-500 transition-colors border border-gray-200"
-                title="Editar Status e Observações"
-              >
-                <Pencil className="w-4 h-4" />
-              </button>
             </div>
-            <p className="text-gray-500">Visão geral do contrato de alocação de energia</p>
+            <p className="text-gray-500 mt-1">Gestão de vínculo entre Usina e Consumidor</p>
           </div>
 
-          <div className="flex gap-3 w-full md:w-auto">
-            <Link
-              to={`/vinculos/${id}/financeiro`}
-              className="flex-1 md:flex-none px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 font-bold flex items-center justify-center gap-2 shadow-lg shadow-blue-500/20 transition-all hover:-translate-y-1"
-            >
-              <DollarSign className="w-5 h-5" />
-              Abrir Financeiro
-            </Link>
-
-            {!isEncerrado && (
-              <button
-                onClick={handleEncerrar}
-                className="px-4 py-3 bg-white text-red-500 border border-red-100 rounded-xl hover:bg-red-50 font-medium flex items-center gap-2 transition-colors"
-                title="Encerrar Contrato"
-              >
-                <Ban className="w-5 h-5" />
-              </button>
-            )}
-          </div>
+          {/* Botão de Editar (Discreto) */}
+          <button
+            onClick={() => setModalEdicaoAberto(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 text-gray-600 rounded-lg hover:bg-gray-50 hover:text-blue-600 transition-all shadow-sm font-medium"
+          >
+            <Pencil className="w-4 h-4" /> Editar Dados
+          </button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* CARD USINA */}
-        <div className="bg-white p-8 rounded-2xl shadow-sm border border-yellow-100 relative overflow-hidden group hover:shadow-md transition-all">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-yellow-50 rounded-bl-full -mr-10 -mt-10 transition-transform group-hover:scale-110"></div>
-          <div className="flex items-center gap-3 mb-6 relative z-10 border-b border-gray-100 pb-4">
-            <div className="p-3 bg-yellow-100 rounded-xl text-yellow-700 shadow-sm">
-              <Zap className="w-6 h-6" />
+      {/* 2. AÇÕES PRINCIPAIS (O QUE USA TODO DIA) */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <Link
+          to={`/vinculos/${id}/financeiro`}
+          className="group relative overflow-hidden bg-gradient-to-br from-blue-600 to-blue-700 text-white p-6 rounded-2xl shadow-lg shadow-blue-200 transition-all hover:shadow-xl hover:-translate-y-1"
+        >
+          <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+            <DollarSign size={100} />
+          </div>
+          <div className="relative z-10 flex items-center gap-4">
+            <div className="p-3 bg-white/20 rounded-xl backdrop-blur-sm">
+              <DollarSign className="w-8 h-8" />
             </div>
             <div>
-              <h3 className="font-bold text-gray-800 text-lg">Usina Geradora</h3>
-              <p className="text-xs text-yellow-600 font-bold uppercase tracking-wide">Fonte de Energia</p>
+              <h3 className="text-xl font-bold">Financeiro</h3>
+              <p className="text-blue-100 text-sm">Gerenciar faturas e repasses</p>
             </div>
           </div>
-          <div className="space-y-4 relative z-10">
+        </Link>
+
+        <Link
+          to={`/vinculos/${id}/auditoria`}
+          className="group relative overflow-hidden bg-gradient-to-br from-indigo-600 to-violet-700 text-white p-6 rounded-2xl shadow-lg shadow-indigo-200 transition-all hover:shadow-xl hover:-translate-y-1"
+        >
+          <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+            <Activity size={100} />
+          </div>
+          <div className="relative z-10 flex items-center gap-4">
+            <div className="p-3 bg-white/20 rounded-xl backdrop-blur-sm">
+              <FileText className="w-8 h-8" />
+            </div>
             <div>
-              <p className="text-sm text-gray-500 mb-1">Proprietário</p>
-              <Link to={`/usinas/${vinculo.usinas?.usina_id}`} className="font-bold text-xl text-blue-600 hover:underline flex items-center gap-2">
-                {vinculo.usinas?.nome_proprietario} <ExternalLink className="w-4 h-4" />
+              <h3 className="text-xl font-bold">Auditoria de Créditos</h3>
+              <p className="text-indigo-100 text-sm">Conferência de injeção vs fatura</p>
+            </div>
+          </div>
+        </Link>
+      </div>
+
+      {/* 3. CARDS DE INFORMAÇÃO (USINA E CONSUMIDOR) */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* CARD USINA */}
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:border-yellow-200 transition-colors group">
+          <div className="flex items-center gap-3 mb-6 border-b border-gray-100 pb-4">
+            <div className="p-2 bg-yellow-100 rounded-lg text-yellow-700">
+              <Zap className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="font-bold text-gray-800">Usina Geradora</h3>
+              <p className="text-xs text-gray-400 font-bold uppercase">Fonte</p>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <div>
+              <p className="text-xs text-gray-400 uppercase font-bold mb-1">Proprietário</p>
+              <Link to={`/usinas/${vinculo.usinas?.usina_id}`} className="font-bold text-lg text-gray-800 hover:text-blue-600 flex items-center gap-2 transition-colors">
+                {vinculo.usinas?.nome_proprietario} <ExternalLink className="w-3 h-3 text-gray-400" />
               </Link>
             </div>
             <div className="grid grid-cols-2 gap-4">
-              <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
-                <p className="text-xs text-gray-500 uppercase mb-1 font-bold">Potência</p>
-                <p className="font-bold text-gray-900 text-lg">{vinculo.usinas?.potencia} kWp</p>
+              <div className="p-3 bg-gray-50 rounded-xl">
+                <p className="text-xs text-gray-500 uppercase font-bold">Potência</p>
+                <p className="font-bold text-gray-900">{vinculo.usinas?.potencia} kWp</p>
               </div>
-              <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
-                <p className="text-xs text-gray-500 uppercase mb-1 font-bold">Tipo</p>
-                <p className="font-bold text-gray-900 text-lg">{vinculo.usinas?.tipo}</p>
+              <div className="p-3 bg-gray-50 rounded-xl">
+                <p className="text-xs text-gray-500 uppercase font-bold">Tipo</p>
+                <p className="font-bold text-gray-900">{vinculo.usinas?.tipo}</p>
               </div>
             </div>
           </div>
         </div>
 
         {/* CARD CONSUMIDOR */}
-        <div className="bg-white p-8 rounded-2xl shadow-sm border border-blue-100 relative overflow-hidden group hover:shadow-md transition-all">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-blue-50 rounded-bl-full -mr-10 -mt-10 transition-transform group-hover:scale-110"></div>
-          <div className="flex items-center gap-3 mb-6 relative z-10 border-b border-gray-100 pb-4">
-            <div className="p-3 bg-blue-100 rounded-xl text-blue-700 shadow-sm">
-              <Calendar className="w-6 h-6" />
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-blue-100 hover:border-blue-200 transition-colors">
+          <div className="flex items-center gap-3 mb-6 border-b border-gray-100 pb-4">
+            <div className="p-2 bg-blue-100 rounded-lg text-blue-700">
+              <Calendar className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="font-bold text-gray-800 text-lg">Consumidor</h3>
-              <p className="text-xs text-blue-600 font-bold uppercase tracking-wide">Beneficiário</p>
+              <h3 className="font-bold text-gray-800">Consumidor</h3>
+              <p className="text-xs text-gray-400 font-bold uppercase">Beneficiário</p>
             </div>
           </div>
-          <div className="space-y-4 relative z-10">
+
+          <div className="space-y-4">
             <div>
-              <p className="text-sm text-gray-500 mb-1">Nome do Cliente</p>
-              <Link to={`/consumidores/${vinculo.consumidores?.consumidor_id}`} className="font-bold text-xl text-blue-600 hover:underline flex items-center gap-2">
-                {vinculo.consumidores?.nome} <ExternalLink className="w-4 h-4" />
+              <p className="text-xs text-gray-400 uppercase font-bold mb-1">Cliente</p>
+              <Link to={`/consumidores/${vinculo.consumidores?.consumidor_id}`} className="font-bold text-lg text-gray-800 hover:text-blue-600 flex items-center gap-2 transition-colors">
+                {vinculo.consumidores?.nome} <ExternalLink className="w-3 h-3 text-gray-400" />
               </Link>
             </div>
             <div className="grid grid-cols-2 gap-4">
-              <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
-                <p className="text-xs text-gray-500 uppercase mb-1 font-bold">Documento</p>
+              <div className="p-3 bg-gray-50 rounded-xl">
+                <p className="text-xs text-gray-500 uppercase font-bold">Documento</p>
                 <p className="font-medium text-gray-900 text-sm truncate">{vinculo.consumidores?.documento || '-'}</p>
               </div>
-              <div className="p-4 bg-green-50 rounded-xl border border-green-100">
-                <p className="text-xs text-green-700 uppercase mb-1 font-bold">Alocação</p>
-                <p className="font-bold text-2xl text-green-700">{vinculo.percentual}%</p>
+              <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-100">
+                <p className="text-xs text-emerald-700 uppercase font-bold">Percentual</p>
+                <p className="font-bold text-xl text-emerald-700">{vinculo.percentual}%</p>
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* --- BLOCO: OBSERVAÇÕES --- */}
+      {/* 4. BLOCO DE OBSERVAÇÕES (SE HOUVER) */}
       {vinculo.observacoes && (
-        <div className="bg-amber-50 p-6 rounded-2xl shadow-sm border border-amber-200">
-          <div className="flex items-center gap-2 mb-3">
-            <FileText className="w-5 h-5 text-amber-700" />
-            <h3 className="font-bold text-amber-800 text-lg">Observações do Contrato</h3>
+        <div className="bg-amber-50 p-6 rounded-2xl border border-amber-100">
+          <div className="flex items-center gap-2 mb-2">
+            <FileText className="w-4 h-4 text-amber-600" />
+            <h3 className="font-bold text-amber-800 text-sm uppercase">Observações</h3>
           </div>
-          <p className="text-amber-900 whitespace-pre-wrap leading-relaxed">
-            {vinculo.observacoes}
-          </p>
+          <p className="text-amber-900 text-sm leading-relaxed">{vinculo.observacoes}</p>
         </div>
       )}
 
-      {/* LISTA DE UNIDADES CONSUMIDORAS (MANTIDO) */}
-      <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
-        <div className="flex items-center gap-2 mb-4">
-          <div className="p-2 bg-purple-100 text-purple-700 rounded-lg">
-            <Zap className="w-5 h-5" />
-          </div>
-          <h3 className="font-bold text-gray-800 text-lg">Unidades Consumidoras Vinculadas</h3>
-        </div>
+      {/* 5. UNIDADES CONSUMIDORAS (GRID) */}
+      <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="font-bold text-gray-800 flex items-center gap-2">
+            <Zap className="w-4 h-4 text-purple-600" /> Unidades Vinculadas (UCs)
+          </h3>
 
+          {/* BOTÃO DE CONFIGURAR RATEIO */}
+          <button
+            onClick={() => setModalRateioAberto(true)}
+            className="text-xs font-bold text-blue-600 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg border border-blue-200 transition-colors flex items-center gap-1"
+          >
+            <Settings className="w-3 h-3" /> Configurar Rateio
+          </button>
+        </div>
+        
         {!vinculo.unidades_vinculadas || vinculo.unidades_vinculadas.length === 0 ? (
-          <p className="text-gray-500 italic p-4 bg-gray-50 rounded-lg text-center">
-            Nenhuma unidade específica listada (Vínculo Principal).
+          <p className="text-gray-400 italic text-sm text-center py-4 bg-gray-50 rounded-xl border border-dashed border-gray-200">
+            Nenhuma UC específica (Vínculo Global).
           </p>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
             {vinculo.unidades_vinculadas.map((item) => (
-              <div key={item.id} className="flex items-start gap-3 p-4 bg-gray-50 rounded-xl border border-gray-100 hover:border-purple-200 transition-colors">
+              <div key={item.id} className="flex items-start gap-3 p-3 bg-gray-50 rounded-xl border border-gray-100 hover:border-purple-200 transition-colors relative">
+                
+                {/* Porcentagem no Cantinho */}
+                <div className="absolute top-2 right-2 bg-purple-100 text-purple-700 text-[10px] font-bold px-2 py-0.5 rounded-full">
+                    {item.percentual_rateio || 0}%
+                </div>
+
                 <div className="mt-1">
-                  <CheckCircle className="w-5 h-5 text-purple-600" />
+                  <CheckCircle className="w-4 h-4 text-purple-600" />
                 </div>
                 <div>
-                  <p className="font-bold text-gray-900 text-lg">UC {item.unidades_consumidoras.codigo_uc}</p>
-                  <p className="text-sm text-gray-500">{item.unidades_consumidoras.endereco}</p>
-                  <p className="text-xs text-gray-400 mt-1 uppercase font-bold">{item.unidades_consumidoras.bairro}</p>
+                  <p className="font-bold text-gray-800 text-sm">UC {item.unidades_consumidoras.codigo_uc}</p>
+                  <p className="text-xs text-gray-500">{item.unidades_consumidoras.endereco}</p>
                 </div>
               </div>
             ))}
@@ -287,45 +286,86 @@ export default function DetalheVinculo() {
         )}
       </div>
 
-      {/* DETALHES GERAIS */}
-      <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
-        <div className="flex items-center gap-2 mb-4">
-          <FileText className="w-5 h-5 text-gray-400" />
-          <h3 className="font-bold text-gray-800">Detalhes Administrativos</h3>
+      {/* 6. ÁREA DE DOCUMENTOS E ADMIN */}
+      <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+        <div className="flex items-center gap-2 mb-6 border-b border-gray-100 pb-2">
+          <Settings className="w-5 h-5 text-gray-400" />
+          <h3 className="font-bold text-gray-800">Administrativo & Contratos</h3>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-sm">
-          <div>
-            <p className="text-gray-500 mb-1">Início da Injeção</p>
-            <p className="font-medium text-gray-900 text-lg">
-              {vinculo.data_inicio ? new Date(vinculo.data_inicio).toLocaleDateString('pt-BR') : '-'}
-            </p>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Detalhes de Data */}
+          <div className="space-y-4 text-sm lg:col-span-1 border-r border-gray-100 pr-4">
+            <div>
+              <p className="text-gray-400 text-xs uppercase font-bold">Início</p>
+              <p className="font-medium text-gray-900">{vinculo.data_inicio ? new Date(vinculo.data_inicio).toLocaleDateString('pt-BR') : '-'}</p>
+            </div>
+            <div>
+              <p className="text-gray-400 text-xs uppercase font-bold">Fim</p>
+              <p className="font-medium text-gray-900">{vinculo.data_fim ? new Date(vinculo.data_fim).toLocaleDateString('pt-BR') : 'Indeterminado'}</p>
+            </div>
+            <div>
+              <p className="text-gray-400 text-xs uppercase font-bold">Local</p>
+              <p className="font-medium text-gray-900">{vinculo.consumidores?.cidade}/{vinculo.consumidores?.uf}</p>
+            </div>
           </div>
-          <div>
-            <p className="text-gray-500 mb-1">Data de Desligamento</p>
-            <p className="font-medium text-gray-900 text-lg">
-              {vinculo.data_fim ? new Date(vinculo.data_fim).toLocaleDateString('pt-BR') : 'Indeterminado'}
-            </p>
-          </div>
-          <div>
-            <p className="text-gray-500 mb-1">Localização</p>
-            <p className="font-medium text-gray-900 text-lg flex items-center gap-1">
-              {vinculo.consumidores?.cidade}/{vinculo.consumidores?.uf}
-            </p>
+
+          {/* Ações de Documentação */}
+          <div className="lg:col-span-2">
+            <p className="text-xs font-bold text-gray-400 uppercase mb-4">Emissão de Documentos</p>
+            <div className="flex flex-wrap gap-3">
+              <button
+                onClick={() => gerarContratoComodatoConsumidor(vinculo)}
+                className="flex-1 min-w-[200px] px-4 py-3 bg-white border border-gray-200 text-gray-600 rounded-xl hover:bg-gray-50 hover:border-purple-300 hover:text-purple-700 transition-all font-medium text-sm flex items-center justify-center gap-2"
+              >
+                <FileDown className="w-4 h-4" /> Gerar Comodato (Word)
+              </button>
+
+              <button
+                onClick={() => gerarContratoGestaoConsumidor(vinculo)}
+                className="flex-1 min-w-[200px] px-4 py-3 bg-white border border-gray-200 text-gray-600 rounded-xl hover:bg-gray-50 hover:border-emerald-300 hover:text-emerald-700 transition-all font-medium text-sm flex items-center justify-center gap-2"
+              >
+                <FileDown className="w-4 h-4" /> Gerar Contrato Gestão
+              </button>
+            </div>
+
+            {/* Botão de Encerrar */}
+            {!isEncerrado && (
+              <div className="mt-6 pt-6 border-t border-gray-100">
+                <button
+                  onClick={handleEncerrar}
+                  className="text-red-500 hover:text-red-700 text-sm font-medium flex items-center gap-2 hover:bg-red-50 px-3 py-2 rounded-lg transition-colors"
+                >
+                  <Ban className="w-4 h-4" /> Encerrar este contrato permanentemente
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>
 
-      {/* --- O MODAL FICA AQUI NO FINAL --- */}
+      {/* --- MODAL EDITAR DADOS --- */}
       {vinculo && (
         <ModalEditarVinculo
           isOpen={modalEdicaoAberto}
           onClose={() => setModalEdicaoAberto(false)}
-          onSuccess={loadData} // Quando salvar, recarrega a tela
+          onSuccess={loadData}
           vinculo={{
             vinculo_id: vinculo.vinculo_id,
-            status_id: vinculo.status_id, // Passamos o ID
+            status_id: vinculo.status_id,
             observacoes: vinculo.observacoes
           }}
+        />
+      )}
+
+      {/* --- MODAL CONFIGURAR RATEIO (ESTAVA FALTANDO AQUI) --- */}
+      {vinculo && (
+        <ModalConfigurarRateio
+            isOpen={modalRateioAberto}
+            onClose={() => setModalRateioAberto(false)}
+            vinculoId={vinculo.vinculo_id}
+            consumidorId={vinculo.consumidores.consumidor_id}
+            onSuccess={loadData}
         />
       )}
     </div>

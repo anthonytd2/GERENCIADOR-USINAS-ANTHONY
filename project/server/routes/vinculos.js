@@ -12,7 +12,7 @@ const vinculoSchema = z.object({
   data_inicio: z.string().min(1, 'Data de início é obrigatória'),
   status_id: z.number().int().positive('Status inválido'),
   data_fim: z.string().optional().nullable(),
-  observacoes: z.string().optional().nullable() // <--- ADICIONE ESTA LINHA
+  observacoes: z.string().optional().nullable()
 });
 
 // 1. LISTAR TODOS
@@ -36,29 +36,29 @@ router.get('/', async (req, res) => {
   }
 });
 
-// 2. BUSCAR UM (COM AS UCs VINCULADAS E DADOS COMPLETOS DO CONSUMIDOR)
+// 2. BUSCAR UM (COM LÓGICA INTELIGENTE DE UCs)
 router.get('/:id', async (req, res) => {
   try {
     const { id } = req.params;
 
-    // A. Busca o vínculo principal com TODOS os dados
+    // A. Busca o Vínculo e as Unidades Vinculadas (Rateio Configurado)
     const { data: vinculo, error } = await supabase
       .from('vinculos')
       .select(`
         *,
-        usinas (usina_id, nome_proprietario, tipo, potencia, cpf_cnpj, endereco_proprietario),
-        consumidores (
-            consumidor_id, 
-            nome, 
-            documento, 
-            endereco, 
-            bairro, 
-            cidade, 
-            uf, 
-            cep,
-            percentual_desconto
+        status:status_id (*),
+        consumidores:consumidor_id (
+            consumidor_id, nome, documento, endereco, bairro, cidade, uf, cep, percentual_desconto
         ),
-        status (*)
+        usinas:usina_id (usina_id, nome_proprietario, tipo, potencia, cpf_cnpj, endereco_proprietario),
+        unidades_vinculadas (
+          id, 
+          percentual_rateio,  
+          unidade_consumidora_id,
+          unidades_consumidoras (
+            id, codigo_uc, endereco, bairro, cidade
+          )
+        )
       `)
       .eq('vinculo_id', id)
       .single();
@@ -66,42 +66,29 @@ router.get('/:id', async (req, res) => {
     if (error) throw error;
     if (!vinculo) return res.status(404).json({ error: 'Vínculo não encontrado' });
 
-    // B. Busca as UCs vinculadas (Tabela de ligação)
-    const { data: ucsVinculadas, error: erroUcs } = await supabase
-      .from('vinculos_unidades')
-      .select(`
-        id,
-        unidade_consumidora_id,
-        unidades_consumidoras (codigo_uc, endereco, bairro)
-      `)
-      .eq('vinculo_id', id);
+    // --- B. O PULO DO GATO (FALLBACK INTELIGENTE) ---
+    // Se a lista 'unidades_vinculadas' estiver vazia (usuário não configurou rateio),
+    // buscamos automaticamente TODAS as UCs ativas desse consumidor.
+    if (!vinculo.unidades_vinculadas || vinculo.unidades_vinculadas.length === 0) {
+      const { data: todasUcs } = await supabase
+        .from('unidades_consumidoras')
+        .select('id, codigo_uc, endereco, bairro, cidade')
+        .eq('consumidor_id', vinculo.consumidor_id)
+        .eq('ativo', true);
 
-    if (erroUcs) throw erroUcs;
-
-    // --- C. LÓGICA INTELIGENTE (FALLBACK) ---
-    // Se não tiver nenhuma UC vinculada especificamente, buscamos TODAS do cliente
-    let listaUcsFinal = ucsVinculadas || [];
-
-    if (listaUcsFinal.length === 0 && vinculo.consumidor_id) {
-       const { data: todasUcs } = await supabase
-         .from('unidades_consumidoras')
-         .select('codigo_uc, endereco, bairro')
-         .eq('consumidor_id', vinculo.consumidor_id)
-         .eq('ativo', true);
-
-       if (todasUcs && todasUcs.length > 0) {
-         // Formatamos para ficar igual ao padrão que o Front espera
-         listaUcsFinal = todasUcs.map(uc => ({
-           id: 0, // ID fictício
-           unidade_consumidora_id: 0,
-           unidades_consumidoras: uc
-         }));
-       }
+      if (todasUcs && todasUcs.length > 0) {
+        // Transformamos as UCs soltas no formato que o Frontend espera (simulando um rateio)
+        vinculo.unidades_vinculadas = todasUcs.map(uc => ({
+          id: 0, // ID fake (indica que não está salvo no rateio ainda)
+          percentual_rateio: 0,
+          unidade_consumidora_id: uc.id, // <--- AQUI ESTÁ O ID QUE FALTAVA (O ERRO ERA AQUI)
+          unidades_consumidoras: uc
+        }));
+      }
     }
-    // ----------------------------------------
+    // ------------------------------------------------
 
-    // D. Junta tudo na resposta
-    res.json({ ...vinculo, unidades_vinculadas: listaUcsFinal });
+    res.json(vinculo);
 
   } catch (error) {
     console.error('Erro ao buscar detalhe do vínculo:', error);
@@ -109,15 +96,11 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// 3. CRIAR VÍNCULO (COM TRAVA DE EXCLUSIVIDADE 1x1)
+// 3. CRIAR VÍNCULO
 router.post('/', async (req, res) => {
   try {
     console.log('Recebendo dados brutos:', req.body);
 
-    // 1. Captura a lista de UCs selecionadas
-    const unidadesSelecionadas = req.body.unidades_selecionadas || [];
-
-    // Tratamento automático de dados vazios
     let dataInicio = req.body.data_inicio;
     if (!dataInicio || dataInicio.trim() === '') {
       dataInicio = new Date().toISOString().split('T')[0];
@@ -135,19 +118,17 @@ router.post('/', async (req, res) => {
       status_id: statusId,
       data_inicio: dataInicio,
       data_fim: req.body.data_fim || null,
-      observacoes: req.body.observacoes || null // <--- ADICIONE ESTA LINHA
+      observacoes: req.body.observacoes || null
     };
 
     const dadosValidados = vinculoSchema.parse(payload);
 
-    // --- 1. TRAVA DE EXCLUSIVIDADE (1 USINA <-> 1 CONSUMIDOR) ---
-
-    // A. Verifica se a USINA já está ocupada
+    // --- TRAVA DE EXCLUSIVIDADE ---
     const { data: usinaOcupada, error: erroUsina } = await supabase
       .from('vinculos')
       .select('vinculo_id')
       .eq('usina_id', dadosValidados.usina_id)
-      .neq('status_id', 2) // Ignora contratos encerrados
+      .neq('status_id', 2)
       .maybeSingle();
 
     if (erroUsina) throw erroUsina;
@@ -155,15 +136,10 @@ router.post('/', async (req, res) => {
     if (usinaOcupada) {
       return res.status(400).json({
         error: 'Operação Bloqueada',
-        detalhes: [
-          'Esta Usina já possui um contrato ativo.',
-          'Regra de Exclusividade: A usina só pode atender um cliente por vez.'
-        ]
+        detalhes: ['Esta Usina já possui um contrato ativo.']
       });
     }
 
-    // B. Verifica se o CONSUMIDOR já tem contrato
-    // (Aqui estava o erro: mudei o nome da variável de erro para evitar conflito)
     const { data: consumidorOcupado, error: erroCheckConsumidor } = await supabase
       .from('vinculos')
       .select('vinculo_id')
@@ -176,15 +152,11 @@ router.post('/', async (req, res) => {
     if (consumidorOcupado) {
       return res.status(400).json({
         error: 'Operação Bloqueada',
-        detalhes: [
-          'Este Consumidor já possui um contrato ativo.',
-          'Regra de Exclusividade: O cliente só pode ter vínculo com uma usina por vez.'
-        ]
+        detalhes: ['Este Consumidor já possui um contrato ativo.']
       });
     }
-    // ------------------------------------------------------------
 
-    // --- VALIDAÇÃO DE CAPACIDADE (Mantemos apenas para garantir 100%) ---
+    // VALIDAÇÃO DE CAPACIDADE
     const { data: vinculosExistentes, error: erroBusca } = await supabase
       .from('vinculos')
       .select('percentual, status_id')
@@ -199,59 +171,47 @@ router.post('/', async (req, res) => {
     if (Number(dadosValidados.percentual) > disponivel) {
       return res.status(400).json({
         error: 'Capacidade excedida',
-        detalhes: [
-          `A usina já tem ${totalUsado}% alocado.`,
-          `Disponível: ${disponivel}%.`,
-          `Você tentou alocar: ${dadosValidados.percentual}%.`
-        ]
+        detalhes: [`Disponível: ${disponivel}%. Tentou alocar: ${dadosValidados.percentual}%.`]
       });
     }
-    // --- FIM DA VALIDAÇÃO ---
 
-    // 2. Salva o Vínculo Pai
+    // INSERIR VÍNCULO
     const { data: novoVinculo, error } = await supabase
       .from('vinculos')
       .insert([dadosValidados])
       .select()
       .single();
 
-    if (error) {
-      console.error("Erro Supabase:", error);
-      throw error;
-    }
+    if (error) throw error;
 
-    // 3. Salva as UCs na tabela de ligação
+    // Se houver unidades selecionadas no cadastro inicial, insere na tabela nova
+    const unidadesSelecionadas = req.body.unidades_selecionadas || [];
     if (unidadesSelecionadas.length > 0 && novoVinculo.vinculo_id) {
       const ucsParaInserir = unidadesSelecionadas.map(ucId => ({
         vinculo_id: novoVinculo.vinculo_id,
-        unidade_consumidora_id: ucId
+        unidade_consumidora_id: ucId,
+        percentual_rateio: 0
       }));
 
       const { error: erroUcs } = await supabase
-        .from('vinculos_unidades')
+        .from('unidades_vinculadas')
         .insert(ucsParaInserir);
 
-      if (erroUcs) {
-        console.error('Erro ao salvar UCs do vínculo:', erroUcs);
-      }
+      if (erroUcs) console.error('Erro ao salvar UCs:', erroUcs);
     }
 
     res.status(201).json(novoVinculo);
 
   } catch (error) {
     console.error('Erro ao criar vínculo:', error);
-
     if (error instanceof z.ZodError) {
       const mensagens = error.errors ? error.errors.map(e => e.message) : ['Dados inválidos'];
-      return res.status(400).json({
-        error: 'Dados inválidos',
-        detalhes: mensagens
-      });
+      return res.status(400).json({ error: 'Dados inválidos', detalhes: mensagens });
     }
-
     res.status(500).json({ error: 'Erro interno ao criar vínculo.' });
   }
 });
+
 // 4. ATUALIZAR
 router.put('/:id', async (req, res) => {
   try {
@@ -270,7 +230,6 @@ router.put('/:id', async (req, res) => {
     if (error) throw error;
     res.json(data);
   } catch (error) {
-    console.error('Erro ao atualizar:', error);
     res.status(500).json({ error: 'Erro ao atualizar vínculo' });
   }
 });
@@ -294,7 +253,6 @@ router.put('/:id/encerrar', async (req, res) => {
     if (error) throw error;
     res.json(data);
   } catch (error) {
-    console.error('Erro ao encerrar:', error);
     res.status(500).json({ error: 'Erro ao encerrar vínculo' });
   }
 });
@@ -311,8 +269,192 @@ router.delete('/:id', async (req, res) => {
     if (error) throw error;
     res.status(204).send();
   } catch (error) {
-    console.error('Erro ao deletar:', error);
     res.status(500).json({ error: 'Erro ao excluir vínculo' });
+  }
+});
+
+// ==========================================
+// GESTÃO DE UNIDADES DO VÍNCULO (RATEIO)
+// ==========================================
+
+router.post('/:id/unidades', async (req, res) => {
+  try {
+    const vinculo_id = req.params.id;
+    const { unidade_consumidora_id, percentual_rateio } = req.body;
+
+    const { data, error } = await supabase
+      .from('unidades_vinculadas')
+      .insert([{
+        vinculo_id,
+        unidade_consumidora_id,
+        percentual_rateio
+      }])
+      .select()
+      .single();
+
+    if (error) throw error;
+    res.status(201).json(data);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+router.put('/unidades_vinculadas/:linkId', async (req, res) => {
+  try {
+    const { percentual_rateio } = req.body;
+
+    const { error } = await supabase
+      .from('unidades_vinculadas')
+      .update({ percentual_rateio })
+      .eq('id', req.params.linkId);
+
+    if (error) throw error;
+    res.json({ message: 'Rateio atualizado' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+router.delete('/unidades_vinculadas/:linkId', async (req, res) => {
+  try {
+    const { error } = await supabase
+      .from('unidades_vinculadas')
+      .delete()
+      .eq('id', req.params.linkId);
+
+    if (error) throw error;
+    res.json({ message: 'Unidade removida do rateio' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ==========================================
+// AUDITORIAS DINÂMICAS (PAI E FILHOS)
+// ==========================================
+
+// 1. LISTAR (Traz o Pai e os Filhos/Faturas)
+router.get('/:id/auditorias', async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('auditorias_vinculos')
+      .select(`
+        *,
+        faturas:auditorias_faturas (
+          id,
+          unidade_id,
+          percentual_aplicado,
+          saldo_anterior,
+          creditos_injetados,
+          creditos_consumidos,
+          saldo_final,
+          data_leitura,
+          unidades_consumidoras (codigo_uc, endereco)
+        )
+      `)
+      .eq('vinculo_id', req.params.id)
+      .order('mes_referencia', { ascending: false });
+
+    if (error) throw error;
+    res.json(data);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// 2. CRIAR (Salva Pai e Filhos)
+router.post('/:id/auditorias', async (req, res) => {
+  try {
+    const vinculo_id = req.params.id;
+    const { faturas, ...dadosCabecalho } = req.body; // Separa as faturas do resto
+
+    // A. Salva o Cabeçalho
+    const { data: auditoria, error: errAuditoria } = await supabase
+      .from('auditorias_vinculos')
+      .insert([{ ...dadosCabecalho, vinculo_id }])
+      .select()
+      .single();
+
+    if (errAuditoria) throw errAuditoria;
+
+    // B. Salva as Faturas Individuais
+    if (faturas && faturas.length > 0) {
+      const itensParaSalvar = faturas.map(item => ({
+        auditoria_id: auditoria.id,
+        unidade_id: item.unidade_id,
+        percentual_aplicado: item.percentual_aplicado,
+        saldo_anterior: item.saldo_anterior || 0,
+        creditos_injetados: item.creditos_injetados || 0,
+        creditos_consumidos: item.creditos_consumidos || 0,
+        saldo_final: item.saldo_final || 0,
+        data_leitura: item.data_leitura || (dadosCabecalho.mes_referencia + '-01')
+      }));
+
+      const { error: errFaturas } = await supabase
+        .from('auditorias_faturas')
+        .insert(itensParaSalvar);
+
+      if (errFaturas) console.error('Erro ao salvar faturas:', errFaturas);
+    }
+
+    res.status(201).json(auditoria);
+  } catch (error) {
+    if (error.code === '23505') {
+      return res.status(400).json({ error: 'Já existe uma auditoria para este mês neste vínculo.' });
+    }
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// 3. ATUALIZAR (Edita Pai e Refaz Filhos)
+router.put('/auditorias/:auditoriaId', async (req, res) => {
+  try {
+    const { faturas, ...dadosCabecalho } = req.body;
+
+    // A. Atualiza o Pai
+    const { error: errPai } = await supabase
+      .from('auditorias_vinculos')
+      .update(dadosCabecalho)
+      .eq('id', req.params.auditoriaId);
+
+    if (errPai) throw errPai;
+
+    // B. Atualiza os Filhos (Deleta antigos e recria novos)
+    if (faturas) {
+      await supabase.from('auditorias_faturas').delete().eq('auditoria_id', req.params.auditoriaId);
+
+      const itensParaSalvar = faturas.map(item => ({
+        auditoria_id: req.params.auditoriaId,
+        unidade_id: item.unidade_id,
+        percentual_aplicado: item.percentual_aplicado,
+        saldo_anterior: item.saldo_anterior || 0,
+        creditos_injetados: item.creditos_injetados || 0,
+        creditos_consumidos: item.creditos_consumidos || 0,
+        saldo_final: item.saldo_final || 0,
+        data_leitura: item.data_leitura
+      }));
+
+      await supabase.from('auditorias_faturas').insert(itensParaSalvar);
+    }
+
+    res.json({ message: 'Atualizado com sucesso' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// 4. DELETAR
+router.delete('/auditorias/:auditoriaId', async (req, res) => {
+  try {
+    const { error } = await supabase
+      .from('auditorias_vinculos')
+      .delete()
+      .eq('id', req.params.auditoriaId);
+
+    if (error) throw error;
+    res.json({ message: 'Excluído' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
 });
 

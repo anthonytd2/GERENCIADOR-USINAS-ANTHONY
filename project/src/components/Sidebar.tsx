@@ -17,8 +17,8 @@ export default function Sidebar() {
     { icon: LinkIcon, label: 'Vínculos', path: '/vinculos' },
     { icon: FileText, label: 'Recibos', path: '/recibos' },
     { icon: Calculator, label: 'Simulações', path: '/propostas' },
-    // 2. ITEM NOVO ADICIONADO AQUI
     { icon: BarChart3, label: 'Relatórios', path: '/relatorios' },
+    { icon: FileText, label: 'Emitir Minutas', path: '/financeiro/minutas' },
   ];
 
   return (
@@ -29,7 +29,7 @@ export default function Sidebar() {
             <Sun className="w-6 h-6 text-white" />
           </div>
           <div>
-            <h1 className="text-xl font-bold tracking-tight">Gestão Solar</h1>
+            <h1 className="text-xl font-bold tracking-tight">Solar Locações</h1>
             <p className="text-xs text-blue-300">Painel Administrativo</p>
           </div>
         </div>

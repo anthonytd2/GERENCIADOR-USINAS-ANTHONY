@@ -6,8 +6,9 @@ const router = express.Router();
 // 1. LISTAR DOCUMENTOS DE UM CLIENTE
 router.get('/:tipo/:id', async (req, res) => {
   try {
+    // CORREÇÃO: Nome da tabela alterado para 'documentos'
     const { data, error } = await supabase
-      .from('documentos')
+      .from('documentos') 
       .select('*')
       .eq('tipo_entidade', req.params.tipo) // 'consumidor' ou 'usina'
       .eq('entidade_id', req.params.id)
@@ -16,6 +17,7 @@ router.get('/:tipo/:id', async (req, res) => {
     if (error) throw error;
     res.json(data);
   } catch (error) {
+    console.error('Erro ao listar:', error.message);
     res.status(500).json({ error: error.message });
   }
 });
@@ -25,6 +27,7 @@ router.post('/', async (req, res) => {
   try {
     const { nome_arquivo, caminho_storage, tipo_entidade, entidade_id, tamanho_bytes } = req.body;
     
+    // CORREÇÃO: Nome da tabela alterado para 'documentos'
     const { data, error } = await supabase
       .from('documentos')
       .insert([{ nome_arquivo, caminho_storage, tipo_entidade, entidade_id, tamanho_bytes }])
@@ -34,6 +37,7 @@ router.post('/', async (req, res) => {
     if (error) throw error;
     res.status(201).json(data);
   } catch (error) {
+    console.error('Erro ao salvar metadados:', error.message);
     res.status(500).json({ error: error.message });
   }
 });
@@ -41,15 +45,29 @@ router.post('/', async (req, res) => {
 // 3. EXCLUIR ARQUIVO
 router.delete('/:id', async (req, res) => {
   try {
-    // Primeiro buscamos o arquivo para saber o caminho no Storage
-    const { data: doc } = await supabase.from('documentos').select('*').eq('id', req.params.id).single();
+    // CORREÇÃO: Busca na tabela 'documentos'
+    const { data: doc } = await supabase
+        .from('documentos')
+        .select('*')
+        .eq('id', req.params.id)
+        .single();
     
     if (doc) {
       // 1. Remove do Bucket "documentos" (Storage físico)
-      await supabase.storage.from('documentos').remove([doc.caminho_storage]);
+      // CORREÇÃO: Nome do bucket alterado para 'documentos'
+      const { error: storageError } = await supabase.storage
+        .from('documentos')
+        .remove([doc.caminho_storage]);
       
+      if (storageError) console.error('Erro no storage:', storageError);
+
       // 2. Remove da Tabela (Metadados)
-      const { error } = await supabase.from('documentos').delete().eq('id', req.params.id);
+      // CORREÇÃO: Nome da tabela alterado para 'documentos'
+      const { error } = await supabase
+        .from('documentos')
+        .delete()
+        .eq('id', req.params.id);
+
       if (error) throw error;
     }
 

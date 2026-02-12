@@ -4,19 +4,19 @@ import { api } from '../../lib/api';
 import { 
   ArrowLeft, Edit, Trash2, Zap, Link as LinkIcon, 
   CheckCircle, XCircle, FileText, DollarSign, 
-  Calendar, User, Sun, MapPin, Mail, Phone, Hash 
+  Calendar, User, Sun, MapPin, Mail, Phone 
 } from 'lucide-react';
-import GerenciadorDocumentos from '../../components/GerenciadorDocumentos';
+import GerenciadorDocumentos from "../../components/GerenciadorDocumentos";
 import { gerarContratoComodato, gerarContratoGestaoUsina } from '../../utils/gerarContratoWord';
 import Skeleton from '../../components/Skeleton';
 import toast from 'react-hot-toast';
 import ModalConfirmacao from '../../components/ModalConfirmacao';
-import { Usina } from '../../types';
+// import { Usina } from '../../types'; // Opcional, se quiser tipar
 
 export default function DetalheUsina() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [usina, setUsina] = useState<any>(null); // Mantive any para flexibilidade com vinculos
+  const [usina, setUsina] = useState<any>(null); 
   const [vinculos, setVinculos] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   
@@ -78,7 +78,7 @@ export default function DetalheUsina() {
 
   if (!usina) return <div className="p-8 text-center text-gray-500">Usina não encontrada</div>;
 
-  const isLocada = vinculos.length > 0; // Lógica original mantida
+  const isLocada = vinculos.length > 0;
 
   return (
     <div className="space-y-8 animate-fade-in-down pb-20">
@@ -91,7 +91,8 @@ export default function DetalheUsina() {
           </Link>
           <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
             <Sun className="text-yellow-500 fill-yellow-500" />
-            {usina.nome_proprietario}
+            {/* CORREÇÃO: nome */}
+            {usina.nome}
           </h1>
           <div className="flex items-center gap-2 mt-2">
             {isLocada ? (
@@ -105,7 +106,8 @@ export default function DetalheUsina() {
             )}
             <span className="text-gray-400 text-sm flex items-center gap-1 ml-2">
               <MapPin className="w-3 h-3" />
-              {usina.endereco_proprietario || 'Endereço não informado'}
+              {/* CORREÇÃO: endereco */}
+              {usina.endereco || 'Endereço não informado'}
             </span>
           </div>
         </div>
@@ -129,7 +131,7 @@ export default function DetalheUsina() {
 
           {/* Editar/Excluir */}
           <Link
-            to={`/usinas/${usina.usina_id}/editar`}
+            to={`/usinas/${usina.id}/editar`} // CORREÇÃO: id
             className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 hover:text-blue-600 transition-all shadow-sm text-sm font-medium"
           >
             <Edit className="w-4 h-4" />
@@ -228,10 +230,11 @@ export default function DetalheUsina() {
              {/* Nome Completo */}
              <div>
                <p className="text-xs text-gray-500">Nome Completo</p>
-               <p className="text-base font-bold text-gray-900">{usina.nome_proprietario}</p>
+               {/* CORREÇÃO: nome */}
+               <p className="text-base font-bold text-gray-900">{usina.nome}</p>
              </div>
 
-             {/* Documentos */}
+             {/* cpf_cnpjs */}
              <div className="grid grid-cols-2 gap-4">
                 <div>
                   <p className="text-xs text-gray-500">CPF / CNPJ</p>
@@ -265,7 +268,8 @@ export default function DetalheUsina() {
              <div className="pt-2 border-t border-gray-50">
                 <p className="text-xs text-gray-500 mb-1">Endereço Completo</p>
                 <p className="text-sm text-gray-800 bg-gray-50 p-2 rounded-lg border border-gray-100">
-                  {usina.endereco_proprietario || 'Endereço não informado.'}
+                  {/* CORREÇÃO: endereco */}
+                  {usina.endereco || 'Endereço não informado.'}
                 </p>
              </div>
 
@@ -300,7 +304,8 @@ export default function DetalheUsina() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {vinculos.map((v) => (
-                <div key={v.vinculo_id} className="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-xl hover:border-blue-300 hover:shadow-md transition-all group">
+                // CORREÇÃO: key={v.id}
+                <div key={v.id} className="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-xl hover:border-blue-300 hover:shadow-md transition-all group">
                    <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-bold">
                         {(v.consumidores?.nome || 'C').charAt(0)}
@@ -314,7 +319,7 @@ export default function DetalheUsina() {
                       </div>
                    </div>
                    <Link 
-                     to={`/vinculos/${v.vinculo_id}`} 
+                     to={`/vinculos/${v.id}`} // CORREÇÃO: id
                      className="text-sm font-bold text-blue-600 hover:text-blue-800 bg-blue-50 px-3 py-1.5 rounded-lg transition-colors"
                    >
                      Ver Contrato
@@ -326,8 +331,9 @@ export default function DetalheUsina() {
         </div>
       </div>
 
-      {/* --- COFRE DE DOCUMENTOS (MANTIDO) --- */}
+      {/* --- COFRE DE DOCUMENTOS --- */}
       <div className="mt-8">
+        {/* CORREÇÃO: O componente já estava certo na sua versão anterior, mas vale conferir */}
         <GerenciadorDocumentos tipoEntidade="usina" entidadeId={Number(id)} />
       </div>
 

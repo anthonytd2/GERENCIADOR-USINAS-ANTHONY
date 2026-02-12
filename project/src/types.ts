@@ -1,6 +1,62 @@
 // src/types.ts
 
 // ==========================================
+// 0. USINAS (ADICIONADO AGORA)
+// ==========================================
+export interface Usina {
+  id: number;              // Padronizado
+  nome: string;            // Padronizado
+  uc_usina?: string;       // Padronizado
+  
+  // Campos Legados (Para não quebrar código antigo enquanto migra)
+  usina_id?: number;
+  nome_proprietario?: string;
+  numero_uc?: string; 
+
+  // Dados Técnicos
+  tipo: string;
+  potencia: number;
+  geracao_estimada: number;
+  valor_kw_bruto: number;
+  
+  // Contrato
+  inicio_contrato?: string;
+  vencimento_contrato?: string;
+  tipo_pagamento?: string; // 'INJETADO' | 'CONSUMO'
+  
+  // Proprietário
+  cpf_cnpj?: string;
+  rg?: string;
+  endereco?: string;
+  telefone?: string;
+  email?: string;
+  observacao?: string;
+  
+  // Status
+  is_locada?: boolean;
+}
+
+export interface UsinaFormInput {
+  nome: string;
+  numero_uc: string;
+  tipo: string;
+  potencia: number | string;
+  geracao_estimada: number | string;
+  valor_kw_bruto: number | string;
+  
+  inicio_contrato: string;
+  vencimento_contrato: string;
+  tipo_pagamento: string;
+  
+  cpf_cnpj: string;
+  rg: string;
+  endereco: string;
+  telefone: string;
+  email: string;
+  observacao: string;
+}
+
+// ==========================================
 // 1. STATUS
 // ==========================================
 export interface Status {
@@ -40,9 +96,11 @@ export interface UnidadeConsumidora {
 // 4. CONSUMIDORES
 // ==========================================
 export interface Consumidor {
-  consumidor_id: number;
+  id: number; // Padronizado (era consumidor_id)
+  consumidor_id?: number; // Legado
   nome: string;
-  documento?: string; // CPF ou CNPJ
+  cpf_cnpj?: string; 
+  documento?: string; // Legado
   endereco?: string;
   bairro?: string;
   cidade?: string;
@@ -53,17 +111,17 @@ export interface Consumidor {
   valor_kw?: number;
   tipo_desconto?: 'porcentagem' | 'valor_fixo' | string;
   tempo_contrato_anos?: number;
-  inicio_contrato?: string; // Date string
-  vencimento_contrato?: string; // Date string
+  inicio_contrato?: string; 
+  vencimento_contrato?: string; 
   vendedor?: string;
   observacao?: string;
-  unidade_consumidora?: string; // Campo legado ou texto livre
+  unidade_consumidora?: string; 
   unidades_consumidoras_lista?: UnidadeConsumidora[];
 }
 
 export interface ConsumidorFormInput {
   nome: string;
-  documento?: string;
+  cpf_cnpj?: string;
   cidade?: string;
   uf?: string;
   media_consumo?: number | string;
@@ -74,58 +132,10 @@ export interface ConsumidorFormInput {
 }
 
 // ==========================================
-// 5. USINAS (ATUALIZADO)
-// ==========================================
-export interface Usina {
-  usina_id: number;
-  nome_proprietario: string;
-  cpf_cnpj?: string;
-  rg?: string;              
-  endereco_proprietario?: string;
-  telefone?: string; // <--- NOVO
-  email?: string;    // <--- NOVO
-  numero_uc?: string;
-  profissao?: string;
-  potencia: number;        
-  tipo: string;
-  valor_kw_bruto: number;
-  geracao_estimada: number;
-  is_locada?: boolean;
-  inicio_contrato?: string;
-  vencimento_contrato?: string;
-  tipo_pagamento?: string;
-  observacao?: string;
-  tipo_remuneracao?: 'energia_consumida' | 'energia_injetada' | string;
-  valor_kwh_custo?: number;
-  
-}
-
-// Formulário de Criação/Edição de Usina
-export interface UsinaFormInput {
-  nome_proprietario: string;
-  potencia: number | string;
-  geracao_estimada: number | string;
-  valor_kw_bruto: number | string;
-  tipo: string;
-  tipo_remuneracao?: string;
-  valor_kwh_custo?: number | string;
-  observacao?: string;
-  inicio_contrato?: string;
-  vencimento_contrato?: string;
-  tipo_pagamento?: string;
-  rg?: string;
-  cpf_cnpj?: string;
-  endereco_proprietario?: string;
-  telefone?: string; // <--- NOVO
-  email?: string;    // <--- NOVO
-  numero_uc?: string;
-}
-
-// ==========================================
 // 6. VÍNCULOS (ALOCAÇÕES)
 // ==========================================
 export interface VinculoDetalhado {
-  vinculo_id: number;
+  id: number;
   usina_id: number;
   consumidor_id: number;
   status_id: number;
@@ -135,8 +145,8 @@ export interface VinculoDetalhado {
   percentual: number;
   data_inicio: string;
   data_fim?: string | null;
-  observacao?: string | null; // Campo antigo (pode estar em uso)
-  observacoes?: string | null; // Campo novo que adicionamos
+  observacao?: string | null; 
+  observacoes?: string | null; 
 
   // Timestamps
   created_at?: string;
@@ -175,7 +185,7 @@ export interface Fechamento {
   fechamento_id: number;
   vinculo_id?: number;
   unidade_consumidora_id?: number;
-  mes_referencia: string; // date no banco
+  mes_referencia: string; 
 
   // Valores Calculados
   energia_compensada: number;
@@ -236,15 +246,14 @@ export interface Proposta {
     economiaEstimada?: number;
     usinaSelecionada?: Usina;
     percentualDesconto?: number;
-    // Adicione outros campos do JSON conforme necessário
   };
 
-  status: string; // 'Rascunho' | 'Enviada' ...
+  status: string; 
   arquivo_url?: string;
   created_at?: string;
 }
 
-export interface Documento {
+export interface Documento { // Renomeado de cpf_cnpj para Documento (parecia erro)
   id: number;
   nome_arquivo: string;
   caminho_storage: string;
@@ -270,21 +279,18 @@ export interface AuditoriaVinculo {
   
   // Dados da Usina
   data_leitura_gerador?: string;
-  
-  // --- CAMPO QUE FALTAVA (LEGADO) ---
   data_leitura_consumidor?: string; 
-  // ----------------------------------
 
   geracao_usina: number;
   consumo_proprio_usina: number;
 
-  // Dados Totais (Esses campos existem no Pai como somatória ou legado)
+  // Dados Totais
   saldo_anterior: number;
   creditos_injetados: number;
   creditos_consumidos: number;
   saldo_final: number;
 
-  // Lista de Faturas (Novo Sistema)
+  // Lista de Faturas
   faturas?: AuditoriaFatura[]; 
 
   status: string;
@@ -307,7 +313,7 @@ export interface AuditoriaFatura {
   unidade_id: number;
   percentual_aplicado: number;
   
-  // Campos visuais (vindos do join)
+  // Campos visuais
   codigo_uc?: string;
   endereco?: string;
   unidades_consumidoras?: {
@@ -323,10 +329,10 @@ export interface AuditoriaFatura {
 }
 
 export interface UnidadeVinculada {
-  id: number; // ID do vínculo da unidade
+  id: number; 
   vinculo_id: number;
   unidade_consumidora_id: number;
-  percentual_rateio: number; // <--- NOVO
+  percentual_rateio: number;
   unidades_consumidoras: {
     id: number;
     codigo_uc: string;

@@ -1,11 +1,9 @@
 import axios from 'axios';
 
 // --- CONFIGURAÇÃO DA BASE URL ---
-// 1. Tenta pegar a variável de ambiente (Vercel/Produção)
-// 2. Se não existir, assume que é Localhost (Seu PC) na porta 3000
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 
-console.log('🔌 Conectado à API:', API_BASE); // Para você conferir no F12 (Console)
+console.log('🔌 Conectado à API:', API_BASE);
 
 const axiosInstance = axios.create({
   baseURL: API_BASE,
@@ -16,7 +14,7 @@ const axiosInstance = axios.create({
 
 // --- OBJETO API COMPLETO ---
 export const api = {
-  // Configuração genérica (caso precise acessar o axios direto)
+  // Configuração genérica
   client: axiosInstance,
 
   usinas: {
@@ -35,12 +33,13 @@ export const api = {
     update: (id: number, data: any) => axiosInstance.put(`/consumidores/${id}`, data).then((res: any) => res.data),
     delete: (id: number) => axiosInstance.delete(`/consumidores/${id}`).then((res: any) => res.data),
 
-    // --- NOVAS FUNÇÕES PARA FILIAIS (UCs) ---
+    // Filiais (UCs)
     getUnidades: (id: number) => axiosInstance.get(`/consumidores/${id}/unidades`).then((res: any) => res.data),
     createUnidade: (id: number, data: any) => axiosInstance.post(`/consumidores/${id}/unidades`, data).then((res: any) => res.data),
     updateUnidade: (ucId: number, data: any) => axiosInstance.put(`/consumidores/unidades/${ucId}`, data).then((res: any) => res.data),
     deleteUnidade: (ucId: number) => axiosInstance.delete(`/consumidores/unidades/${ucId}`).then((res: any) => res.data),
   },
+
   vinculos: {
     list: () => axiosInstance.get('/vinculos').then((res: any) => res.data),
     get: (id: number) => axiosInstance.get(`/vinculos/${id}`).then((res: any) => res.data),
@@ -48,10 +47,14 @@ export const api = {
     update: (id: number, data: any) => axiosInstance.put(`/vinculos/${id}`, data).then((res: any) => res.data),
     encerrar: (id: number, dataFim: string) => axiosInstance.put(`/vinculos/${id}/encerrar`, { data_fim: dataFim }).then((res: any) => res.data),
     delete: (id: number) => axiosInstance.delete(`/vinculos/${id}`).then((res: any) => res.data),
+    
+    // Auditorias
     getAuditorias: (id: number) => axiosInstance.get(`/vinculos/${id}/auditorias`).then((res: any) => res.data),
     createAuditoria: (id: number, data: any) => axiosInstance.post(`/vinculos/${id}/auditorias`, data).then((res: any) => res.data),
     updateAuditoria: (auditoriaId: number, data: any) => axiosInstance.put(`/vinculos/auditorias/${auditoriaId}`, data).then((res: any) => res.data),
     deleteAuditoria: (auditoriaId: number) => axiosInstance.delete(`/vinculos/auditorias/${auditoriaId}`).then((res: any) => res.data),
+    
+    // Rateio
     addUnidadeRateio: (id: number, data: { unidade_consumidora_id: number, percentual_rateio: number }) =>
       axiosInstance.post(`/vinculos/${id}/unidades`, data).then((res: any) => res.data),
     updateUnidadeRateio: (linkId: number, percentual: number) =>
@@ -92,7 +95,6 @@ export const api = {
       const response = await axiosInstance.get(`/dashboard/resumo?mes=${mes}`);
       return response.data;
     },
-    // --- NOVA FUNÇÃO ---
     getHistorico: async (ano: string | number) => {
       const response = await axiosInstance.get(`/dashboard/historico?ano=${ano}`);
       return response.data;
@@ -103,7 +105,6 @@ export const api = {
     rentabilidade: (mes: string) => axiosInstance.get(`/relatorios/rentabilidade?mes=${mes}`).then((res: any) => res.data),
   },
 
-  // Mantendo compatibilidade com códigos antigos que chamam 'financeiro' ou 'fechamentos'
   fechamentos: {
     list: (vinculoId: number) => axiosInstance.get(`/fechamentos/${vinculoId}`).then((res: any) => res.data),
     create: (data: any) => axiosInstance.post('/fechamentos', data).then((res: any) => res.data),
@@ -111,13 +112,20 @@ export const api = {
     delete: (id: number) => axiosInstance.delete(`/fechamentos/${id}`).then((res: any) => res.data),
   },
 
+  // --- CORREÇÃO AQUI (Renomeado para documentos) ---
   documentos: {
-    list: (tipo: string, id: number) => axiosInstance.get(`/documentos/${tipo}/${id}`).then((res: any) => res.data),
-    create: (data: any) => axiosInstance.post('/documentos', data).then((res: any) => res.data),
-    delete: (id: number) => axiosInstance.delete(`/documentos/${id}`).then((res: any) => res.data),
+    list: (tipo: string, id: number) => axiosInstance.get(`/cpf_cnpjs/${tipo}/${id}`).then((res: any) => res.data),
+    create: (data: any) => axiosInstance.post('/cpf_cnpjs', data).then((res: any) => res.data),
+    delete: (id: number) => axiosInstance.delete(`/cpf_cnpjs/${id}`).then((res: any) => res.data),
   },
 
-  // Alias para fechamentos (caso seu frontend use 'financeiro')
+  // Mantive 'cpf_cnpjs' como alias para compatibilidade com código antigo
+  cpf_cnpjs: {
+    list: (tipo: string, id: number) => axiosInstance.get(`/cpf_cnpjs/${tipo}/${id}`).then((res: any) => res.data),
+    create: (data: any) => axiosInstance.post('/cpf_cnpjs', data).then((res: any) => res.data),
+    delete: (id: number) => axiosInstance.delete(`/cpf_cnpjs/${id}`).then((res: any) => res.data),
+  },
+
   financeiro: {
     list: (vinculoId: number) => axiosInstance.get(`/fechamentos/${vinculoId}`).then((res: any) => res.data),
     create: (data: any) => axiosInstance.post('/fechamentos', data).then((res: any) => res.data),

@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { api } from '../../lib/api';
 import {
   Plus, Search, Zap, User, ArrowRight, CheckCircle, XCircle, 
-  BarChart3, Link as LinkIcon, Trash2, Activity, Calendar, 
+  BarChart3, Link as LinkIcon, Trash2, Activity,
   AlertTriangle, FileText, Share2
 } from 'lucide-react';
 import Skeleton from '../../components/Skeleton';
@@ -27,12 +27,12 @@ export default function ListaVinculos() {
         setVinculos(lista);
 
         // Calcular KPIs
-        const ativos = lista.filter(v => {
+        const ativos = lista.filter((v: any) => {
           const s = v.status?.descricao?.toLowerCase() || '';
           return s.includes('ativo') || s.includes('injetando') || s.includes('troca');
         }).length;
 
-        const somaPercentual = lista.reduce((acc, curr) => acc + (Number(curr.percentual) || 0), 0);
+        const somaPercentual = lista.reduce((acc: number, curr: any) => acc + (Number(curr.percentual) || 0), 0);
 
         setStats({
           total: lista.length,
@@ -80,7 +80,8 @@ export default function ListaVinculos() {
   };
 
   const filtrados = vinculos.filter(v =>
-    (v.usinas?.nome_proprietario || '').toLowerCase().includes(busca.toLowerCase()) ||
+    // CORREÇÃO: nome_proprietario -> nome
+    (v.usinas?.nome || '').toLowerCase().includes(busca.toLowerCase()) ||
     (v.consumidores?.nome || '').toLowerCase().includes(busca.toLowerCase())
   );
 
@@ -106,7 +107,7 @@ export default function ListaVinculos() {
         </Link>
       </div>
 
-      {/* CARDS DE KPI (Modernizados) */}
+      {/* CARDS DE KPI */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-4">
           <div className="p-3 bg-indigo-50 text-indigo-600 rounded-xl">
@@ -154,7 +155,7 @@ export default function ListaVinculos() {
         </div>
       </div>
 
-      {/* LISTA DE CARDS (NOVO VISUAL DE CONEXÃO) */}
+      {/* LISTA DE CARDS */}
       {loading ? (
         <div className="grid grid-cols-1 gap-4">
           {[1, 2, 3].map(i => <Skeleton key={i} className="h-32 w-full rounded-2xl" />)}
@@ -175,8 +176,9 @@ export default function ListaVinculos() {
              
              return (
               <Link 
-                to={`/vinculos/${v.vinculo_id}`} 
-                key={v.vinculo_id}
+                // CORREÇÃO: vinculo_id -> id
+                to={`/vinculos/${v.id}`} 
+                key={v.id}
                 className="group bg-white p-5 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md hover:border-indigo-200 transition-all flex flex-col md:flex-row items-center gap-4 md:gap-8 relative overflow-hidden"
               >
                 {/* Faixa lateral decorativa */}
@@ -190,14 +192,15 @@ export default function ListaVinculos() {
                   <div className="overflow-hidden">
                     <p className="text-xs text-gray-400 font-bold uppercase tracking-wider mb-0.5">Gerador (Usina)</p>
                     <h3 className="text-base font-bold text-gray-900 truncate pr-2 group-hover:text-indigo-700 transition-colors">
-                      {v.usinas?.nome_proprietario || 'Usina Desconhecida'}
+                      {/* CORREÇÃO: nome_proprietario -> nome */}
+                      {v.usinas?.nome || 'Usina Desconhecida'}
                     </h3>
                   </div>
                 </div>
 
                 {/* COLUNA 2: CONEXÃO (PERCENTUAL) */}
                 <div className="flex-1 flex flex-col items-center justify-center min-w-[120px]">
-                   <div className="flex items-center gap-2 w-full">
+                    <div className="flex items-center gap-2 w-full">
                       <div className="h-[2px] bg-gray-200 flex-1"></div>
                       <div className="bg-gray-100 px-3 py-1 rounded-full text-sm font-bold text-gray-700 border border-gray-200 shadow-sm whitespace-nowrap">
                         {v.percentual}% Alocado
@@ -205,12 +208,12 @@ export default function ListaVinculos() {
                       <div className="h-[2px] bg-gray-200 flex-1 relative">
                         <ArrowRight className="w-4 h-4 text-gray-300 absolute right-0 -top-2" />
                       </div>
-                   </div>
-                   {/* Status Badge Abaixo da linha */}
-                   <div className={`mt-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold border uppercase tracking-wide ${statusConfig.style}`}>
+                    </div>
+                    {/* Status Badge Abaixo da linha */}
+                    <div className={`mt-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold border uppercase tracking-wide ${statusConfig.style}`}>
                       <StatusIcon className="w-3 h-3 mr-1" />
                       {statusConfig.label}
-                   </div>
+                    </div>
                 </div>
 
                 {/* COLUNA 3: CONSUMIDOR (DESTINO) */}
@@ -218,6 +221,7 @@ export default function ListaVinculos() {
                   <div className="overflow-hidden">
                     <p className="text-xs text-gray-400 font-bold uppercase tracking-wider mb-0.5">Cliente (Consumidor)</p>
                     <h3 className="text-base font-bold text-gray-900 truncate pl-2 group-hover:text-blue-700 transition-colors">
+                      {/* CORREÇÃO: nome (consumidor já usava nome, mas só confirmando) */}
                       {v.consumidores?.nome || 'Cliente Desconhecido'}
                     </h3>
                   </div>
@@ -229,7 +233,8 @@ export default function ListaVinculos() {
                 {/* AÇÕES (Sempre visíveis) */}
                 <div className="flex items-center gap-2 border-l pl-4 ml-2 border-gray-100">
                   <button 
-                    onClick={(e) => solicitarExclusao(v.vinculo_id, e)}
+                    // CORREÇÃO: vinculo_id -> id
+                    onClick={(e) => solicitarExclusao(v.id, e)}
                     className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                     title="Excluir"
                   >

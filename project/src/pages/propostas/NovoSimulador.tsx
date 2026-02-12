@@ -131,7 +131,7 @@ export default function NovoSimulador() {
         setForm(prev => ({
           ...prev,
           nome: cli.nome || '',
-          uc: cli.documento || '',
+          uc: cli.cpf_cnpj || '',
           consumoKwh: cli.media_consumo ? String(cli.media_consumo) : prev.consumoKwh
         }));
       }

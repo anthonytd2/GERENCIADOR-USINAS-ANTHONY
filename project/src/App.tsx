@@ -28,6 +28,7 @@ import ListaPropostas from './pages/propostas/ListaPropostas';
 import NovoSimulador from './pages/propostas/NovoSimulador';
 
 import RelatorioRentabilidade from './pages/relatorios/RelatorioRentabilidade';
+import EmitirMinuta from './pages/financeiro/EmitirMinuta';
 
 function App() {
   return (
@@ -69,7 +70,8 @@ function App() {
           <Route path="/financeiro" element={<FechamentoMensal />} />
           <Route path="/relatorios" element={<RelatorioRentabilidade />} />
           <Route path="/recibos" element={<GerenciadorRecibos />} />
-          
+          {/* Nova Rota de Minutas */}
+          <Route path="financeiro/minutas" element={<EmitirMinuta />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>

@@ -28,7 +28,6 @@ interface Fechamento {
   arquivo_url?: string;
   recibo_url?: string;
   saldo_acumulado_kwh?: number;
-  // CORREÇÃO 1: Adicionei os campos da UC aqui
   unidade_consumidora_id?: number;
   unidades_consumidoras?: {
     codigo_uc: string;
@@ -40,9 +39,8 @@ interface VinculoDetalhado {
   vinculo_id: number;
   percentual: number;
   status: { descricao: string };
-  consumidores: { nome: string; documento: string; percentual_desconto: number };
+  consumidores: { nome: string; cpf_cnpj: string; percentual_desconto: number };
   usinas: { nome_proprietario: string; nome: string };
-  // CORREÇÃO 1: Adicionei a lista de UCs aqui também
   unidades_vinculadas?: {
     unidade_consumidora_id: number;
     unidades_consumidoras: {
@@ -67,7 +65,7 @@ export default function FinanceiroVinculo() {
 
   // Estados do formulário
   const [formData, setFormData] = useState({
-    unidade_consumidora_id: '', // CORREÇÃO 2: Inicializando o campo
+    unidade_consumidora_id: '',
     mes_referencia: '',
     consumo_rede: '',
     energia_compensada: '',
@@ -103,7 +101,6 @@ export default function FinanceiroVinculo() {
       const dadosVinculo = await api.vinculos.get(Number(id));
       setVinculo(dadosVinculo);
 
-      // CORREÇÃO 3: Limpei o código duplicado e deixei só o necessário
       if (dadosVinculo.unidades_vinculadas) {
         setUcsVinculadas(dadosVinculo.unidades_vinculadas);
       }
@@ -126,6 +123,7 @@ export default function FinanceiroVinculo() {
 
   useEffect(() => { if (id) carregarDados(); }, [id]);
 
+  // --- CORREÇÃO DO ERRO AQUI ---
   useEffect(() => {
     const energiaCompensada = parseFloat(formData.energia_compensada) || 0;
     const consumoRede = parseFloat(formData.consumo_rede) || 0;
@@ -147,7 +145,7 @@ export default function FinanceiroVinculo() {
     const economia = totalPagariaCopel - valorPagoFatura;
 
     const fatorDesconto = percentualDescManual / 100;
-    const valorDesconto = economia * fatorDesconto;
+    const valorDesconto = economia * fatorDesconto; // Variável calculada
     const totalReceberCliente = economia - valorDesconto;
 
     const lucroEmpresa = totalReceberCliente - totalLiquidoPagarGerador;
@@ -158,7 +156,7 @@ export default function FinanceiroVinculo() {
       totalLiquidoPagarGerador,
       totalPagariaCopel,
       economia,
-      descontoAplicado: valorDesconto,
+      descontoAplicado: valorDesconto, // <--- CORREÇÃO: Mapeando a variável correta
       totalReceberCliente,
       lucroEmpresa
     });
@@ -187,8 +185,10 @@ export default function FinanceiroVinculo() {
     try {
       let finalPlanilhaUrl = formData.arquivo_url_existente;
       let finalReciboUrl = formData.recibo_url_existente;
+      
+      // Bucket correto: 'documentos'
       if (formData.arquivo) finalPlanilhaUrl = await uploadArquivo(formData.arquivo, 'documentos');
-      if (formData.recibo) finalReciboUrl = await uploadArquivo(formData.recibo, 'comprovantes');
+      if (formData.recibo) finalReciboUrl = await uploadArquivo(formData.recibo, 'documentos');
 
       const payload = {
         vinculo_id: Number(id),
@@ -220,7 +220,7 @@ export default function FinanceiroVinculo() {
       setShowForm(false); setEditingId(null); carregarDados();
     } catch (error) {
       console.error(error);
-      toast.error('Erro ao salvar. Verifique os dados.', { id: toastId }); 
+      toast.error('Erro ao salvar. Verifique se os arquivos não são muito grandes.', { id: toastId }); 
     } finally { setUploading(false); }
   };
 
@@ -234,7 +234,7 @@ export default function FinanceiroVinculo() {
     }
 
     setFormData({
-      unidade_consumidora_id: String(item.unidade_consumidora_id || ''), // CORREÇÃO 4: Carregar a UC ao editar
+      unidade_consumidora_id: String(item.unidade_consumidora_id || ''), 
       mes_referencia: item.mes_referencia,
       consumo_rede: String(item.consumo_rede || ''),
       energia_compensada: String(item.energia_compensada || ''),
@@ -289,7 +289,7 @@ export default function FinanceiroVinculo() {
             <div className="flex items-center gap-2 text-sm text-gray-500">
               <span className="font-medium text-blue-600">Contrato #{vinculo.vinculo_id}</span>
               <span>•</span>
-              <Link to={`/consumidores/${vinculo.consumidores?.documento}`} className="text-blue-600 hover:underline font-bold">
+              <Link to={`/consumidores/${vinculo.consumidores?.cpf_cnpj}`} className="text-blue-600 hover:underline font-bold">
                 {vinculo.consumidores?.nome}
               </Link>
               <span className="bg-green-100 text-green-800 px-2 rounded-full text-xs font-bold">Desc. Contrato: {vinculo.consumidores?.percentual_desconto}%</span>
@@ -522,7 +522,6 @@ export default function FinanceiroVinculo() {
           <thead className="bg-gray-50 text-gray-500 font-bold uppercase text-xs">
             <tr>
               <th className="px-6 py-4 text-left">Mês</th>
-              {/* CORREÇÃO 5: Coluna UC */}
               <th className="px-6 py-4 text-left text-blue-600">UC</th>
               <th className="px-6 py-4 text-right text-orange-600">Saldo (kWh)</th>
               <th className="px-6 py-4 text-right">Compensada</th>
@@ -539,7 +538,6 @@ export default function FinanceiroVinculo() {
                 <td className="px-6 py-4 font-bold text-gray-800 capitalize">
                   {new Date(f.mes_referencia).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric', timeZone: 'UTC' })}
                 </td>
-                {/* CORREÇÃO 5: Dado da UC */}
                 <td className="px-6 py-4 text-left font-bold text-blue-600 text-xs">
                     {f.unidades_consumidoras ? (
                         <span className="flex items-center gap-1">

@@ -7,19 +7,22 @@ const router = express.Router();
 // 1. LISTAR TODAS
 router.get('/', async (req, res) => {
   try {
+    // Busca usinas e seus vínculos (onde vinculo tem coluna 'id')
     const { data, error } = await supabase
       .from('usinas')
-      .select('*, vinculos(vinculo_id)');
+      .select('*, vinculos(id)');
 
     if (error) throw error;
 
     const usinasFormatadas = data.map(usina => ({
       ...usina,
+      // O frontend antigo pode esperar 'usina_id', então fazemos um alias se precisar
+      // mas o principal é manter o objeto original.
       is_locada: usina.vinculos && usina.vinculos.length > 0
     }));
 
-    usinasFormatadas.sort((a, b) =>
-      (a.nome_proprietario || '').localeCompare(b.nome_proprietario || '')
+    usinasFormatadas.sort((a, b) => 
+      (a.nome || '').localeCompare(b.nome || '')
     );
 
     res.json(usinasFormatadas);
@@ -35,7 +38,7 @@ router.get('/:id', async (req, res) => {
     const { data, error } = await supabase
       .from('usinas')
       .select('*')
-      .eq('usina_id', req.params.id)
+      .eq('id', req.params.id) // CORRETO: A chave é 'id'
       .single();
 
     if (error) throw error;
@@ -51,7 +54,8 @@ router.get('/:id/vinculos', async (req, res) => {
     const { data, error } = await supabase
       .from('vinculos')
       .select('*, consumidores(nome), status(descricao)')
-      .eq('usina_id', req.params.id);
+      // CORRETO: Na tabela vinculos, a coluna que aponta pra usina é 'usina_id'
+      .eq('usina_id', req.params.id); 
 
     if (error) throw error;
     res.json(data);
@@ -72,13 +76,13 @@ router.post('/', async (req, res) => {
       .single();
 
     if (error) {
-      console.error("ERRO SUPABASE (CRIAR):", error.message); // <--- Mostra o erro real no terminal
+      console.error("ERRO SUPABASE (CRIAR):", error.message);
       throw error;
     }
     res.status(201).json(data);
   } catch (error) {
     console.error("ERRO SERVIDOR (CRIAR):", error);
-    const msg = error.issues ? error.issues.map(i => i.message).join(' | ') : error.message;
+    const msg = error.issues ? 'Dados inválidos' : error.message;
     res.status(500).json({ error: msg });
   }
 });
@@ -91,17 +95,13 @@ router.put('/:id', async (req, res) => {
     const { data, error } = await supabase
       .from('usinas')
       .update(dadosLimpos)
-      .eq('usina_id', req.params.id)
+      .eq('id', req.params.id) // CORRETO: id
       .select()
       .single();
 
-    if (error) {
-      console.error("ERRO SUPABASE (ATUALIZAR):", error.message); // <--- Mostra o erro real no terminal
-      throw error;
-    }
+    if (error) throw error;
     res.json(data);
   } catch (error) {
-    console.error("ERRO SERVIDOR (ATUALIZAR):", error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -112,7 +112,7 @@ router.delete('/:id', async (req, res) => {
     const { error } = await supabase
       .from('usinas')
       .delete()
-      .eq('usina_id', req.params.id);
+      .eq('id', req.params.id); // CORRETO: id
 
     if (error) throw error;
     res.json({ message: 'Usina excluída com sucesso' });

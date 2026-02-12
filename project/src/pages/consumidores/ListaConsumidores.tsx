@@ -13,7 +13,7 @@ interface Consumidor {
   uf: string;
   media_consumo: number;
   status?: string;
-  documento?: string; // CPF/CNPJ opcional
+  cpf_cnpj?: string; // CPF/CNPJ opcional
 }
 
 export default function ListaConsumidores() {
@@ -75,7 +75,7 @@ export default function ListaConsumidores() {
         <div>
           <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
             <User className="text-blue-600 fill-blue-600" />
-            Carteira de Clientes
+            Consumidores
           </h1>
           <p className="text-gray-500 mt-1">Gerencie os consumidores que recebem créditos.</p>
         </div>
@@ -96,7 +96,7 @@ export default function ListaConsumidores() {
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
           <input
             type="text"
-            placeholder="Buscar cliente por nome, cidade ou documento..."
+            placeholder="Buscar Consumidor"
             className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all outline-none font-medium"
             value={busca}
             onChange={e => setBusca(e.target.value)}
@@ -152,10 +152,10 @@ export default function ListaConsumidores() {
                       {c.cidade}/{c.uf}
                     </span>
                   )}
-                  {c.documento && (
+                  {c.cpf_cnpj && (
                     <span className="font-mono text-xs text-gray-400 flex items-center gap-1">
                        <Wallet className="w-3 h-3" />
-                       {c.documento}
+                       {c.cpf_cnpj}
                     </span>
                   )}
                 </div>

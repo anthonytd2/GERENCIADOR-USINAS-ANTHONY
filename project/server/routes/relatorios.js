@@ -9,19 +9,21 @@ router.get('/rentabilidade', async (req, res) => {
     const { mes } = req.query; // Espera formato 'YYYY-MM' (ex: 2026-01)
 
     // 1. Buscamos TODOS os fechamentos (Dados Financeiros)
+    // (A tabela fechamentos ainda usa 'vinculo_id' como FK, então ok)
     const { data: fechamentos, error: erroFechamentos } = await supabase
       .from('fechamentos')
       .select('*');
 
     if (erroFechamentos) throw erroFechamentos;
 
-    // 2. Buscamos TODOS os vínculos ATIVOS (Para pegar os nomes)
+    // 2. Buscamos TODOS os vínculos ATIVOS
+    // CORREÇÃO AQUI: Mudamos vinculo_id -> id e nome_proprietario -> nome
     const { data: vinculos, error: erroVinculos } = await supabase
       .from('vinculos')
       .select(`
-        vinculo_id,
+        id,
         consumidores (nome),
-        usinas (nome_proprietario)
+        usinas (nome)
       `);
       
     if (erroVinculos) throw erroVinculos;
@@ -31,15 +33,17 @@ router.get('/rentabilidade', async (req, res) => {
       // Passo A: Filtra apenas o mês selecionado
       .filter(f => f.mes_referencia && f.mes_referencia.startsWith(mes))
       
-      // Passo B (O PULO DO GATO): Só deixa passar se o vínculo ainda existir!
+      // Passo B: Só deixa passar se o vínculo ainda existir!
       .filter(item => {
-        const existeVinculo = vinculos.find(v => v.vinculo_id === item.vinculo_id);
-        return !!existeVinculo; // Se não achar (undefined), retorna false e remove da lista.
+        // CORREÇÃO: Compara o 'id' do vínculo (novo) com o 'vinculo_id' do fechamento (velho/FK)
+        const existeVinculo = vinculos.find(v => v.id === item.vinculo_id);
+        return !!existeVinculo; 
       })
 
       // Passo C: Formata os dados
       .map(item => {
-        const vinculoInfo = vinculos.find(v => v.vinculo_id === item.vinculo_id);
+        // CORREÇÃO: Busca pelo ID novo
+        const vinculoInfo = vinculos.find(v => v.id === item.vinculo_id);
         
         const compensada = Number(item.energia_compensada) || 0;
         const spreadTotal = Number(item.spread) || 0;
@@ -47,7 +51,8 @@ router.get('/rentabilidade', async (req, res) => {
         return {
           vinculo_id: item.vinculo_id,
           nome_consumidor: vinculoInfo?.consumidores?.nome || 'Desconhecido',
-          nome_usina: vinculoInfo?.usinas?.nome_proprietario || 'Desconhecida',
+          // CORREÇÃO: Pega 'nome' da usina
+          nome_usina: vinculoInfo?.usinas?.nome || 'Desconhecida',
           energia_compensada: compensada,
           spread: spreadTotal,
           // Cálculo do Spread Unitário

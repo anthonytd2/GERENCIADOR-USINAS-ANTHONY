@@ -11,8 +11,7 @@ export default function FormularioConsumidor() {
   const { register, handleSubmit, setValue, formState: { errors } } = useForm();
   const [loading, setLoading] = useState(false);
 
-  // --- NOVO: Estado para controlar qual campo aparece ---
-  // Começa como 'desconto' por padrão
+  // Estado para controlar qual campo aparece (Desconto ou Valor Fixo)
   const [tipoCobranca, setTipoCobranca] = useState<'desconto' | 'fixo'>('desconto');
 
   useEffect(() => {
@@ -23,7 +22,11 @@ export default function FormularioConsumidor() {
         .then(data => {
           if (data) {
             setValue('nome', data.nome);
-            setValue('documento', data.documento); // Ajuste se seu backend usa cpf_cnpj
+            // O banco usa 'documento', mas o front antigo podia usar cpf_cnpj.
+            // Aqui garantimos que o campo do formulário receba o valor correto.
+            setValue('documento', data.documento || data.cpf_cnpj); 
+            setValue('email', data.email);       // NOVO
+            setValue('telefone', data.telefone); // NOVO
             setValue('cep', data.cep);
             setValue('endereco', data.endereco);
             setValue('bairro', data.bairro);
@@ -34,8 +37,7 @@ export default function FormularioConsumidor() {
             setValue('percentual_desconto', data.percentual_desconto);
             setValue('observacao', data.observacao);
 
-            // --- LÓGICA INTELIGENTE: Descobre qual o tipo de cobrança desse cliente ---
-            // Se ele tem Valor kW definido e Desconto zerado, é FIXO. Caso contrário, é DESCONTO.
+            // Lógica para definir o tipo de cobrança visual
             if (Number(data.valor_kw) > 0 && Number(data.percentual_desconto) === 0) {
               setTipoCobranca('fixo');
             } else {
@@ -56,9 +58,7 @@ export default function FormularioConsumidor() {
     const toastId = toast.loading('Salvando consumidor...');
 
     try {
-      // --- LIMPEZA DE DADOS ANTES DE SALVAR ---
-      // Se escolheu 'desconto', forçamos o valor_kw a ser 0 (para não salvar lixo)
-      // Se escolheu 'fixo', forçamos o desconto a ser 0
+      // Lógica de limpeza dos dados financeiros
       let valorFinalKw = 0;
       let valorFinalDesconto = 0;
 
@@ -66,7 +66,7 @@ export default function FormularioConsumidor() {
         valorFinalKw = Number(data.valor_kw) || 0;
         valorFinalDesconto = 0;
       } else {
-        valorFinalKw = 0; // Opcional: ou mantém 0 se for desconto
+        valorFinalKw = 0;
         valorFinalDesconto = Number(data.percentual_desconto) || 0;
       }
 
@@ -98,7 +98,7 @@ export default function FormularioConsumidor() {
   };
 
   return (
-    <div className="max-w-2xl mx-auto">
+    <div className="max-w-2xl mx-auto animate-fade-in-down">
       <div className="mb-8">
         <Link to="/consumidores" className="inline-flex items-center gap-2 text-gray-500 hover:text-gray-900 mb-4">
           <ArrowLeft className="w-5 h-5" /> Voltar
@@ -113,6 +113,7 @@ export default function FormularioConsumidor() {
         {/* DADOS PESSOAIS */}
         <div className="space-y-4">
           <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">Dados Pessoais</h3>
+          
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Nome Completo (Titular)</label>
             <input
@@ -121,10 +122,32 @@ export default function FormularioConsumidor() {
             />
             {errors.nome && <span className="text-red-500 text-sm">Obrigatório</span>}
           </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">CPF / CNPJ</label>
+              <input
+                {...register('documento')} // Alterado para 'documento' para bater com o banco
+                placeholder="000.000.000-00"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Telefone / WhatsApp</label>
+              <input
+                {...register('telefone')}
+                placeholder="(00) 00000-0000"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+              />
+            </div>
+          </div>
+
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">CPF / CNPJ</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">E-mail</label>
             <input
-              {...register('documento')}
+              {...register('email')}
+              type="email"
+              placeholder="cliente@email.com"
               className="w-full px-4 py-2 border border-gray-300 rounded-lg"
             />
           </div>
@@ -159,12 +182,11 @@ export default function FormularioConsumidor() {
           </div>
         </div>
 
-        {/* --- DADOS COMERCIAIS (MODIFICADO) --- */}
+        {/* DADOS COMERCIAIS */}
         <div className="space-y-4">
           <h3 className="text-lg font-semibold text-gray-900 border-b pb-2 pt-2">Dados Comerciais</h3>
 
           <div className="grid grid-cols-2 gap-4">
-            {/* Campo Média de Consumo (Sempre visível) */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Média Consumo (kWh)</label>
               <input
@@ -175,14 +197,12 @@ export default function FormularioConsumidor() {
               />
             </div>
 
-            {/* SELETOR DE TIPO DE COBRANÇA */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Forma de Cobrança</label>
               <select
                 value={tipoCobranca}
                 onChange={(e) => {
                   setTipoCobranca(e.target.value as 'desconto' | 'fixo');
-                  // Quando troca, limpa o campo oposto visualmente (opcional, mas bom pra UX)
                   if (e.target.value === 'desconto') setValue('valor_kw', '');
                   else setValue('percentual_desconto', '');
                 }}
@@ -194,10 +214,8 @@ export default function FormularioConsumidor() {
             </div>
           </div>
 
-          {/* CAMPOS CONDICIONAIS */}
-          <div className="p-4 bg-gray-50 rounded-xl border border-gray-100 animate-fade-in-down">
+          <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
             {tipoCobranca === 'desconto' ? (
-              // --- CENÁRIO A: DESCONTO (%) ---
               <div>
                 <label className="block text-sm font-bold text-blue-700 mb-1">Percentual de Desconto Garantido (%)</label>
                 <div className="relative">
@@ -215,7 +233,6 @@ export default function FormularioConsumidor() {
                 <p className="text-xs text-gray-500 mt-1">O cliente pagará a tarifa da concessionária menos esse desconto.</p>
               </div>
             ) : (
-              // --- CENÁRIO B: VALOR FIXO (R$) ---
               <div>
                 <label className="block text-sm font-bold text-green-700 mb-1">Valor Fixo do kWh (R$)</label>
                 <div className="relative">
@@ -244,7 +261,7 @@ export default function FormularioConsumidor() {
         <button
           type="submit"
           disabled={loading}
-          className="w-full py-3 bg-brand-DEFAULT text-white rounded-xl hover:bg-brand-dark font-bold shadow-lg transition-all flex justify-center items-center gap-2"
+          className="w-full py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 font-bold shadow-lg transition-all flex justify-center items-center gap-2"
         >
           <Save className="w-5 h-5" />
           {loading ? 'Salvando...' : 'Salvar Consumidor'}

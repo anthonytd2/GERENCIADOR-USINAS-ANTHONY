@@ -5,14 +5,18 @@ import { Plus, Edit, Trash2, Zap, ArrowRight, Sun, Search, CheckCircle, XCircle 
 import Skeleton from '../../components/Skeleton';
 import toast from 'react-hot-toast';
 import ModalConfirmacao from '../../components/ModalConfirmacao';
-import { Usina } from '../../types';
+// Se o typescript reclamar de 'Usina', pode trocar por 'any' temporariamente ou atualizar o arquivo types.ts
+import { Usina } from '../../types'; 
 
 export default function ListaUsinas() {
-  const [usinas, setUsinas] = useState<Usina[]>([]);
+  // Estado tipado como any[] para evitar briga com o TS antigo
+  const [usinas, setUsinas] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filtro, setFiltro] = useState<'todos' | 'disponiveis' | 'locadas'>('todos');
+  
+  // Filtro simplificado: Todos, Injetado ou Rateio (Consumo)
+  const [filtro, setFiltro] = useState<'todos' | 'INJETADO' | 'CONSUMO'>('todos');
 
-  // NOVO: Estado para a busca por nome
+  // Estado para busca por nome
   const [busca, setBusca] = useState('');
 
   // Controle de Modal
@@ -48,7 +52,7 @@ export default function ListaUsinas() {
       toast.success('Usina excluída com sucesso!');
       loadUsinas();
     } catch (error) {
-      toast.error('Erro ao excluir usina. Verifique se há vínculos.');
+      toast.error('Erro ao excluir usina. Verifique vínculos.');
     } finally {
       setModalAberto(false);
       setIdParaExcluir(null);
@@ -56,21 +60,25 @@ export default function ListaUsinas() {
   };
 
   const formatMoeda = (valor: number) => {
-    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(valor);
+    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(valor || 0);
   };
 
-  // --- FILTRO INTELIGENTE (STATUS + BUSCA POR NOME) ---
+  // --- FILTRO INTELIGENTE (STATUS NOVO + BUSCA POR NOME) ---
   const usinasFiltradas = usinas.filter(u => {
-    // 1. Filtra por Status (Abas)
-    const passaFiltroStatus =
-      filtro === 'todos' ? true :
-        filtro === 'disponiveis' ? !u.is_locada :
-          filtro === 'locadas' ? u.is_locada : true;
+    // 1. Filtra por Tipo (Injetado ou Consumo)
+    // O banco salva 'INJETADO' ou 'CONSUMO' (tudo maiúsculo)
+    let tipoBanco = u.tipo_pagamento ? u.tipo_pagamento.toUpperCase() : '';
+    
+    // Fallback: se estiver vazio, tenta adivinhar pelo is_locada (legado)
+    if (!tipoBanco) {
+        tipoBanco = u.is_locada ? 'CONSUMO' : 'INJETADO';
+    }
 
-    // 2. Filtra por Nome (Barra de Busca)
-    const passaBusca = u.nome_proprietario
-      ? u.nome_proprietario.toLowerCase().includes(busca.toLowerCase())
-      : false;
+    const passaFiltroStatus = filtro === 'todos' ? true : tipoBanco === filtro;
+
+    // 2. Filtra por Nome (Barra de Busca) - AGORA É 'nome' e não 'nome_proprietario'
+    const nomeReal = u.nome || u.nome_proprietario || '';
+    const passaBusca = nomeReal.toLowerCase().includes(busca.toLowerCase());
 
     return passaFiltroStatus && passaBusca;
   });
@@ -105,7 +113,7 @@ export default function ListaUsinas() {
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
           <input
             type="text"
-            placeholder="Buscar usina por nome do proprietário..."
+            placeholder="Buscar por proprietário..."
             className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all outline-none font-medium"
             value={busca}
             onChange={e => setBusca(e.target.value)}
@@ -121,16 +129,16 @@ export default function ListaUsinas() {
             Todas
           </button>
           <button
-            onClick={() => setFiltro('disponiveis')}
-            className={`flex-1 md:flex-none px-4 py-2 rounded-lg text-sm font-bold transition-all whitespace-nowrap ${filtro === 'disponiveis' ? 'bg-white text-emerald-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+            onClick={() => setFiltro('INJETADO')}
+            className={`flex-1 md:flex-none px-4 py-2 rounded-lg text-sm font-bold transition-all whitespace-nowrap ${filtro === 'INJETADO' ? 'bg-white text-emerald-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
           >
-            Disponíveis
+            Injeção (Venda)
           </button>
           <button
-            onClick={() => setFiltro('locadas')}
-            className={`flex-1 md:flex-none px-4 py-2 rounded-lg text-sm font-bold transition-all whitespace-nowrap ${filtro === 'locadas' ? 'bg-white text-orange-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+            onClick={() => setFiltro('CONSUMO')}
+            className={`flex-1 md:flex-none px-4 py-2 rounded-lg text-sm font-bold transition-all whitespace-nowrap ${filtro === 'CONSUMO' ? 'bg-white text-orange-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
           >
-            Locadas
+            Rateio (Locação)
           </button>
         </div>
       </div>
@@ -153,94 +161,100 @@ export default function ListaUsinas() {
             <Sun className="w-8 h-8 text-yellow-500" />
           </div>
           <h3 className="text-lg font-bold text-gray-900">Nenhuma usina encontrada</h3>
-          <p className="text-gray-500 max-w-xs mt-2">Tente buscar por outro nome ou cadastre uma nova usina.</p>
+          <p className="text-gray-500 max-w-xs mt-2">Tente buscar por outro nome ou cadastre uma nova.</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-4">
-          {usinasFiltradas.map((u) => (
-            <Link
-              to={`/usinas/${u.usina_id}`}
-              key={u.usina_id}
-              className="group bg-white p-5 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md hover:border-blue-200 transition-all flex flex-col md:flex-row items-center gap-6 relative overflow-hidden"
-            >
-              {/* --- ALTERAÇÃO 1: FAIXA LATERAL (VERMELHO SE LOCADA) --- */}
-              <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${u.is_locada ? 'bg-red-500' : 'bg-emerald-500'}`}></div>
+          {usinasFiltradas.map((u) => {
+            // Define se é Rateio (Locada) ou Injeção
+            const isRateio = u.tipo_pagamento === 'CONSUMO' || u.is_locada;
+            const nomeExibicao = u.nome || u.nome_proprietario || 'Sem Nome';
+            const idReal = u.id || u.usina_id; // Pega o ID certo
 
-              {/* Ícone da Usina */}
-              <div className="flex-shrink-0 pl-2">
-                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center shadow-lg shadow-orange-100 text-white">
-                  <Zap className="w-7 h-7 fill-white" />
-                </div>
-              </div>
-
-              {/* Informações Principais */}
-              <div className="flex-1 text-center md:text-left min-w-[200px]">
-                <div className="flex items-center justify-center md:justify-start gap-2 mb-1">
-                  <h3 className="text-lg font-bold text-gray-900 group-hover:text-blue-700 transition-colors">
-                    {u.nome_proprietario}
-                  </h3>
-
-                  {/* --- ALTERAÇÃO 2: BADGE (VERMELHO SE LOCADA) --- */}
-                  {u.is_locada ? (
-                    <span className="bg-red-100 text-red-700 text-[10px] font-bold px-2 py-0.5 rounded-full border border-red-200 uppercase tracking-wide flex items-center gap-1">
-                      <XCircle size={10} /> Locada
-                    </span>
-                  ) : (
-                    <span className="bg-emerald-100 text-emerald-700 text-[10px] font-bold px-2 py-0.5 rounded-full border border-emerald-200 uppercase tracking-wide flex items-center gap-1">
-                      <CheckCircle size={10} /> Disponível
-                    </span>
-                  )}
-                </div>
-
-                <div className="text-sm text-gray-500 flex flex-wrap justify-center md:justify-start gap-3">
-                  <span className="flex items-center gap-1">
-                    <span className="w-2 h-2 rounded-full bg-gray-300"></span>
-                    {u.tipo || 'Tipo não inf.'}
-                  </span>
-                  <span className="flex items-center gap-1 font-medium text-gray-700 bg-gray-50 px-2 rounded-md">
-                    {formatMoeda(u.valor_kw_bruto || 0)} <span className="text-gray-400 font-normal">/kWh</span>
-                  </span>
-                </div>
-              </div>
-
-              {/* Dados Técnicos */}
-              <div className="flex gap-8 border-t md:border-t-0 md:border-l border-gray-100 pt-4 md:pt-0 md:pl-6">
-                <div className="text-center">
-                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Potência</p>
-                  <p className="text-lg font-bold text-gray-800">{u.potencia} <span className="text-sm font-medium text-gray-400">kWp</span></p>
-                </div>
-                <div className="text-center">
-                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Geração Est.</p>
-                  <p className="text-lg font-bold text-gray-800">{u.geracao_estimada?.toLocaleString('pt-BR')} <span className="text-sm font-medium text-gray-400">kWh</span></p>
-                </div>
-              </div>
-
-              {/* Ações */}
-              <div className="flex items-center gap-2 border-l pl-4 ml-4 border-gray-100">
-                <button
-                  onClick={(e) => {
-                    e.preventDefault();
-                    window.location.href = `/usinas/${u.usina_id}/editar`;
-                  }}
-                  className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                  title="Editar"
+            return (
+                <Link
+                to={`/usinas/${idReal}`}
+                key={idReal}
+                className="group bg-white p-5 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md hover:border-blue-200 transition-all flex flex-col md:flex-row items-center gap-6 relative overflow-hidden"
                 >
-                  <Edit className="w-5 h-5" />
-                </button>
-                <button
-                  onClick={(e) => solicitarExclusao(u.usina_id, e)}
-                  className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                  title="Excluir"
-                >
-                  <Trash2 className="w-5 h-5" />
-                </button>
-                <div className="text-blue-500 hover:bg-blue-50 p-2 rounded-lg transition-colors">
-                  <ArrowRight className="w-5 h-5" />
-                </div>
-              </div>
+                {/* FAIXA LATERAL (VERMELHO SE RATEIO, VERDE SE INJEÇÃO) */}
+                <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${isRateio ? 'bg-orange-500' : 'bg-emerald-500'}`}></div>
 
-            </Link>
-          ))}
+                {/* Ícone da Usina */}
+                <div className="flex-shrink-0 pl-2">
+                    <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center shadow-lg shadow-orange-100 text-white">
+                    <Zap className="w-7 h-7 fill-white" />
+                    </div>
+                </div>
+
+                {/* Informações Principais */}
+                <div className="flex-1 text-center md:text-left min-w-[200px]">
+                    <div className="flex items-center justify-center md:justify-start gap-2 mb-1">
+                    <h3 className="text-lg font-bold text-gray-900 group-hover:text-blue-700 transition-colors">
+                        {nomeExibicao}
+                    </h3>
+
+                    {isRateio ? (
+                        <span className="bg-orange-100 text-orange-700 text-[10px] font-bold px-2 py-0.5 rounded-full border border-orange-200 uppercase tracking-wide flex items-center gap-1">
+                        <XCircle size={10} /> Rateio
+                        </span>
+                    ) : (
+                        <span className="bg-emerald-100 text-emerald-700 text-[10px] font-bold px-2 py-0.5 rounded-full border border-emerald-200 uppercase tracking-wide flex items-center gap-1">
+                        <CheckCircle size={10} /> Injeção
+                        </span>
+                    )}
+                    </div>
+
+                    <div className="text-sm text-gray-500 flex flex-wrap justify-center md:justify-start gap-3">
+                    <span className="flex items-center gap-1">
+                        <span className="w-2 h-2 rounded-full bg-gray-300"></span>
+                        {u.tipo || 'Tipo não inf.'}
+                    </span>
+                    <span className="flex items-center gap-1 font-medium text-gray-700 bg-gray-50 px-2 rounded-md">
+                        {formatMoeda(u.valor_kw_bruto || 0)} <span className="text-gray-400 font-normal">/kWh</span>
+                    </span>
+                    </div>
+                </div>
+
+                {/* Dados Técnicos */}
+                <div className="flex gap-8 border-t md:border-t-0 md:border-l border-gray-100 pt-4 md:pt-0 md:pl-6">
+                    <div className="text-center">
+                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Potência</p>
+                    <p className="text-lg font-bold text-gray-800">{u.potencia} <span className="text-sm font-medium text-gray-400">kWp</span></p>
+                    </div>
+                    <div className="text-center">
+                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Geração Est.</p>
+                    <p className="text-lg font-bold text-gray-800">{u.geracao_estimada?.toLocaleString('pt-BR')} <span className="text-sm font-medium text-gray-400">kWh</span></p>
+                    </div>
+                </div>
+
+                {/* Ações */}
+                <div className="flex items-center gap-2 border-l pl-4 ml-4 border-gray-100">
+                    <button
+                    onClick={(e) => {
+                        e.preventDefault();
+                        window.location.href = `/usinas/${idReal}/editar`;
+                    }}
+                    className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                    title="Editar"
+                    >
+                    <Edit className="w-5 h-5" />
+                    </button>
+                    <button
+                    onClick={(e) => solicitarExclusao(idReal, e)}
+                    className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                    title="Excluir"
+                    >
+                    <Trash2 className="w-5 h-5" />
+                    </button>
+                    <div className="text-blue-500 hover:bg-blue-50 p-2 rounded-lg transition-colors">
+                    <ArrowRight className="w-5 h-5" />
+                    </div>
+                </div>
+
+                </Link>
+            );
+          })}
         </div>
       )}
 

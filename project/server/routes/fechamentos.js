@@ -14,29 +14,20 @@ async function descobrirUnidadeConsumidora(vinculoId, ucIdInformado) {
     const { data: vinculo } = await supabase
       .from('vinculos')
       .select('consumidor_id')
-      .eq('vinculo_id', vinculoId)
+      .eq('id', vinculoId) // CORREÇÃO: Busca por 'id' na tabela vinculos
       .single();
 
     if (vinculo) {
       // 2. Acha a UC do consumidor
+      // CORREÇÃO: Agora a tabela de UCs usa 'id' como chave primária
       const { data: uc } = await supabase
         .from('unidades_consumidoras')
-        .select('unidade_consumidora_id') // Tenta buscar pelo nome correto
+        .select('id') 
         .eq('consumidor_id', vinculo.consumidor_id)
         .limit(1)
         .single();
 
-      if (uc) return uc.unidade_consumidora_id;
-      
-      // Tentativa extra (caso a coluna se chame apenas 'id')
-      const { data: ucSimples } = await supabase
-        .from('unidades_consumidoras')
-        .select('id')
-        .eq('consumidor_id', vinculo.consumidor_id)
-        .limit(1)
-        .single();
-        
-      if (ucSimples) return ucSimples.id;
+      if (uc) return uc.id;
     }
   }
   return null; // Não achou nada
@@ -53,7 +44,7 @@ router.get('/:vinculoId', async (req, res) => {
         *,
         unidades_consumidoras (codigo_uc, endereco, bairro)
       `)
-      .eq('vinculo_id', req.params.vinculoId)
+      .eq('vinculo_id', req.params.vinculoId) // Mantém vinculo_id pois é a coluna no fechamento
       .order('mes_referencia', { ascending: false });
 
     if (error) throw error;
@@ -110,13 +101,12 @@ router.post('/', async (req, res) => {
 });
 
 
-// ATUALIZAR (PUT) - CORRIGIDO AGORA
+// ATUALIZAR (PUT)
 router.put('/:id', async (req, res) => {
   try {
     const { id } = req.params;
     const body = req.body;
 
-    // 1. Tenta descobrir o ID correto da UC novamente (caso tenha mudado)
     const ucIdParaSalvar = await descobrirUnidadeConsumidora(body.vinculo_id, body.unidade_consumidora_id);
 
     const payload = {
@@ -139,8 +129,6 @@ router.put('/:id', async (req, res) => {
       updated_at: new Date()
     };
 
-    // 2. Só tenta atualizar a Unidade Consumidora se a gente tiver certeza de qual é.
-    // Se for null ou undefined, a gente NÃO manda no update, para manter a que já existe no banco.
     if (ucIdParaSalvar) {
       payload.unidade_consumidora_id = ucIdParaSalvar;
     }

@@ -216,7 +216,7 @@ export default function Dashboard() {
                 </h3>
               </div>
               <div className="mt-4 pt-4 border-t border-white/10 flex items-center justify-between">
-                <span className="text-sm text-emerald-50 font-medium">Disponível em Caixa</span>
+                <span className="text-sm text-emerald-50 font-medium">Spread</span>
                 <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-white backdrop-blur-md">
                   <DollarSign size={16} />
                 </div>

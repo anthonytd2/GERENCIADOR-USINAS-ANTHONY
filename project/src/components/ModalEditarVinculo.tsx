@@ -9,15 +9,15 @@ interface ModalEditarVinculoProps {
   onClose: () => void;
   onSuccess: () => void; // Para recarregar a tela de trás
   vinculo: {
-    vinculo_id: number;
-    status_id?: number; // O ID do status atual
-    observacoes?: string;
+    id: number;           // CORREÇÃO: id
+    status_id?: number;
+    observacao?: string;  // CORREÇÃO: observacao (singular)
   };
 }
 
 interface EditForm {
   status_id: number;
-  observacoes: string;
+  observacao: string;     // CORREÇÃO: observacao
 }
 
 export default function ModalEditarVinculo({ isOpen, onClose, onSuccess, vinculo }: ModalEditarVinculoProps) {
@@ -35,7 +35,9 @@ export default function ModalEditarVinculo({ isOpen, onClose, onSuccess, vinculo
         
       // Preenche o formulário com o que já existe
       if (vinculo.status_id) setValue('status_id', vinculo.status_id);
-      if (vinculo.observacoes) setValue('observacoes', vinculo.observacoes);
+      
+      // CORREÇÃO: observacao
+      if (vinculo.observacao) setValue('observacao', vinculo.observacao);
     }
   }, [isOpen, vinculo, setValue]);
 
@@ -43,9 +45,10 @@ export default function ModalEditarVinculo({ isOpen, onClose, onSuccess, vinculo
     setLoading(true);
     try {
       // Envia a atualização para o backend
-      await api.vinculos.update(vinculo.vinculo_id, {
+      // CORREÇÃO: id e observacao
+      await api.vinculos.update(vinculo.id, {
         status_id: Number(data.status_id),
-        observacoes: data.observacoes
+        observacao: data.observacao
       });
 
       toast.success('Vínculo atualizado com sucesso!');
@@ -67,7 +70,8 @@ export default function ModalEditarVinculo({ isOpen, onClose, onSuccess, vinculo
         
         {/* Cabeçalho */}
         <div className="bg-gray-50 px-6 py-4 border-b border-gray-100 flex justify-between items-center">
-          <h3 className="font-bold text-lg text-gray-800">Editar Vínculo #{vinculo.vinculo_id}</h3>
+          {/* CORREÇÃO: Exibe id */}
+          <h3 className="font-bold text-lg text-gray-800">Editar Vínculo #{vinculo.id}</h3>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors p-1 rounded-full hover:bg-gray-200">
             <X className="w-5 h-5" />
           </button>
@@ -99,7 +103,7 @@ export default function ModalEditarVinculo({ isOpen, onClose, onSuccess, vinculo
               <FileText className="w-4 h-4 text-gray-500" /> Notas / Observações
             </label>
             <textarea
-              {...register('observacoes')}
+              {...register('observacao')} // CORREÇÃO: observacao
               rows={5}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none resize-none transition-all"
               placeholder="Ex: Protocolo Copel, motivo da pendência, etc..."

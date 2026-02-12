@@ -61,7 +61,7 @@ export const gerarContratoComodatoConsumidor = async (vinculo: any) => {
 
     const dados = {
       nome_consumidor: consumidor.nome?.toUpperCase() || "__________________________",
-      documento_consumidor: consumidor.documento || "__________________",
+      cpf_cnpj_consumidor: consumidor.cpf_cnpj || "__________________",
       endereco_consumidor: consumidor.endereco
         ? `${consumidor.endereco}, ${consumidor.bairro || ''}, ${consumidor.cidade || ''}-${consumidor.uf || ''}`
         : "______________________________________________________________________",
@@ -161,7 +161,7 @@ export const gerarContratoGestaoConsumidor = async (vinculo: any) => {
 
     const dados = {
       nome_consumidor: consumidor.nome?.toUpperCase() || "__________________________",
-      documento_consumidor: consumidor.documento || "__________________",
+      cpf_cnpj_consumidor: consumidor.cpf_cnpj || "__________________",
 
       endereco_consumidor: consumidor.endereco
         ? `${consumidor.endereco}, ${consumidor.bairro || ''}`

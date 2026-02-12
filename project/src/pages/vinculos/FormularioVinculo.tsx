@@ -2,23 +2,25 @@ import { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { api } from '../../lib/api';
-import { Usina, Consumidor, VinculoFormInput } from '../../types';
 import toast from 'react-hot-toast';
 import { ArrowLeft, Save, FileText, Activity } from 'lucide-react';
 
-// CORREÇÃO AQUI: Usamos 'Omit' para evitar o conflito de tipos
-interface VinculoFormInputExtended extends Omit<VinculoFormInput, 'status_id'> {
+interface VinculoFormInput {
+  usina_id: string | number;
+  consumidor_id: string | number;
+  percentual: string | number;
+  data_inicio: string;
+  data_fim?: string;
+  status_id: string | number;
   observacoes?: string;
-  status_id?: number | string;
 }
 
 export default function FormularioVinculo() {
   const navigate = useNavigate();
+  const { register, handleSubmit } = useForm<VinculoFormInput>();
 
-  const { register, handleSubmit } = useForm<VinculoFormInputExtended>();
-
-  const [usinas, setUsinas] = useState<Usina[]>([]);
-  const [consumidores, setConsumidores] = useState<Consumidor[]>([]);
+  const [usinas, setUsinas] = useState<any[]>([]);
+  const [consumidores, setConsumidores] = useState<any[]>([]);
   const [statusList, setStatusList] = useState<any[]>([]); 
   const [loading, setLoading] = useState(false);
 
@@ -33,12 +35,13 @@ export default function FormularioVinculo() {
         setConsumidores(Array.isArray(cData) ? cData : []);
         setStatusList(Array.isArray(sData) ? sData : []);
       })
-      .catch(() => {
+      .catch((err) => {
+        console.error(err);
         toast.error('Erro ao carregar listas do sistema.');
       });
   }, []);
 
-  const onSubmit = async (data: VinculoFormInputExtended) => {
+  const onSubmit = async (data: VinculoFormInput) => {
     setLoading(true);
     const toastId = toast.loading('Criando vínculo...');
 
@@ -53,8 +56,8 @@ export default function FormularioVinculo() {
         percentual: Number(data.percentual),
         data_inicio: data.data_inicio,
         data_fim: data.data_fim || null,
-        status_id: Number(data.status_id) || 1, // Garante que envia número
-        observacoes: data.observacoes || null
+        status_id: Number(data.status_id) || 1,
+        observacao: data.observacoes || null
       };
 
       await api.vinculos.create(payload);
@@ -67,19 +70,12 @@ export default function FormularioVinculo() {
 
     } catch (error: any) {
       console.error("Erro no envio:", error);
-
       const msgBackend = error.response?.data?.error;
-      const detalhesBackend = error.response?.data?.detalhes;
-
-      if (detalhesBackend && detalhesBackend.length > 0) {
-        toast.error(`${msgBackend}: ${detalhesBackend[0]}`, { id: toastId, duration: 6000 });
-      }
-      else if (msgBackend) {
+      
+      if (msgBackend) {
         toast.error(msgBackend, { id: toastId });
-      }
-      else {
-        const msgTecnica = error.message || 'Erro desconhecido';
-        toast.error(`Erro ao criar vínculo: ${msgTecnica}`, { id: toastId });
+      } else {
+        toast.error(`Erro ao criar vínculo. Verifique os dados.`, { id: toastId });
       }
     } finally {
       setLoading(false);
@@ -87,9 +83,9 @@ export default function FormularioVinculo() {
   };
 
   return (
-    <div className="max-w-2xl mx-auto">
+    <div className="max-w-2xl mx-auto animate-fade-in-down">
       <div className="mb-8">
-        <Link to="/vinculos" className="inline-flex items-center gap-2 text-gray-500 hover:text-gray-900 mb-4">
+        <Link to="/vinculos" className="inline-flex items-center gap-2 text-gray-500 hover:text-gray-900 mb-4 transition-colors">
           <ArrowLeft className="w-5 h-5" /> Voltar
         </Link>
         <h1 className="text-3xl font-bold text-gray-900">Novo Vínculo</h1>
@@ -100,26 +96,35 @@ export default function FormularioVinculo() {
         {/* SELEÇÃO DA USINA */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Selecione a Usina</label>
-          <select {...register('usina_id', { required: true })} className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white outline-none focus:ring-2 focus:ring-blue-500">
+          <select {...register('usina_id', { required: true })} className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white outline-none focus:ring-2 focus:ring-blue-500 transition-shadow">
             <option value="">Selecione...</option>
-            {usinas.map(u => (
-              <option key={u.usina_id} value={u.usina_id}>
-                {u.nome_proprietario} ({u.potencia} kWp)
-              </option>
-            ))}
+            {usinas.map(u => {
+              // CORREÇÃO: Tenta pegar id OU usina_id (Híbrido)
+              const idReal = u.id || u.usina_id;
+              const nomeReal = u.nome || u.nome_proprietario;
+              return (
+                <option key={idReal} value={idReal}>
+                  {nomeReal} ({u.potencia} kWp)
+                </option>
+              );
+            })}
           </select>
         </div>
 
         {/* SELEÇÃO DO CONSUMIDOR */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Selecione o Consumidor</label>
-          <select {...register('consumidor_id', { required: true })} className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white outline-none focus:ring-2 focus:ring-blue-500">
+          <select {...register('consumidor_id', { required: true })} className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white outline-none focus:ring-2 focus:ring-blue-500 transition-shadow">
             <option value="">Selecione...</option>
-            {consumidores.map(c => (
-              <option key={c.consumidor_id} value={c.consumidor_id}>
-                {c.nome}
-              </option>
-            ))}
+            {consumidores.map(c => {
+               // CORREÇÃO: Tenta pegar id OU consumidor_id (Híbrido)
+               const idReal = c.id || c.consumidor_id;
+               return (
+                <option key={idReal} value={idReal}>
+                  {c.nome}
+                </option>
+               );
+            })}
           </select>
         </div>
 
@@ -130,11 +135,10 @@ export default function FormularioVinculo() {
           </label>
           <select 
             {...register('status_id')} 
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white outline-none focus:ring-2 focus:ring-blue-500 transition-shadow"
           >
-            <option value="">Selecione o status...</option>
             {statusList.map(s => (
-              <option key={s.status_id} value={s.status_id}>
+              <option key={s.id || s.status_id} value={s.id || s.status_id}>
                 {s.descricao}
               </option>
             ))}
@@ -150,7 +154,7 @@ export default function FormularioVinculo() {
             {...register('observacoes')}
             placeholder="Ex: Protocolo Copel nº 123456... Aguardando vistoria..."
             rows={3}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg resize-none outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg resize-none outline-none focus:ring-2 focus:ring-blue-500 transition-shadow"
           />
         </div>
 
@@ -162,7 +166,7 @@ export default function FormularioVinculo() {
               type="number"
               defaultValue={100}
               {...register('percentual', { required: true, min: 0, max: 100 })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 transition-shadow"
             />
           </div>
 
@@ -171,7 +175,7 @@ export default function FormularioVinculo() {
             <input
               type="date"
               {...register('data_inicio', { required: true })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 transition-shadow"
             />
           </div>
 
@@ -180,7 +184,7 @@ export default function FormularioVinculo() {
             <input
               type="date"
               {...register('data_fim')}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 transition-shadow"
             />
           </div>
         </div>
@@ -188,7 +192,7 @@ export default function FormularioVinculo() {
         <button
           type="submit"
           disabled={loading}
-          className="w-full py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 font-bold shadow-lg transition-all flex justify-center items-center gap-2"
+          className="w-full py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 font-bold shadow-lg transition-all flex justify-center items-center gap-2 hover:translate-y-[-2px] active:translate-y-[0px]"
         >
           <Save className="w-5 h-5" />
           {loading ? 'Salvando...' : 'Criar Vínculo'}

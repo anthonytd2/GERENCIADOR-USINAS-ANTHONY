@@ -3,7 +3,7 @@ import { supabase } from '../db.js';
 
 const router = express.Router();
 
-// LISTAR TODAS
+// 1. LISTAR TODAS
 router.get('/', async (req, res) => {
   try {
     const { data, error } = await supabase
@@ -18,7 +18,7 @@ router.get('/', async (req, res) => {
   }
 });
 
-// --- NOVO: BUSCAR UMA POR ID (Para editar) ---
+// 2. BUSCAR UMA POR ID
 router.get('/:id', async (req, res) => {
   try {
     const { data, error } = await supabase
@@ -34,10 +34,10 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// CRIAR
+// 3. CRIAR
 router.post('/', async (req, res) => {
   try {
-    const { consumidor_id, nome_cliente_prospect, concessionaria_id, dados_simulacao, status } = req.body;
+    const { consumidor_id, nome_cliente_prospect, concessionaria_id, dados_simulacao, status, cpf_cnpj, telefone, email } = req.body;
 
     const { data, error } = await supabase
       .from('propostas')
@@ -46,7 +46,10 @@ router.post('/', async (req, res) => {
         nome_cliente_prospect,
         concessionaria_id,
         dados_simulacao,
-        status
+        status,
+        cpf_cnpj, 
+        telefone, 
+        email
       }])
       .select()
       .single();
@@ -57,22 +60,25 @@ router.post('/', async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
-// ATUALIZAR (Versão Corrigida - Aceita Dados e Status)
+
+// 4. ATUALIZAR
 router.put('/:id', async (req, res) => {
   try {
     const body = req.body;
     
-    // Monta o objeto com tudo que pode ser atualizado
     const payload = {
       updated_at: new Date()
     };
 
-    // Só adiciona ao pacote se o dado foi enviado
     if (body.status) payload.status = body.status;
-    if (body.dados_simulacao) payload.dados_simulacao = body.dados_simulacao; // <--- O IMPORTANTE ESTÁ AQUI
+    if (body.dados_simulacao) payload.dados_simulacao = body.dados_simulacao;
     if (body.nome_cliente_prospect) payload.nome_cliente_prospect = body.nome_cliente_prospect;
     if (body.consumidor_id) payload.consumidor_id = body.consumidor_id;
     if (body.concessionaria_id) payload.concessionaria_id = body.concessionaria_id;
+    
+    if (body.cpf_cnpj) payload.cpf_cnpj = body.cpf_cnpj;
+    if (body.telefone) payload.telefone = body.telefone;
+    if (body.email) payload.email = body.email;
 
     const { data, error } = await supabase
       .from('propostas')
@@ -88,58 +94,7 @@ router.put('/:id', async (req, res) => {
   }
 });
 
-// --- NOVO: CONVERTER PROPOSTA EM CLIENTE ---
-router.post('/:id/converter', async (req, res) => {
-  try {
-    const { id } = req.params;
-
-    // 1. Busca a proposta original
-    const { data: proposta, error: erroProposta } = await supabase
-      .from('propostas').select('*').eq('id', id).single();
-    if (erroProposta) throw erroProposta;
-
-    const simulacao = proposta.dados_simulacao || {};
-    const usinaId = simulacao.usinaSelecionada?.id;
-    const desconto = simulacao.percentualDesconto || 0;
-
-    // 2. Cria ou Recupera Consumidor
-    let consumidorId = proposta.consumidor_id;
-    if (!consumidorId) {
-      const { data: novoConsumidor, error: erroConsumidor } = await supabase
-        .from('consumidores')
-        .insert([{
-          nome: proposta.nome_cliente_prospect,
-          unidade_consumidora: 'A DEFINIR',
-          documento: 'A DEFINIR'
-        }]).select().single();
-      if (erroConsumidor) throw erroConsumidor;
-      consumidorId = novoConsumidor.consumidor_id;
-    }
-
-    // 3. Cria o Vínculo (Contrato)
-    if (usinaId) {
-      const { error: erroVinculo } = await supabase
-        .from('vinculos').insert([{
-          consumidor_id: consumidorId,
-          usina_id: usinaId,
-          percentual_desconto: desconto,
-          status_id: 1 // 1 = Ativo
-        }]);
-      if (erroVinculo) throw erroVinculo;
-    }
-
-    // 4. Marca Proposta como FECHADO
-    await supabase.from('propostas').update({ status: 'FECHADO', consumidor_id: consumidorId }).eq('id', id);
-
-    res.json({ message: 'Sucesso! Cliente criado.', consumidor_id: consumidorId });
-
-  } catch (error) {
-    console.error('Erro conversão:', error);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// EXCLUIR
+// 5. EXCLUIR
 router.delete('/:id', async (req, res) => {
   try {
     const { error } = await supabase
@@ -150,6 +105,73 @@ router.delete('/:id', async (req, res) => {
     if (error) throw error;
     res.json({ message: 'Proposta excluída com sucesso' });
   } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// =====================================================
+// 6. CONVERTER EM VENDA (CORRIGIDO)
+// =====================================================
+router.post('/:id/converter', async (req, res) => {
+  try {
+    const idProposta = req.params.id;
+
+    // A. Buscar dados da proposta
+    const { data: proposta, error: errProp } = await supabase
+      .from('propostas')
+      .select('*')
+      .eq('id', idProposta)
+      .single();
+
+    if (errProp) throw errProp;
+
+    // B. Preparar dados do Consumidor
+    // CORREÇÃO: Removemos 'email' e 'telefone' diretos pois a tabela não tem essas colunas.
+    // Salvamos na observação para não perder.
+    const obsContato = `Convertido de Proposta. Contato: ${proposta.telefone || '-'} | Email: ${proposta.email || '-'}`;
+
+    const novoConsumidor = {
+      nome: proposta.nome_cliente_prospect,
+      documento: proposta.documento || proposta.cpf_cnpj || 'A DEFINIR',
+      endereco: proposta.endereco || null,
+      cidade: proposta.cidade || null,
+      uf: proposta.uf || 'PR',
+      // REMOVIDOS: telefone e email (pois colunas não existem no consumidor)
+      observacao: obsContato, 
+      media_consumo: proposta.consumo_media_kwh || 0,
+      tipo_desconto: 'porcentagem',
+      percentual_desconto: 10, 
+      unidade_consumidora: 'A DEFINIR'
+    };
+
+    // C. Criar o Consumidor
+    const { data: consumidor, error: errCons } = await supabase
+      .from('consumidores')
+      .insert([novoConsumidor])
+      .select()
+      .single();
+
+    if (errCons) {
+      console.error("Erro ao criar consumidor:", errCons);
+      throw new Error(`Erro ao criar consumidor: ${errCons.message}`);
+    }
+
+    // D. Atualizar status da proposta
+    await supabase
+      .from('propostas')
+      .update({ 
+          status: 'FECHADO', 
+          consumidor_id: consumidor.consumidor_id 
+      })
+      .eq('id', idProposta);
+
+    res.json({ 
+      message: 'Conversão realizada com sucesso!', 
+      consumidor_id: consumidor.consumidor_id 
+    });
+
+  } catch (error) {
+    console.error("Erro na conversão:", error);
     res.status(500).json({ error: error.message });
   }
 });

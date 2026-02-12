@@ -21,11 +21,11 @@ router.get('/', async (req, res) => {
 // CADASTRAR (Padronizado com .single())
 router.post('/', async (req, res) => {
   try {
-    const { nome, documento, endereco, cidade, uf } = req.body;
+    const { nome, cpf_cnpj, endereco, cidade, uf } = req.body;
     
     const { data, error } = await supabase
       .from('entidades')
-      .insert([{ nome, documento, endereco, cidade, uf }])
+      .insert([{ nome, cpf_cnpj, endereco, cidade, uf }])
       .select()
       .single(); // Garante que retorna um objeto, não um array
 

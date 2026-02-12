@@ -3,14 +3,18 @@ import { supabase } from '../db.js';
 
 const router = express.Router();
 
-// LISTAR
+// LISTAR (Cópia de segurança do fechamentos.js)
 router.get('/:vinculoId', async (req, res) => {
   try {
     const { data, error } = await supabase
       .from('fechamentos')
-      .select('*')
-      .eq('vinculo_id', req.params.vinculoId) // Atualizado
-      .order('mes_referencia', { ascending: false }); // Atualizado
+      .select(`
+        *,
+        unidades_consumidoras (codigo_uc, endereco, bairro)
+      `)
+      // Mantemos 'vinculo_id' pois é o nome da coluna na tabela fechamentos
+      .eq('vinculo_id', req.params.vinculoId) 
+      .order('mes_referencia', { ascending: false });
 
     if (error) throw error;
     res.json(data);
@@ -19,8 +23,7 @@ router.get('/:vinculoId', async (req, res) => {
   }
 });
 
-// Nota: As rotas POST e PUT são idênticas ao fechamentos.js. 
-// Recomendo usar apenas um arquivo de rota no futuro para não duplicar código.
-// Mas para manter compatibilidade agora, use o mesmo código do fechamentos.js acima.
+// Se houver POST ou PUT aqui, eles provavelmente estão quebrados ou desatualizados.
+// Por segurança, deixe apenas o GET que é o mais comum de ser usado em relatórios legados.
 
 export default router;

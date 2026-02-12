@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import { supabaseClient as supabase } from '../lib/supabaseClient';
 import { api } from '../lib/api';
-import { FileText, Trash2, Upload, Download, AlertCircle, Loader2, File, CheckCircle } from 'lucide-react';
+import { FileText, Trash2, Upload, Download, AlertCircle, Loader2, File } from 'lucide-react';
 
 interface GerenciadorDocumentosProps {
-  tipoEntidade: 'consumidor' | 'usina';
+  tipoEntidade: 'consumidor' | 'usina' | 'vinculo'; 
   entidadeId: number;
 }
 
@@ -21,6 +21,7 @@ export default function GerenciadorDocumentos({ tipoEntidade, entidadeId }: Gere
 
   const carregarDocumentos = async () => {
     try {
+      // Chama a API que consulta a tabela 'documentos'
       const lista = await api.documentos.list(tipoEntidade, entidadeId);
       setDocumentos(lista || []);
     } catch (error) {
@@ -38,18 +39,18 @@ export default function GerenciadorDocumentos({ tipoEntidade, entidadeId }: Gere
     setErro('');
 
     try {
-      // 1. Nome único para não sobreescrever (timestamp + nome limpo)
+      // 1. Nome único para não sobreescrever
       const nomeArquivoLimpo = arquivo.name.replace(/[^a-zA-Z0-9.]/g, '_');
       const caminhoStorage = `${tipoEntidade}s/${entidadeId}/${Date.now()}_${nomeArquivoLimpo}`;
 
-      // 2. Upload para o Supabase Storage (Bucket 'documentos')
-      const { data: storageData, error: storageError } = await supabase.storage
-        .from('documentos')
+      // 2. Upload para o Supabase Storage (Bucket CORRETO: 'documentos')
+      const { error: storageError } = await supabase.storage
+        .from('documentos') // <--- CORREÇÃO AQUI
         .upload(caminhoStorage, arquivo);
 
       if (storageError) throw storageError;
 
-      // 3. Salva os metadados no Backend (Banco de Dados)
+      // 3. Salva os metadados no Backend
       await api.documentos.create({
         nome_arquivo: arquivo.name,
         caminho_storage: caminhoStorage,
@@ -71,9 +72,9 @@ export default function GerenciadorDocumentos({ tipoEntidade, entidadeId }: Gere
 
   const handleDownload = async (doc: any) => {
     try {
-      // Gera URL assinada ou pública para download
+      // Bucket CORRETO: 'documentos'
       const { data } = supabase.storage
-        .from('documentos')
+        .from('documentos') // <--- CORREÇÃO AQUI
         .getPublicUrl(doc.caminho_storage);
       
       if (data?.publicUrl) {
@@ -97,7 +98,6 @@ export default function GerenciadorDocumentos({ tipoEntidade, entidadeId }: Gere
     }
   };
 
-  // Função auxiliar para formatar bytes em KB/MB
   const formatBytes = (bytes: number) => {
     if (bytes === 0) return '0 Bytes';
     const k = 1024;
@@ -116,7 +116,7 @@ export default function GerenciadorDocumentos({ tipoEntidade, entidadeId }: Gere
             Cofre de Documentos
           </h3>
           <p className="text-sm text-gray-500">
-            Contratos, faturas e documentos importantes
+            Contratos, faturas e arquivos importantes
           </p>
         </div>
         

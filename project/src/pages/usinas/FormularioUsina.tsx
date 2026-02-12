@@ -1,14 +1,16 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
-import { useForm } from 'react-hook-form';
+import { useForm } from 'react-hook-form'; // Agora vai usar a tipagem certa
 import { api } from '../../lib/api';
-import { ArrowLeft, Save, Zap, FileText, User, Mail, Phone, MapPin, Hash } from 'lucide-react';
+import { ArrowLeft, Save, Zap, FileText, User, Mail, Phone, MapPin } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { UsinaFormInput } from '../../types';
+import { UsinaFormInput } from '../../types'; // Importando o tipo que acabamos de arrumar
 
 export default function FormularioUsina() {
   const { id } = useParams();
   const navigate = useNavigate();
+  
+  // TIPO FORTE: O TypeScript vai te avisar se você tentar salvar campo errado
   const { register, handleSubmit, setValue, formState: { errors } } = useForm<UsinaFormInput>();
   const [loading, setLoading] = useState(false);
 
@@ -17,28 +19,31 @@ export default function FormularioUsina() {
     if (id && id !== 'novo') {
       setLoading(true);
       api.usinas.get(Number(id))
-        .then(data => {
+        .then((data: any) => { // A resposta da API pode ser any, mas nós mapeamos para os campos certos
           if (data) {
-            // Campos Básicos
-            setValue('nome_proprietario', data.nome_proprietario);
-            setValue('numero_uc', data.numero_uc); // <--- NOVO: Carregando UC
+            // --- DADOS TÉCNICOS ---
+            // O Banco manda 'nome', mas se vier o antigo 'nome_proprietario' (cache), pegamos também.
+            setValue('nome', data.nome || data.nome_proprietario); 
+            setValue('numero_uc', data.numero_uc || data.uc_usina); 
+            
             setValue('tipo', data.tipo);
             setValue('potencia', data.potencia);
             setValue('geracao_estimada', data.geracao_estimada);
             setValue('valor_kw_bruto', data.valor_kw_bruto);
 
-            // Campos de Contrato
+            // --- CONTRATO ---
             setValue('inicio_contrato', data.inicio_contrato ? data.inicio_contrato.split('T')[0] : '');
             setValue('vencimento_contrato', data.vencimento_contrato ? data.vencimento_contrato.split('T')[0] : '');
-            setValue('tipo_pagamento', data.tipo_pagamento);
+            
+            // Força MAIÚSCULO para bater com o <select>
+            setValue('tipo_pagamento', data.tipo_pagamento ? data.tipo_pagamento.toUpperCase() : '');
 
-            // Campos do Proprietário
-            setValue('cpf_cnpj', data.cpf_cnpj);
+            // --- PROPRIETÁRIO ---
+            setValue('cpf_cnpj', data.cpf_cnpj); // Já padronizamos
             setValue('rg', data.rg);
-            setValue('endereco_proprietario', data.endereco_proprietario);
             setValue('telefone', data.telefone);
             setValue('email', data.email);
-
+            setValue('endereco', data.endereco || data.endereco_proprietario); // Pega o novo ou antigo
             setValue('observacao', data.observacao);
           }
         })
@@ -55,26 +60,43 @@ export default function FormularioUsina() {
     const toastId = toast.loading('Salvando dados da usina...');
 
     try {
+      // Prepara o objeto para enviar ao banco (Payload)
       const payload = {
-        ...data,
+        // Campos de Texto diretos
+        nome: data.nome,
+        numero_uc: data.numero_uc,
+        tipo: data.tipo,
+        endereco: data.endereco,
+        cpf_cnpj: data.cpf_cnpj,
+        rg: data.rg,
+        email: data.email,
+        telefone: data.telefone,
+        observacao: data.observacao,
+        
+        // Numéricos (Garante que não vá string)
         potencia: Number(data.potencia) || 0,
         geracao_estimada: Number(data.geracao_estimada) || 0,
         valor_kw_bruto: Number(data.valor_kw_bruto) || 0,
+        
+        // Datas e Enums
+        inicio_contrato: data.inicio_contrato || null,
+        vencimento_contrato: data.vencimento_contrato || null,
+        tipo_pagamento: data.tipo_pagamento ? data.tipo_pagamento.toUpperCase() : null
       };
 
       if (id && id !== 'novo') {
         await api.usinas.update(Number(id), payload);
-        toast.success('Usina atualizada com sucesso!', { id: toastId });
+        toast.success('Usina atualizada!', { id: toastId });
       } else {
         await api.usinas.create(payload);
-        toast.success('Usina criada com sucesso!', { id: toastId });
+        toast.success('Usina criada!', { id: toastId });
       }
 
       setTimeout(() => navigate('/usinas'), 1000);
 
     } catch (error: any) {
       console.error("Erro ao salvar:", error);
-      toast.error(`Erro ao salvar`, { id: toastId });
+      toast.error(`Erro ao salvar.`, { id: toastId });
     } finally {
       setLoading(false);
     }
@@ -92,7 +114,7 @@ export default function FormularioUsina() {
           <h1 className="text-3xl font-bold text-gray-900">
             {id && id !== 'novo' ? 'Editar Usina' : 'Cadastrar Nova Usina'}
           </h1>
-          <p className="text-gray-500">Preencha os dados técnicos e contratuais da unidade geradora.</p>
+          <p className="text-gray-500">Preencha os dados técnicos e contratuais.</p>
         </div>
 
         <button
@@ -107,7 +129,7 @@ export default function FormularioUsina() {
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
 
-        {/* --- CARD 1: DADOS TÉCNICOS --- */}
+        {/* --- DADOS TÉCNICOS --- */}
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
           <h3 className="text-lg font-bold text-gray-800 mb-6 flex items-center gap-2 pb-2 border-b border-gray-100">
             <Zap className="w-5 h-5 text-yellow-500" /> Informações Técnicas
@@ -115,18 +137,18 @@ export default function FormularioUsina() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 
-            {/* Nome do Proprietário */}
+            {/* Campo NOME (Padronizado) */}
             <div className="md:col-span-2">
-              <label className="block text-sm font-bold text-gray-700 mb-1">Nome de Identificação (Proprietário) *</label>
+              <label className="block text-sm font-bold text-gray-700 mb-1">Nome de Identificação *</label>
               <input
-                {...register('nome_proprietario', { required: 'Nome é obrigatório' })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-gray-50 focus:bg-white transition-all"
+                {...register('nome', { required: 'Nome é obrigatório' })}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-gray-50 focus:bg-white"
                 placeholder="Ex: Usina Fazenda Sol Nascente"
               />
-              {errors.nome_proprietario && <span className="text-red-500 text-xs">{String(errors.nome_proprietario.message)}</span>}
+              {errors.nome && <span className="text-red-500 text-xs">Campo obrigatório</span>}
             </div>
 
-            {/* --- NOVO CAMPO: UC --- */}
+            {/* Campo UC */}
             <div className="md:col-span-2">
               <label className="block text-sm font-bold text-gray-700 mb-1">Nº da Unidade Consumidora (UC)</label>
               <input
@@ -134,43 +156,36 @@ export default function FormularioUsina() {
                 className="w-full px-4 py-2 border border-blue-200 bg-blue-50/30 rounded-lg focus:ring-2 focus:ring-blue-500"
                 placeholder="Ex: 12345678"
               />
-              <p className="text-xs text-gray-400 mt-1">Número do relógio/medidor na concessionária.</p>
             </div>
-            {/* ---------------------- */}
 
             <div>
-              <label className="block text-sm font-medium text-gray-600 mb-1">Tipo da Usina</label>
-              <select {...register('tipo')} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+              <label className="block text-sm font-medium text-gray-600 mb-1">Tipo da Instalação</label>
+              <select {...register('tipo')} className="w-full px-4 py-2 border border-gray-300 rounded-lg">
                 <option value="Solo">Solo</option>
                 <option value="Telhado">Telhado</option>
                 <option value="GD1">GD1</option>
                 <option value="GD2">GD2</option>
-                <option value="Solo - GD1">Solo - GD1</option>
-                <option value="Solo - GD2">Solo - GD2</option>
               </select>
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-600 mb-1">Potência (kWp) *</label>
-              <input type="number" step="0.01" {...register('potencia', { required: true })} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="0.00" />
+              <input type="number" step="0.01" {...register('potencia', { required: true })} className="w-full px-4 py-2 border border-gray-300 rounded-lg" />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-600 mb-1">Geração Estimada (kWh/mês) *</label>
-              <input type="number" step="0.01" {...register('geracao_estimada', { required: true })} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="0.00" />
+              <label className="block text-sm font-medium text-gray-600 mb-1">Geração (kWh/mês) *</label>
+              <input type="number" step="0.01" {...register('geracao_estimada', { required: true })} className="w-full px-4 py-2 border border-gray-300 rounded-lg" />
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-600 mb-1">Valor do kW Bruto (R$) *</label>
-              <div className="relative">
-                <span className="absolute left-3 top-2 text-gray-400">R$</span>
-                <input type="number" step="0.0001" {...register('valor_kw_bruto', { required: true })} className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="0.00" />
-              </div>
+              <input type="number" step="0.0001" {...register('valor_kw_bruto', { required: true })} className="w-full px-4 py-2 border border-gray-300 rounded-lg" />
             </div>
           </div>
         </div>
 
-        {/* --- CARD 2: CONTRATO & FINANCEIRO --- */}
+        {/* --- CONTRATO --- */}
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
           <h3 className="text-lg font-bold text-gray-800 mb-6 flex items-center gap-2 pb-2 border-b border-gray-100">
             <FileText className="w-5 h-5 text-blue-500" /> Dados Contratuais
@@ -178,81 +193,60 @@ export default function FormularioUsina() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div>
-              <label className="block text-sm font-medium text-gray-600 mb-1">Modalidade de Pagamento</label>
+              <label className="block text-sm font-medium text-gray-600 mb-1">Modalidade</label>
               <select
                 {...register('tipo_pagamento')}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-blue-50/50 border-blue-200 text-blue-800 font-medium"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-blue-50/50 text-blue-800 font-bold"
               >
                 <option value="">Selecione...</option>
-                {/* AGORA O VALOR É REAL: Sem conversão de "Aluguel Fixo" */}
-                <option value="Consumo">Consumo</option>
-                <option value="Injetado">Injetado</option>
+                <option value="CONSUMO">Consumo (Rateio)</option>
+                <option value="INJETADO">Injetado (Venda Pura)</option>
               </select>
             </div>
-
             <div>
-              <label className="block text-sm font-medium text-gray-600 mb-1">Data de Início</label>
-              <input type="date" {...register('inicio_contrato')} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" />
+              <label className="block text-sm font-medium text-gray-600 mb-1">Início</label>
+              <input type="date" {...register('inicio_contrato')} className="w-full px-4 py-2 border border-gray-300 rounded-lg" />
             </div>
-
             <div>
               <label className="block text-sm font-medium text-gray-600 mb-1">Vencimento</label>
-              <input type="date" {...register('vencimento_contrato')} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" />
+              <input type="date" {...register('vencimento_contrato')} className="w-full px-4 py-2 border border-gray-300 rounded-lg" />
             </div>
           </div>
         </div>
 
-        {/* --- CARD 3: DADOS DO PROPRIETÁRIO --- */}
+        {/* --- PROPRIETÁRIO --- */}
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
           <h3 className="text-lg font-bold text-gray-800 mb-6 flex items-center gap-2 pb-2 border-b border-gray-100">
-            <User className="w-5 h-5 text-gray-500" /> Dados do Proprietário
+            <User className="w-5 h-5 text-gray-500" /> Dados Pessoais
           </h3>
-
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-
-            {/* CPF e RG */}
             <div>
-              <label className="block text-sm font-medium text-gray-600 mb-1">CPF ou CNPJ</label>
-              <input {...register('cpf_cnpj')} className="w-full px-4 py-2 border border-gray-300 rounded-lg" placeholder="000.000.000-00" />
+              <label className="block text-sm font-medium text-gray-600 mb-1">CPF / CNPJ</label>
+              <input {...register('cpf_cnpj')} className="w-full px-4 py-2 border border-gray-300 rounded-lg" />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-600 mb-1">RG</label>
-              <input {...register('rg')} className="w-full px-4 py-2 border border-gray-300 rounded-lg" placeholder="0.000.000-0" />
-            </div>
-
-            {/* EMAIL E TELEFONE */}
-            <div>
-              <label className="block text-sm font-medium text-gray-600 mb-1 flex items-center gap-1">
-                <Mail className="w-3 h-3" /> Email
-              </label>
-              <input type="email" {...register('email')} className="w-full px-4 py-2 border border-gray-300 rounded-lg" placeholder="email@exemplo.com" />
+              <input {...register('rg')} className="w-full px-4 py-2 border border-gray-300 rounded-lg" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-600 mb-1 flex items-center gap-1">
-                <Phone className="w-3 h-3" /> Telefone / WhatsApp
-              </label>
-              <input type="tel" {...register('telefone')} className="w-full px-4 py-2 border border-gray-300 rounded-lg" placeholder="(00) 90000-0000" />
+              <label className="block text-sm font-medium text-gray-600 mb-1">Email</label>
+              <input type="email" {...register('email')} className="w-full px-4 py-2 border border-gray-300 rounded-lg" />
             </div>
-
-            {/* Endereço ocupa linha inteira */}
+            <div>
+              <label className="block text-sm font-medium text-gray-600 mb-1">Telefone</label>
+              <input type="tel" {...register('telefone')} className="w-full px-4 py-2 border border-gray-300 rounded-lg" />
+            </div>
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-600 mb-1 flex items-center gap-1">
-                <MapPin className="w-3 h-3" /> Endereço Completo
-              </label>
-              <input {...register('endereco_proprietario')} className="w-full px-4 py-2 border border-gray-300 rounded-lg" placeholder="Rua, Número, Bairro, Cidade - UF" />
+              <label className="block text-sm font-medium text-gray-600 mb-1">Endereço Completo</label>
+              <input {...register('endereco')} className="w-full px-4 py-2 border border-gray-300 rounded-lg" />
             </div>
           </div>
         </div>
 
-        {/* OBSERVAÇÕES */}
+        {/* --- OBSERVAÇÃO --- */}
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
-          <label className="block text-sm font-bold text-gray-700 mb-2">Observações Gerais</label>
-          <textarea
-            {...register('observacao')}
-            rows={3}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-            placeholder="Alguma informação importante sobre essa usina..."
-          ></textarea>
+          <label className="block text-sm font-bold text-gray-700 mb-2">Observações</label>
+          <textarea {...register('observacao')} rows={3} className="w-full px-4 py-2 border border-gray-300 rounded-lg"></textarea>
         </div>
 
       </form>

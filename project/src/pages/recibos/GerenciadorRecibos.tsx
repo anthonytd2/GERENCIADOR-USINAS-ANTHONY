@@ -53,14 +53,14 @@ function valorPorExtenso(v: number): string {
     }
 
     if (milhares > 0) {
-      extenso += convertGroup(milhares) + ' MIL'; 
+      extenso += convertGroup(milhares) + ' MIL';
       if (resto > 0) extenso += (resto < 100 || resto % 100 === 0) ? ' E ' : ', ';
     }
 
     if (resto > 0) {
       extenso += convertGroup(resto);
     }
-    
+
     extenso += inteiro === 1 ? ' REAL' : ' REAIS';
   }
 
@@ -83,14 +83,14 @@ const ReciboTemplate = React.forwardRef((props: any, ref: any) => {
   return (
     <div ref={ref} className="p-10 font-sans text-black bg-white" style={{ width: '210mm', minHeight: '148mm' }}>
       <div className="border-4 border-black p-8 h-full flex flex-col justify-between relative">
-        
+
         {/* CABEÇALHO */}
         <div className="flex justify-between items-end mb-8 border-b-4 border-black pb-4">
           <div className="flex items-center gap-2">
             <h1 className="text-4xl font-extrabold text-black tracking-wide">RECIBO</h1>
             <span className="text-4xl font-extrabold text-black ml-2">Nº {numero}</span>
           </div>
-          
+
           <div className="bg-slate-100 border-2 border-black px-6 py-2 rounded shadow-sm">
             <span className="text-xs font-extrabold text-black block mb-1">VALOR</span>
             <span className="text-3xl font-extrabold text-black">{formatarMoeda(valor)}</span>
@@ -99,7 +99,7 @@ const ReciboTemplate = React.forwardRef((props: any, ref: any) => {
 
         {/* CORPO - TUDO NEGRITO (font-bold) */}
         <div className="space-y-6 text-xl leading-relaxed uppercase font-bold text-black">
-          
+
           {/* QUEM PAGA */}
           <div className="flex flex-col">
             <div className="flex items-baseline w-full">
@@ -109,11 +109,11 @@ const ReciboTemplate = React.forwardRef((props: any, ref: any) => {
               </span>
             </div>
           </div>
-          
+
           <div className="flex items-baseline w-full">
             <span className="mr-2 whitespace-nowrap">CPF/CNPJ:</span>
             <span className="border-b-2 border-black px-2 flex-grow">
-              {pagador.documento || ''}
+              {pagador.cpf_cnpj || ''}
             </span>
           </div>
 
@@ -131,7 +131,7 @@ const ReciboTemplate = React.forwardRef((props: any, ref: any) => {
               ({valorExtenso || 'ZERO REAIS'})
             </span>
           </div>
-          
+
           <div className="flex items-baseline w-full">
             <span className="mr-2 whitespace-nowrap">REFERENTE A:</span>
             <span className="border-b-2 border-black px-2 flex-grow">
@@ -144,7 +144,7 @@ const ReciboTemplate = React.forwardRef((props: any, ref: any) => {
             <div className="flex items-baseline w-full">
               <span className="mr-2 whitespace-nowrap">EMITENTE:</span>
               <span className="px-2 flex-grow border-b-2 border-black">
-                {emitente.nome} - CNPJ/CPF: {emitente.documento}
+                {emitente.nome} - CNPJ/CPF: {emitente.cpf_cnpj}
               </span>
             </div>
             {/* LINHA NOVA: ENDEREÇO DO EMITENTE */}
@@ -163,11 +163,11 @@ const ReciboTemplate = React.forwardRef((props: any, ref: any) => {
           <p className="text-right w-full mb-16 text-xl uppercase font-extrabold text-black">
             {cidadeData}/{ufData}, {formatarData(data)}.
           </p>
-          
+
           <div className="text-center w-3/4">
             <div className="border-b-2 border-black mb-2"></div>
             <p className="font-extrabold text-xl uppercase text-black">{emitente.nome || 'ASSINATURA'}</p>
-            <p className="text-md text-black uppercase font-bold">CNPJ/CPF: {emitente.documento}</p>
+            <p className="text-md text-black uppercase font-bold">CNPJ/CPF: {emitente.cpf_cnpj}</p>
           </div>
         </div>
       </div>
@@ -176,13 +176,13 @@ const ReciboTemplate = React.forwardRef((props: any, ref: any) => {
 });
 
 export default function GerenciadorRecibos() {
-  const [activeTab, setActiveTab] = useState('emitir'); 
+  const [activeTab, setActiveTab] = useState('emitir');
   const [empresas, setEmpresas] = useState<any[]>([]);
-  
+
   // Dados do Recibo
   const [numero, setNumero] = useState('1');
   const [valor, setValor] = useState('');
-  const [referente, setReferente] = useState('LOCAÇÃO DE USINA SOLAR'); 
+  const [referente, setReferente] = useState('LOCAÇÃO DE USINA SOLAR');
   const [data, setData] = useState(new Date().toISOString().split('T')[0]);
 
   // Pagador e Emitente
@@ -192,12 +192,12 @@ export default function GerenciadorRecibos() {
   const [emitenteNome, setEmitenteNome] = useState('');
   const [emitenteDoc, setEmitenteDoc] = useState('');
   const [emitenteEnd, setEmitenteEnd] = useState('');
-  const [emitenteCidade, setEmitenteCidade] = useState(''); 
+  const [emitenteCidade, setEmitenteCidade] = useState('');
   const [emitenteUf, setEmitenteUf] = useState('');
 
   // Cadastro
-  const [novaEmpresa, setNovaEmpresa] = useState({ 
-    nome: '', documento: '', endereco: '', cidade: '', uf: '' 
+  const [novaEmpresa, setNovaEmpresa] = useState({
+    nome: '', cpf_cnpj: '', endereco: '', cidade: '', uf: ''
   });
 
   const componentRef = useRef(null);
@@ -219,7 +219,8 @@ export default function GerenciadorRecibos() {
     const emp = empresas.find(e => e.id.toString() === id);
     if (emp) {
       setPagadorNome(emp.nome.toUpperCase());
-      setPagadorDoc(emp.documento || '');
+      // CORREÇÃO: Tenta ler cpf_cnpj OU documento
+      setPagadorDoc(emp.cpf_cnpj || emp.documento || '');
       setPagadorEnd(emp.endereco ? emp.endereco.toUpperCase() : '');
     } else {
       setPagadorNome(''); setPagadorDoc(''); setPagadorEnd('');
@@ -230,10 +231,11 @@ export default function GerenciadorRecibos() {
     const emp = empresas.find(e => e.id.toString() === id);
     if (emp) {
       setEmitenteNome(emp.nome.toUpperCase());
-      setEmitenteDoc(emp.documento || '');
+      // CORREÇÃO: Tenta ler cpf_cnpj OU documento
+      setEmitenteDoc(emp.cpf_cnpj || emp.documento || '');
       setEmitenteEnd(emp.endereco ? emp.endereco.toUpperCase() : '');
-      if(emp.cidade) setEmitenteCidade(emp.cidade.toUpperCase());
-      if(emp.uf) setEmitenteUf(emp.uf.toUpperCase());
+      if (emp.cidade) setEmitenteCidade(emp.cidade.toUpperCase());
+      if (emp.uf) setEmitenteUf(emp.uf.toUpperCase());
     }
   };
 
@@ -249,7 +251,7 @@ export default function GerenciadorRecibos() {
       };
       await api.entidades.create(empresaParaSalvar);
       alert("Empresa salva!");
-      setNovaEmpresa({ nome: '', documento: '', endereco: '', cidade: '', uf: '' });
+      setNovaEmpresa({ nome: '', cpf_cnpj: '', endereco: '', cidade: '', uf: '' });
       carregarDados();
     } catch (e) {
       alert("Erro ao salvar. Verifique se o servidor backend está rodando e a tabela foi criada.");
@@ -279,15 +281,15 @@ export default function GerenciadorRecibos() {
 
   return (
     <div className="p-6 min-h-screen bg-slate-50">
-      
+
       {/* IMPRESSÃO INVISÍVEL */}
       <div style={{ display: 'none' }}>
-        <ReciboTemplate 
+        <ReciboTemplate
           ref={componentRef}
           numero={numero}
           valor={valor}
-          pagador={{ nome: pagadorNome, documento: pagadorDoc, endereco: pagadorEnd }}
-          emitente={{ nome: emitenteNome, documento: emitenteDoc, endereco: emitenteEnd, cidade: emitenteCidade, uf: emitenteUf }}
+          pagador={{ nome: pagadorNome, cpf_cnpj: pagadorDoc, endereco: pagadorEnd }}
+          emitente={{ nome: emitenteNome, cpf_cnpj: emitenteDoc, endereco: emitenteEnd, cidade: emitenteCidade, uf: emitenteUf }}
           referente={referente}
           data={data}
           formatarMoeda={formatarMoeda}
@@ -305,15 +307,15 @@ export default function GerenciadorRecibos() {
             Gerador de Recibos
           </h1>
         </div>
-        
+
         <div className="flex bg-white rounded-lg p-1 shadow-sm border">
-          <button 
+          <button
             onClick={() => setActiveTab('emitir')}
             className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === 'emitir' ? 'bg-blue-100 text-blue-700' : 'text-slate-600 hover:bg-slate-50'}`}
           >
             Emitir Recibo
           </button>
-          <button 
+          <button
             onClick={() => setActiveTab('empresas')}
             className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === 'empresas' ? 'bg-blue-100 text-blue-700' : 'text-slate-600 hover:bg-slate-50'}`}
           >
@@ -355,8 +357,8 @@ export default function GerenciadorRecibos() {
               <div className="space-y-3">
                 <input value={emitenteNome} onChange={handleInputUppercase(setEmitenteNome)} placeholder="NOME DO EMITENTE" className="w-full p-2 border rounded bg-blue-50 uppercase font-bold" />
                 <div className="grid grid-cols-2 gap-2">
-                   <input value={emitenteDoc} onChange={e => setEmitenteDoc(e.target.value)} placeholder="CNPJ/CPF" className="w-full p-2 border rounded bg-blue-50 uppercase font-bold" />
-                   <input value={emitenteCidade} onChange={handleInputUppercase(setEmitenteCidade)} placeholder="CIDADE" className="w-full p-2 border rounded uppercase font-bold" />
+                  <input value={emitenteDoc} onChange={e => setEmitenteDoc(e.target.value)} placeholder="CNPJ/CPF" className="w-full p-2 border rounded bg-blue-50 uppercase font-bold" />
+                  <input value={emitenteCidade} onChange={handleInputUppercase(setEmitenteCidade)} placeholder="CIDADE" className="w-full p-2 border rounded uppercase font-bold" />
                 </div>
               </div>
             </div>
@@ -401,23 +403,23 @@ export default function GerenciadorRecibos() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm text-slate-600 mb-1">Nome</label>
-                <input value={novaEmpresa.nome} onChange={handleInputUppercase((val:string) => setNovaEmpresa({...novaEmpresa, nome: val}))} className="w-full p-2 border rounded uppercase" />
+                <input value={novaEmpresa.nome} onChange={handleInputUppercase((val: string) => setNovaEmpresa({ ...novaEmpresa, nome: val }))} className="w-full p-2 border rounded uppercase" />
               </div>
               <div>
                 <label className="block text-sm text-slate-600 mb-1">CNPJ / CPF</label>
-                <input value={novaEmpresa.documento} onChange={e => setNovaEmpresa({...novaEmpresa, documento: e.target.value})} className="w-full p-2 border rounded uppercase" />
+                <input value={novaEmpresa.cpf_cnpj} onChange={e => setNovaEmpresa({ ...novaEmpresa, cpf_cnpj: e.target.value })} className="w-full p-2 border rounded uppercase" />
               </div>
               <div className="md:col-span-2">
                 <label className="block text-sm text-slate-600 mb-1">Endereço</label>
-                <input value={novaEmpresa.endereco} onChange={handleInputUppercase((val:string) => setNovaEmpresa({...novaEmpresa, endereco: val}))} className="w-full p-2 border rounded uppercase" />
+                <input value={novaEmpresa.endereco} onChange={handleInputUppercase((val: string) => setNovaEmpresa({ ...novaEmpresa, endereco: val }))} className="w-full p-2 border rounded uppercase" />
               </div>
               <div>
                 <label className="block text-sm text-slate-600 mb-1">Cidade</label>
-                <input value={novaEmpresa.cidade} onChange={handleInputUppercase((val:string) => setNovaEmpresa({...novaEmpresa, cidade: val}))} className="w-full p-2 border rounded uppercase" />
+                <input value={novaEmpresa.cidade} onChange={handleInputUppercase((val: string) => setNovaEmpresa({ ...novaEmpresa, cidade: val }))} className="w-full p-2 border rounded uppercase" />
               </div>
               <div>
                 <label className="block text-sm text-slate-600 mb-1">UF</label>
-                <input value={novaEmpresa.uf} onChange={handleInputUppercase((val:string) => setNovaEmpresa({...novaEmpresa, uf: val}))} className="w-full p-2 border rounded uppercase" maxLength={2} />
+                <input value={novaEmpresa.uf} onChange={handleInputUppercase((val: string) => setNovaEmpresa({ ...novaEmpresa, uf: val }))} className="w-full p-2 border rounded uppercase" maxLength={2} />
               </div>
             </div>
             <div className="mt-4 flex justify-end">
@@ -428,11 +430,11 @@ export default function GerenciadorRecibos() {
           </div>
 
           <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-             <table className="w-full text-left text-sm text-slate-600">
+            <table className="w-full text-left text-sm text-slate-600">
               <thead className="bg-slate-50 text-slate-800 font-semibold border-b">
                 <tr>
                   <th className="p-4">Nome</th>
-                  <th className="p-4">Documento</th>
+                  <th className="p-4">cpf_cnpj</th>
                   <th className="p-4">Cidade/UF</th>
                   <th className="p-4 text-right">Ações</th>
                 </tr>
@@ -441,17 +443,17 @@ export default function GerenciadorRecibos() {
                 {empresas.map((emp) => (
                   <tr key={emp.id} className="border-b hover:bg-slate-50 uppercase">
                     <td className="p-4 font-bold text-slate-900">{emp.nome}</td>
-                    <td className="p-4">{emp.documento}</td>
+                    <td className="p-4">{emp.cpf_cnpj || emp.documento}</td>
                     <td className="p-4">{emp.cidade}/{emp.uf}</td>
                     <td className="p-4 text-right">
-                      <button 
-                         onClick={async () => {
-                           if(confirm('Excluir empresa?')) {
-                             await api.entidades.delete(emp.id);
-                             carregarDados();
-                           }
-                         }}
-                         className="text-red-500 hover:bg-red-50 p-2 rounded"
+                      <button
+                        onClick={async () => {
+                          if (confirm('Excluir empresa?')) {
+                            await api.entidades.delete(emp.id);
+                            carregarDados();
+                          }
+                        }}
+                        className="text-red-500 hover:bg-red-50 p-2 rounded"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>

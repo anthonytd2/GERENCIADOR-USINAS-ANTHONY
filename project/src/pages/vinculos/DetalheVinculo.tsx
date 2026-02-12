@@ -1,39 +1,41 @@
 import { useEffect, useState } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import { api } from '../../lib/api';
 import { 
   ArrowLeft, Ban, Zap, DollarSign, Calendar, FileText, CheckCircle, 
-  ExternalLink, Activity, AlertTriangle, Pencil, FileDown, Settings 
+  ExternalLink, Activity, AlertTriangle, Pencil, FileDown, Settings, User 
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import ModalEditarVinculo from '../../components/ModalEditarVinculo';
 import { gerarContratoComodatoConsumidor, gerarContratoGestaoConsumidor } from '../../utils/gerarContratoWord';
-import ModalConfigurarRateio from '../../components/ModalConfigurarRateio'; // Importado
+import ModalConfigurarRateio from '../../components/ModalConfigurarRateio'; 
+import GerenciadorDocumentos from "../../components/GerenciadorDocumentos"; // Importado
 
+// Interface ajustada para o NOVO padrão do banco
 interface VinculoDetalhado {
-  vinculo_id: number;
+  id: number;
   percentual: number;
   data_inicio: string;
   data_fim?: string;
-  observacoes?: string;
+  observacao?: string;
   status_id?: number;
   status: { descricao: string };
   consumidores: {
-    consumidor_id: number;
+    id: number;
     nome: string;
-    documento: string;
+    cpf_cnpj: string;
     cidade: string;
     uf: string;
   };
   usinas: {
-    usina_id: number;
-    nome_proprietario: string;
+    id: number;
+    nome: string;
     potencia: number;
     tipo: string;
   };
   unidades_vinculadas?: {
     id: number;
-    percentual_rateio?: number; // Adicionei para não dar erro no map
+    percentual_rateio?: number;
     unidades_consumidoras: {
       codigo_uc: string;
       endereco: string;
@@ -44,7 +46,6 @@ interface VinculoDetalhado {
 
 export default function DetalheVinculo() {
   const { id } = useParams();
-  const navigate = useNavigate();
   const [vinculo, setVinculo] = useState<VinculoDetalhado | null>(null);
   const [loading, setLoading] = useState(true);
   
@@ -71,7 +72,11 @@ export default function DetalheVinculo() {
     const toastId = toast.loading('Encerrando contrato...');
     try {
       const dataFim = new Date().toISOString().split('T')[0];
+      
+      // --- CORREÇÃO DO ERRO ---
+      // Enviamos apenas a string dataFim. O api.ts já monta o objeto JSON.
       await api.vinculos.encerrar(Number(id), dataFim);
+      
       toast.success('Vínculo encerrado com sucesso!', { id: toastId });
       loadData();
     } catch (error) {
@@ -99,7 +104,7 @@ export default function DetalheVinculo() {
   return (
     <div className="max-w-6xl mx-auto space-y-6 pb-20 animate-fade-in-down">
 
-      {/* 1. NAVEGAÇÃO E CABEÇALHO LIMPO */}
+      {/* 1. NAVEGAÇÃO E CABEÇALHO */}
       <div>
         <Link to="/vinculos" className="inline-flex items-center gap-2 text-gray-500 hover:text-gray-900 mb-6 transition-colors font-medium">
           <ArrowLeft className="w-5 h-5" /> Voltar à Lista
@@ -108,7 +113,7 @@ export default function DetalheVinculo() {
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
             <div className="flex items-center gap-3">
-              <h1 className="text-3xl font-bold text-gray-900">Alocação #{vinculo.vinculo_id}</h1>
+              <h1 className="text-3xl font-bold text-gray-900">Alocação #{vinculo.id}</h1>
               <span className={`px-3 py-1 text-sm font-bold rounded-full border flex items-center gap-1 ${statusConfig.style}`}>
                 <StatusIcon className="w-4 h-4" /> {statusConfig.label?.toUpperCase()}
               </span>
@@ -116,7 +121,6 @@ export default function DetalheVinculo() {
             <p className="text-gray-500 mt-1">Gestão de vínculo entre Usina e Consumidor</p>
           </div>
 
-          {/* Botão de Editar (Discreto) */}
           <button
             onClick={() => setModalEdicaoAberto(true)}
             className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 text-gray-600 rounded-lg hover:bg-gray-50 hover:text-blue-600 transition-all shadow-sm font-medium"
@@ -126,7 +130,7 @@ export default function DetalheVinculo() {
         </div>
       </div>
 
-      {/* 2. AÇÕES PRINCIPAIS (O QUE USA TODO DIA) */}
+      {/* 2. AÇÕES PRINCIPAIS */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Link
           to={`/vinculos/${id}/financeiro`}
@@ -165,7 +169,7 @@ export default function DetalheVinculo() {
         </Link>
       </div>
 
-      {/* 3. CARDS DE INFORMAÇÃO (USINA E CONSUMIDOR) */}
+      {/* 3. CARDS DE INFORMAÇÃO */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* CARD USINA */}
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:border-yellow-200 transition-colors group">
@@ -182,8 +186,8 @@ export default function DetalheVinculo() {
           <div className="space-y-4">
             <div>
               <p className="text-xs text-gray-400 uppercase font-bold mb-1">Proprietário</p>
-              <Link to={`/usinas/${vinculo.usinas?.usina_id}`} className="font-bold text-lg text-gray-800 hover:text-blue-600 flex items-center gap-2 transition-colors">
-                {vinculo.usinas?.nome_proprietario} <ExternalLink className="w-3 h-3 text-gray-400" />
+              <Link to={`/usinas/${vinculo.usinas?.id}`} className="font-bold text-lg text-gray-800 hover:text-blue-600 flex items-center gap-2 transition-colors">
+                {vinculo.usinas?.nome} <ExternalLink className="w-3 h-3 text-gray-400" />
               </Link>
             </div>
             <div className="grid grid-cols-2 gap-4">
@@ -203,7 +207,7 @@ export default function DetalheVinculo() {
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-blue-100 hover:border-blue-200 transition-colors">
           <div className="flex items-center gap-3 mb-6 border-b border-gray-100 pb-4">
             <div className="p-2 bg-blue-100 rounded-lg text-blue-700">
-              <Calendar className="w-5 h-5" />
+              <User className="w-5 h-5" />
             </div>
             <div>
               <h3 className="font-bold text-gray-800">Consumidor</h3>
@@ -214,14 +218,14 @@ export default function DetalheVinculo() {
           <div className="space-y-4">
             <div>
               <p className="text-xs text-gray-400 uppercase font-bold mb-1">Cliente</p>
-              <Link to={`/consumidores/${vinculo.consumidores?.consumidor_id}`} className="font-bold text-lg text-gray-800 hover:text-blue-600 flex items-center gap-2 transition-colors">
+              <Link to={`/consumidores/${vinculo.consumidores?.id}`} className="font-bold text-lg text-gray-800 hover:text-blue-600 flex items-center gap-2 transition-colors">
                 {vinculo.consumidores?.nome} <ExternalLink className="w-3 h-3 text-gray-400" />
               </Link>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="p-3 bg-gray-50 rounded-xl">
-                <p className="text-xs text-gray-500 uppercase font-bold">Documento</p>
-                <p className="font-medium text-gray-900 text-sm truncate">{vinculo.consumidores?.documento || '-'}</p>
+                <p className="text-xs text-gray-500 uppercase font-bold">CPF/CNPJ</p>
+                <p className="font-medium text-gray-900 text-sm truncate">{vinculo.consumidores?.cpf_cnpj || '-'}</p>
               </div>
               <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-100">
                 <p className="text-xs text-emerald-700 uppercase font-bold">Percentual</p>
@@ -232,14 +236,14 @@ export default function DetalheVinculo() {
         </div>
       </div>
 
-      {/* 4. BLOCO DE OBSERVAÇÕES (SE HOUVER) */}
-      {vinculo.observacoes && (
+      {/* 4. BLOCO DE OBSERVAÇÕES */}
+      {vinculo.observacao && (
         <div className="bg-amber-50 p-6 rounded-2xl border border-amber-100">
           <div className="flex items-center gap-2 mb-2">
             <FileText className="w-4 h-4 text-amber-600" />
             <h3 className="font-bold text-amber-800 text-sm uppercase">Observações</h3>
           </div>
-          <p className="text-amber-900 text-sm leading-relaxed">{vinculo.observacoes}</p>
+          <p className="text-amber-900 text-sm leading-relaxed">{vinculo.observacao}</p>
         </div>
       )}
 
@@ -250,7 +254,6 @@ export default function DetalheVinculo() {
             <Zap className="w-4 h-4 text-purple-600" /> Unidades Vinculadas (UCs)
           </h3>
 
-          {/* BOTÃO DE CONFIGURAR RATEIO */}
           <button
             onClick={() => setModalRateioAberto(true)}
             className="text-xs font-bold text-blue-600 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg border border-blue-200 transition-colors flex items-center gap-1"
@@ -267,12 +270,9 @@ export default function DetalheVinculo() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
             {vinculo.unidades_vinculadas.map((item) => (
               <div key={item.id} className="flex items-start gap-3 p-3 bg-gray-50 rounded-xl border border-gray-100 hover:border-purple-200 transition-colors relative">
-                
-                {/* Porcentagem no Cantinho */}
                 <div className="absolute top-2 right-2 bg-purple-100 text-purple-700 text-[10px] font-bold px-2 py-0.5 rounded-full">
                     {item.percentual_rateio || 0}%
                 </div>
-
                 <div className="mt-1">
                   <CheckCircle className="w-4 h-4 text-purple-600" />
                 </div>
@@ -294,7 +294,6 @@ export default function DetalheVinculo() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Detalhes de Data */}
           <div className="space-y-4 text-sm lg:col-span-1 border-r border-gray-100 pr-4">
             <div>
               <p className="text-gray-400 text-xs uppercase font-bold">Início</p>
@@ -310,10 +309,9 @@ export default function DetalheVinculo() {
             </div>
           </div>
 
-          {/* Ações de Documentação */}
           <div className="lg:col-span-2">
             <p className="text-xs font-bold text-gray-400 uppercase mb-4">Emissão de Documentos</p>
-            <div className="flex flex-wrap gap-3">
+            <div className="flex flex-wrap gap-3 mb-6">
               <button
                 onClick={() => gerarContratoComodatoConsumidor(vinculo)}
                 className="flex-1 min-w-[200px] px-4 py-3 bg-white border border-gray-200 text-gray-600 rounded-xl hover:bg-gray-50 hover:border-purple-300 hover:text-purple-700 transition-all font-medium text-sm flex items-center justify-center gap-2"
@@ -329,7 +327,11 @@ export default function DetalheVinculo() {
               </button>
             </div>
 
-            {/* Botão de Encerrar */}
+            {/* GERENCIADOR DE DOCUMENTOS INSERIDO AQUI */}
+            <div className="border-t border-gray-100 pt-4">
+              <GerenciadorDocumentos tipoEntidade="vinculo" entidadeId={Number(id)} />
+            </div>
+
             {!isEncerrado && (
               <div className="mt-6 pt-6 border-t border-gray-100">
                 <button
@@ -344,27 +346,26 @@ export default function DetalheVinculo() {
         </div>
       </div>
 
-      {/* --- MODAL EDITAR DADOS --- */}
+      {/* --- MODAIS --- */}
       {vinculo && (
         <ModalEditarVinculo
           isOpen={modalEdicaoAberto}
           onClose={() => setModalEdicaoAberto(false)}
           onSuccess={loadData}
           vinculo={{
-            vinculo_id: vinculo.vinculo_id,
+            id: vinculo.id,
             status_id: vinculo.status_id,
-            observacoes: vinculo.observacoes
+            observacao: vinculo.observacao
           }}
         />
       )}
 
-      {/* --- MODAL CONFIGURAR RATEIO (ESTAVA FALTANDO AQUI) --- */}
       {vinculo && (
         <ModalConfigurarRateio
             isOpen={modalRateioAberto}
             onClose={() => setModalRateioAberto(false)}
-            vinculoId={vinculo.vinculo_id}
-            consumidorId={vinculo.consumidores.consumidor_id}
+            vinculoId={vinculo.id}
+            consumidorId={vinculo.consumidores.id}
             onSuccess={loadData}
         />
       )}

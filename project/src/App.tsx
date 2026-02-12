@@ -3,32 +3,23 @@ import { Toaster } from 'react-hot-toast'; // <--- IMPORTANTE
 import Layout from './components/Layout';
 import Dashboard from './pages/Dashboard';
 import AuditoriaPage from './pages/vinculos/AuditoriaPage';
-// Usinas
 import ListaUsinas from './pages/usinas/ListaUsinas';
 import FormularioUsina from './pages/usinas/FormularioUsina';
 import DetalheUsina from './pages/usinas/DetalheUsina';
-
-// Consumidores
 import ListaConsumidores from './pages/consumidores/ListaConsumidores';
 import FormularioConsumidor from './pages/consumidores/FormularioConsumidor';
 import DetalheConsumidor from './pages/consumidores/DetalheConsumidor';
-
-// Vínculos
 import ListaVinculos from './pages/vinculos/ListaVinculos';
 import FormularioVinculo from './pages/vinculos/FormularioVinculo';
 import DetalheVinculo from './pages/vinculos/DetalheVinculo';
 import FinanceiroVinculo from './pages/vinculos/FinanceiroVinculo';
-
-// Outros
 import FechamentoMensal from './pages/financeiro/FechamentoMensal';
 import GerenciadorRecibos from './pages/recibos/GerenciadorRecibos';
-
-// Propostas / Simulações
 import ListaPropostas from './pages/propostas/ListaPropostas';
 import NovoSimulador from './pages/propostas/NovoSimulador';
-
 import RelatorioRentabilidade from './pages/relatorios/RelatorioRentabilidade';
 import EmitirMinuta from './pages/financeiro/EmitirMinuta';
+import ListaProtocolos from './pages/protocolos/ListaProtocolos';
 
 function App() {
   return (
@@ -63,15 +54,12 @@ function App() {
           {/* Nova Simulação */}
           <Route path="/propostas/novo" element={<NovoSimulador />} />
           
-          {/* Editar/Ver Simulação (Usa o mesmo componente por enquanto) */}
           <Route path="/propostas/:id" element={<NovoSimulador />} />
-
-          {/* --- OUTRAS --- */}
           <Route path="/financeiro" element={<FechamentoMensal />} />
           <Route path="/relatorios" element={<RelatorioRentabilidade />} />
           <Route path="/recibos" element={<GerenciadorRecibos />} />
-          {/* Nova Rota de Minutas */}
           <Route path="financeiro/minutas" element={<EmitirMinuta />} />
+          <Route path="/protocolos" element={<ListaProtocolos />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>

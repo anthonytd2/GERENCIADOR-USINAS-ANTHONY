@@ -163,7 +163,7 @@ export default function EmitirMinuta() {
       <div className="bg-gradient-to-r from-slate-900 to-slate-800 p-6 rounded-2xl shadow-lg text-white flex justify-between items-center">
         <div>
           <h3 className="text-2xl font-bold flex items-center gap-2">
-            <FileText className="w-6 h-6 text-blue-400" /> Emitir Minuta Fiscal
+            <FileText className="w-6 h-6 text-blue-400" /> Emitir Relatório para Financeiro
           </h3>
           <p className="text-slate-300 text-sm mt-1 opacity-90">Preencha os dados e gere o PDF.</p>
         </div>

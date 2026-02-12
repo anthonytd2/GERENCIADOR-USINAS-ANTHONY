@@ -90,6 +90,13 @@ export const api = {
     delete: (id: number) => axiosInstance.delete(`/propostas/${id}`).then((res: any) => res.data),
   },
 
+  protocolos: {
+    list: () => axiosInstance.get('/protocolos').then((res: any) => res.data),
+    create: (data: any) => axiosInstance.post('/protocolos', data).then((res: any) => res.data),
+    update: (id: number, data: any) => axiosInstance.put(`/protocolos/${id}`, data).then((res: any) => res.data),
+    delete: (id: number) => axiosInstance.delete(`/protocolos/${id}`).then((res: any) => res.data),
+  },
+
   dashboard: {
     getResumo: async (mes: string) => {
       const response = await axiosInstance.get(`/dashboard/resumo?mes=${mes}`);

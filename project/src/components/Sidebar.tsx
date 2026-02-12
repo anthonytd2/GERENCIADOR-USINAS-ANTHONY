@@ -18,6 +18,7 @@ export default function Sidebar() {
     { icon: FileText, label: 'Recibos', path: '/recibos' },
     { icon: Calculator, label: 'Simulações', path: '/propostas' },
     { icon: BarChart3, label: 'Relatórios', path: '/relatorios' },
+    { icon: FileText, label: 'Protocolos', path: '/protocolos' },    
     { icon: FileText, label: 'Emitir Minutas', path: '/financeiro/minutas' },
   ];
 

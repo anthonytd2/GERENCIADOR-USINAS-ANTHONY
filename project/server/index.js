@@ -1,8 +1,6 @@
 import 'dotenv/config'; 
 import express from 'express';
 import cors from 'cors';
-
-// Importação das Rotas
 import usinasRoutes from './routes/usinas.js';
 import vinculosRoutes from './routes/vinculos.js';
 import consumidoresRoutes from './routes/consumidores.js';
@@ -10,12 +8,12 @@ import financeiroRoutes from './routes/financeiro.js';
 import fechamentosRoutes from './routes/fechamentos.js';
 import statusRoutes from './routes/status.js';
 import concessionariasRoutes from './routes/concessionarias.js';
-// CORREÇÃO: Importar documentos.js em vez de cpf_cnpjs.js
 import documentosRoutes from './routes/documentos.js'; 
 import dashboardRoutes from './routes/dashboard.js';
 import propostasRoutes from './routes/propostas.js';
 import entidadesRoutes from './routes/entidades.js';
 import relatoriosRoutes from './routes/relatorios.js';
+import protocolosRoutes from './routes/protocolos.js';
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -51,6 +49,8 @@ app.use((err, req, res, next) => {
   console.error("Erro interno:", err.stack);
   res.status(500).json({ error: 'Erro interno do servidor', detail: err.message });
 });
+
+app.use('/api/protocolos', protocolosRoutes);
 
 app.listen(port, () => {
   console.log(`⚡ Servidor rodando na porta ${port}`);

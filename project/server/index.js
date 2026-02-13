@@ -14,6 +14,8 @@ import propostasRoutes from './routes/propostas.js';
 import entidadesRoutes from './routes/entidades.js';
 import relatoriosRoutes from './routes/relatorios.js';
 import protocolosRoutes from './routes/protocolos.js';
+import dashboardBalancoRoutes from './routes/dashboard_balanco.js';
+
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -29,15 +31,12 @@ app.use('/api/financeiro', financeiroRoutes);
 app.use('/api/fechamentos', fechamentosRoutes);
 app.use('/api/status', statusRoutes);
 app.use('/api/concessionarias', concessionariasRoutes);
-
-// CORREÇÃO: Usar a rota nova, mas mantendo o endereço '/api/cpf_cnpjs' 
-// para não quebrar o frontend que espera esse caminho.
 app.use('/api/cpf_cnpjs', documentosRoutes); 
-
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/propostas', propostasRoutes);
 app.use('/api/entidades', entidadesRoutes);
 app.use('/api/relatorios', relatoriosRoutes);
+app.use('/api/dashboard-balanco', dashboardBalancoRoutes);
 
 // Rota de Teste (Raiz)
 app.get('/', (req, res) => {

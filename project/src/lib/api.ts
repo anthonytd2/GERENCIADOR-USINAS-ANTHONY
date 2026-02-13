@@ -47,13 +47,13 @@ export const api = {
     update: (id: number, data: any) => axiosInstance.put(`/vinculos/${id}`, data).then((res: any) => res.data),
     encerrar: (id: number, dataFim: string) => axiosInstance.put(`/vinculos/${id}/encerrar`, { data_fim: dataFim }).then((res: any) => res.data),
     delete: (id: number) => axiosInstance.delete(`/vinculos/${id}`).then((res: any) => res.data),
-    
+
     // Auditorias
     getAuditorias: (id: number) => axiosInstance.get(`/vinculos/${id}/auditorias`).then((res: any) => res.data),
     createAuditoria: (id: number, data: any) => axiosInstance.post(`/vinculos/${id}/auditorias`, data).then((res: any) => res.data),
     updateAuditoria: (auditoriaId: number, data: any) => axiosInstance.put(`/vinculos/auditorias/${auditoriaId}`, data).then((res: any) => res.data),
     deleteAuditoria: (auditoriaId: number) => axiosInstance.delete(`/vinculos/auditorias/${auditoriaId}`).then((res: any) => res.data),
-    
+
     // Rateio
     addUnidadeRateio: (id: number, data: { unidade_consumidora_id: number, percentual_rateio: number }) =>
       axiosInstance.post(`/vinculos/${id}/unidades`, data).then((res: any) => res.data),
@@ -106,6 +106,13 @@ export const api = {
       const response = await axiosInstance.get(`/dashboard/historico?ano=${ano}`);
       return response.data;
     }
+  },
+
+  dashboardBalanco: {
+    // Busca resumo do mês
+    get: (mes?: string) => axiosInstance.get(`/dashboard-balanco${mes ? `?mes=${mes}` : ''}`).then((res) => res.data),
+    // Busca histórico do ano
+    getHistorico: (ano: number) => axiosInstance.get(`/dashboard-balanco/historico?ano=${ano}`).then((res) => res.data),
   },
 
   relatorios: {

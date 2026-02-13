@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import BalancoEnergeticoCard from '../components/dashboard/BalancoEnergeticoCard';
 import { api } from '../lib/api';
 import {
   TrendingUp,
@@ -18,7 +19,7 @@ import {
 export default function Dashboard() {
   const dataHoje = new Date();
   const mesAtualISO = dataHoje.toISOString().slice(0, 7);
-  
+
   // Filtros
   const [mesFiltro, setMesFiltro] = useState(mesAtualISO);
   const [anoFiltro, setAnoFiltro] = useState(dataHoje.getFullYear());
@@ -66,7 +67,7 @@ export default function Dashboard() {
   }, [anoFiltro]);
 
   const fmt = (v: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v);
-  
+
   const maxValorGrafico = Math.max(
     historico.reduce((max, item) => Math.max(max, item.faturamento), 0),
     1000
@@ -100,9 +101,14 @@ export default function Dashboard() {
         </div>
       </div>
 
+      <div className="mb-8">
+        {/* Passando o filtro selecionado no topo da página para o card */}
+        <BalancoEnergeticoCard mesFiltro={mesFiltro} />
+      </div>
+
       {/* --- PARTE 1: CONTADORES (CARDS PEQUENOS) --- */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        
+
         {/* Usinas */}
         <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-5 hover:shadow-md hover:border-orange-200 transition-all group relative overflow-hidden">
           <div className="absolute right-0 top-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
@@ -149,12 +155,12 @@ export default function Dashboard() {
       {/* --- PARTE 2: FINANCEIRO (CARDS GRANDES) --- */}
       <div className="mt-8">
         <h2 className="text-lg font-bold text-gray-800 mb-6 flex items-center gap-2">
-           <div className="w-1 h-6 bg-blue-600 rounded-full"></div>
-           Resultado Financeiro de {new Date(mesFiltro + '-15').toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}
+          <div className="w-1 h-6 bg-blue-600 rounded-full"></div>
+          Resultado Financeiro de {new Date(mesFiltro + '-15').toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}
         </h2>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          
+
           {/* FATURAMENTO */}
           <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm relative overflow-hidden group hover:shadow-lg transition-all">
             <div className="absolute top-0 right-0 p-6 opacity-5 group-hover:opacity-10 transition-opacity transform group-hover:scale-110 duration-500">
@@ -184,7 +190,7 @@ export default function Dashboard() {
               <TrendingDown size={120} />
             </div>
             <div className="flex flex-col h-full justify-between relative z-10">
-               <div>
+              <div>
                 <div className="inline-flex items-center gap-1 bg-red-50 text-red-600 px-3 py-1 rounded-full text-xs font-bold mb-4">
                   <TrendingDown size={12} /> DESPESAS
                 </div>
@@ -207,7 +213,7 @@ export default function Dashboard() {
               <Wallet size={140} />
             </div>
             <div className="flex flex-col h-full justify-between relative z-10">
-               <div>
+              <div>
                 <div className="inline-flex items-center gap-1 bg-white/20 text-white px-3 py-1 rounded-full text-xs font-bold mb-4 backdrop-blur-sm border border-white/10">
                   <Wallet size={12} /> RESULTADO LÍQUIDO
                 </div>
@@ -228,7 +234,7 @@ export default function Dashboard() {
 
       {/* --- PARTE 3: GRÁFICO DE EVOLUÇÃO --- */}
       <div className="bg-white rounded-3xl border border-gray-100 p-8 shadow-sm mt-8">
-        
+
         {/* Header do Gráfico */}
         <div className="flex flex-col md:flex-row items-center justify-between mb-8 gap-4">
           <div>
@@ -241,14 +247,14 @@ export default function Dashboard() {
 
           {/* SELETOR DE ANO */}
           <div className="flex items-center gap-2 bg-gray-50 p-1.5 rounded-xl border border-gray-200">
-            <button 
+            <button
               onClick={() => setAnoFiltro(ano => ano - 1)}
               className="p-2 hover:bg-white hover:shadow-sm rounded-lg text-gray-600 transition-all"
             >
               <ChevronLeft size={18} />
             </button>
             <span className="font-bold text-gray-800 px-4 min-w-[80px] text-center text-lg">{anoFiltro}</span>
-            <button 
+            <button
               onClick={() => setAnoFiltro(ano => ano + 1)}
               className="p-2 hover:bg-white hover:shadow-sm rounded-lg text-gray-600 transition-all"
             >
@@ -259,15 +265,15 @@ export default function Dashboard() {
 
         {/* ÁREA DO GRÁFICO */}
         <div className="h-72 flex items-end justify-between gap-2 md:gap-4 px-2 relative">
-           
-           {/* Linhas de fundo (Grid) */}
-           <div className="absolute inset-0 flex flex-col justify-between pointer-events-none z-0">
-              <div className="w-full h-px bg-gray-100 border-t border-dashed border-gray-200"></div>
-              <div className="w-full h-px bg-gray-100 border-t border-dashed border-gray-200"></div>
-              <div className="w-full h-px bg-gray-100 border-t border-dashed border-gray-200"></div>
-              <div className="w-full h-px bg-gray-100 border-t border-dashed border-gray-200"></div>
-              <div className="w-full h-px bg-gray-100 border-t border-gray-200"></div>
-           </div>
+
+          {/* Linhas de fundo (Grid) */}
+          <div className="absolute inset-0 flex flex-col justify-between pointer-events-none z-0">
+            <div className="w-full h-px bg-gray-100 border-t border-dashed border-gray-200"></div>
+            <div className="w-full h-px bg-gray-100 border-t border-dashed border-gray-200"></div>
+            <div className="w-full h-px bg-gray-100 border-t border-dashed border-gray-200"></div>
+            <div className="w-full h-px bg-gray-100 border-t border-dashed border-gray-200"></div>
+            <div className="w-full h-px bg-gray-100 border-t border-gray-200"></div>
+          </div>
 
           {loadingGrafico ? (
             <div className="w-full h-full flex items-center justify-center text-gray-400 font-medium animate-pulse z-10">
@@ -285,7 +291,7 @@ export default function Dashboard() {
 
               return (
                 <div key={index} className="flex flex-col items-center flex-1 group relative z-10 h-full justify-end">
-                  
+
                   {/* Tooltip */}
                   <div className="absolute bottom-full mb-4 opacity-0 group-hover:opacity-100 transition-all duration-300 bg-gray-900 text-white text-xs p-4 rounded-xl shadow-2xl z-50 whitespace-nowrap pointer-events-none transform translate-y-4 group-hover:translate-y-0">
                     <p className="font-bold border-b border-gray-700 pb-2 mb-2 text-center text-gray-300 uppercase tracking-widest text-[10px]">{item.mes} / {anoFiltro}</p>
@@ -304,7 +310,7 @@ export default function Dashboard() {
 
                   {/* Barras */}
                   <div className="w-full max-w-[40px] md:max-w-[60px] flex items-end justify-center relative h-full">
-                    
+
                     {/* Barra Faturamento (Azul) */}
                     <div
                       className={`w-full rounded-t-lg absolute bottom-0 transition-all duration-700 ${temValor ? 'bg-blue-100 group-hover:bg-blue-200' : 'bg-transparent'}`}

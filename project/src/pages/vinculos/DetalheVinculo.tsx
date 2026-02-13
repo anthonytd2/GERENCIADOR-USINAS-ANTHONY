@@ -1,14 +1,14 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { api } from '../../lib/api';
-import { 
-  ArrowLeft, Ban, Zap, DollarSign, Calendar, FileText, CheckCircle, 
-  ExternalLink, Activity, AlertTriangle, Pencil, FileDown, Settings, User 
+import {
+  ArrowLeft, Ban, Zap, DollarSign, Calendar, FileText, CheckCircle,
+  ExternalLink, Activity, AlertTriangle, Pencil, FileDown, Settings, User
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import ModalEditarVinculo from '../../components/ModalEditarVinculo';
 import { gerarContratoComodatoConsumidor, gerarContratoGestaoConsumidor } from '../../utils/gerarContratoWord';
-import ModalConfigurarRateio from '../../components/ModalConfigurarRateio'; 
+import ModalConfigurarRateio from '../../components/ModalConfigurarRateio';
 import GerenciadorDocumentos from "../../components/GerenciadorDocumentos"; // Importado
 
 // Interface ajustada para o NOVO padrão do banco
@@ -48,7 +48,7 @@ export default function DetalheVinculo() {
   const { id } = useParams();
   const [vinculo, setVinculo] = useState<VinculoDetalhado | null>(null);
   const [loading, setLoading] = useState(true);
-  
+
   // Modais
   const [modalEdicaoAberto, setModalEdicaoAberto] = useState(false);
   const [modalRateioAberto, setModalRateioAberto] = useState(false);
@@ -72,11 +72,11 @@ export default function DetalheVinculo() {
     const toastId = toast.loading('Encerrando contrato...');
     try {
       const dataFim = new Date().toISOString().split('T')[0];
-      
+
       // --- CORREÇÃO DO ERRO ---
       // Enviamos apenas a string dataFim. O api.ts já monta o objeto JSON.
       await api.vinculos.encerrar(Number(id), dataFim);
-      
+
       toast.success('Vínculo encerrado com sucesso!', { id: toastId });
       loadData();
     } catch (error) {
@@ -121,12 +121,13 @@ export default function DetalheVinculo() {
             <p className="text-gray-500 mt-1">Gestão de vínculo entre Usina e Consumidor</p>
           </div>
 
-          <button
-            onClick={() => setModalEdicaoAberto(true)}
+          {/* BOTÃO ALTERADO PARA LINK DE EDIÇÃO COMPLETA */}
+          <Link
+            to={`/vinculos/${vinculo.id}/editar`}
             className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 text-gray-600 rounded-lg hover:bg-gray-50 hover:text-blue-600 transition-all shadow-sm font-medium"
           >
-            <Pencil className="w-4 h-4" /> Editar Dados
-          </button>
+            <Pencil className="w-4 h-4" /> Editar Completo
+          </Link>
         </div>
       </div>
 
@@ -261,7 +262,7 @@ export default function DetalheVinculo() {
             <Settings className="w-3 h-3" /> Configurar Rateio
           </button>
         </div>
-        
+
         {!vinculo.unidades_vinculadas || vinculo.unidades_vinculadas.length === 0 ? (
           <p className="text-gray-400 italic text-sm text-center py-4 bg-gray-50 rounded-xl border border-dashed border-gray-200">
             Nenhuma UC específica (Vínculo Global).
@@ -271,7 +272,7 @@ export default function DetalheVinculo() {
             {vinculo.unidades_vinculadas.map((item) => (
               <div key={item.id} className="flex items-start gap-3 p-3 bg-gray-50 rounded-xl border border-gray-100 hover:border-purple-200 transition-colors relative">
                 <div className="absolute top-2 right-2 bg-purple-100 text-purple-700 text-[10px] font-bold px-2 py-0.5 rounded-full">
-                    {item.percentual_rateio || 0}%
+                  {item.percentual_rateio || 0}%
                 </div>
                 <div className="mt-1">
                   <CheckCircle className="w-4 h-4 text-purple-600" />
@@ -362,11 +363,11 @@ export default function DetalheVinculo() {
 
       {vinculo && (
         <ModalConfigurarRateio
-            isOpen={modalRateioAberto}
-            onClose={() => setModalRateioAberto(false)}
-            vinculoId={vinculo.id}
-            consumidorId={vinculo.consumidores.id}
-            onSuccess={loadData}
+          isOpen={modalRateioAberto}
+          onClose={() => setModalRateioAberto(false)}
+          vinculoId={vinculo.id}
+          consumidorId={vinculo.consumidores.id}
+          onSuccess={loadData}
         />
       )}
     </div>

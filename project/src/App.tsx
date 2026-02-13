@@ -44,6 +44,7 @@ function App() {
           {/* --- ROTAS DE VÍNCULOS --- */}
           <Route path="/vinculos" element={<ListaVinculos />} />
           <Route path="/vinculos/novo" element={<FormularioVinculo />} />
+          <Route path="/vinculos/:id/editar" element={<FormularioVinculo />} />
           <Route path="/vinculos/:id" element={<DetalheVinculo />} />
           <Route path="/vinculos/:id/financeiro" element={<FinanceiroVinculo />} />
           <Route path="/vinculos/:id/auditoria" element={<AuditoriaPage />} />

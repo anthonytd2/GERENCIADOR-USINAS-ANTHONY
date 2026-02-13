@@ -62,13 +62,12 @@ router.get('/:id', async (req, res) => {
           )
         )
       `)
-      .eq('id', id) // A tabela vinculos usa 'id' como PK
+      .eq('id', id)
       .single();
 
     if (error) throw error;
     if (!data) return res.status(404).json({ error: 'Vínculo não encontrado' });
 
-    // Ajuste fino para o frontend
     const vinculoMapeado = {
         ...data,
         consumidores: {
@@ -102,7 +101,6 @@ router.post('/', async (req, res) => {
       observacao: req.body.observacao || req.body.observacoes
     };
 
-    // Trava de exclusividade
     const { data: usinaOcupada } = await supabase
       .from('vinculos')
       .select('id')
@@ -121,7 +119,6 @@ router.post('/', async (req, res) => {
 
     if (consumidorOcupado) return res.status(400).json({ error: 'Consumidor já possui contrato ativo.' });
 
-    // Inserir
     const { data: novoVinculo, error } = await supabase
       .from('vinculos')
       .insert([payload])
@@ -130,7 +127,6 @@ router.post('/', async (req, res) => {
 
     if (error) throw error;
 
-    // Unidades (Rateio)
     const unidadesSelecionadas = req.body.unidades_selecionadas || [];
     if (unidadesSelecionadas.length > 0 && novoVinculo) {
       const ucsParaInserir = unidadesSelecionadas.map(ucId => ({
@@ -152,9 +148,12 @@ router.post('/', async (req, res) => {
 router.put('/:id', async (req, res) => {
   try {
     const { id } = req.params;
+    
+    // CORREÇÃO: Adicionado 'data_fim' nos campos permitidos para atualização
     const dados = {
       status_id: req.body.status_id,
-      observacao: req.body.observacao
+      observacao: req.body.observacao,
+      data_fim: req.body.data_fim || null // Agora permite atualizar ou limpar a data
     };
 
     const { data, error } = await supabase
@@ -166,6 +165,7 @@ router.put('/:id', async (req, res) => {
     if (error) throw error;
     res.json(data);
   } catch (error) {
+    console.error('Erro ao atualizar vínculo:', error);
     res.status(500).json({ error: 'Erro ao atualizar vínculo' });
   }
 });
@@ -194,7 +194,6 @@ router.delete('/:id', async (req, res) => {
   try {
     const { id } = req.params;
     
-    // Limpa dependências antes de deletar
     await supabase.from('unidades_vinculadas').delete().eq('vinculo_id', id);
     await supabase.from('auditorias_vinculos').delete().eq('vinculo_id', id);
 
@@ -208,7 +207,7 @@ router.delete('/:id', async (req, res) => {
 });
 
 // ==========================================
-// ROTAS DE AUDITORIA (Estavam faltando!)
+// ROTAS DE AUDITORIA (CORRIGIDAS)
 // ==========================================
 
 // 1. LISTAR AUDITORIAS DO VÍNCULO
@@ -230,7 +229,7 @@ router.get('/:id/auditorias', async (req, res) => {
           unidades_consumidoras (codigo_uc, endereco)
         )
       `)
-      .eq('vinculo_id', req.params.id) // FK correta
+      .eq('vinculo_id', req.params.id)
       .order('mes_referencia', { ascending: false });
 
     if (error) throw error;
@@ -246,10 +245,31 @@ router.post('/:id/auditorias', async (req, res) => {
     const vinculo_id = req.params.id;
     const { faturas, ...dadosCabecalho } = req.body;
 
+    // --- CORREÇÃO: Calcula os totais antes de salvar o cabeçalho ---
+    let totalInjetado = 0;
+    let totalConsumido = 0;
+    let saldoFinalTotal = 0;
+
+    if (faturas && Array.isArray(faturas)) {
+        totalInjetado = faturas.reduce((acc, f) => acc + (Number(f.creditos_injetados) || 0), 0);
+        totalConsumido = faturas.reduce((acc, f) => acc + (Number(f.creditos_consumidos) || 0), 0);
+        saldoFinalTotal = faturas.reduce((acc, f) => acc + (Number(f.saldo_final) || 0), 0);
+    }
+
+    // Prepara o objeto com os totais calculados
+    const dadosParaSalvar = {
+        ...dadosCabecalho,
+        vinculo_id,
+        creditos_injetados: totalInjetado,
+        creditos_consumidos: totalConsumido,
+        saldo_final: saldoFinalTotal
+    };
+    // -------------------------------------------------------------
+
     // A. Salva o Cabeçalho
     const { data: auditoria, error: errAuditoria } = await supabase
       .from('auditorias_vinculos')
-      .insert([{ ...dadosCabecalho, vinculo_id }])
+      .insert([dadosParaSalvar])
       .select()
       .single();
 
@@ -289,10 +309,29 @@ router.put('/auditorias/:auditoriaId', async (req, res) => {
   try {
     const { faturas, ...dadosCabecalho } = req.body;
 
+    // --- CORREÇÃO: Calcula os totais antes de atualizar o cabeçalho ---
+    let totalInjetado = 0;
+    let totalConsumido = 0;
+    let saldoFinalTotal = 0;
+
+    if (faturas && Array.isArray(faturas)) {
+        totalInjetado = faturas.reduce((acc, f) => acc + (Number(f.creditos_injetados) || 0), 0);
+        totalConsumido = faturas.reduce((acc, f) => acc + (Number(f.creditos_consumidos) || 0), 0);
+        saldoFinalTotal = faturas.reduce((acc, f) => acc + (Number(f.saldo_final) || 0), 0);
+    }
+
+    const dadosParaAtualizar = {
+        ...dadosCabecalho,
+        creditos_injetados: totalInjetado,
+        creditos_consumidos: totalConsumido,
+        saldo_final: saldoFinalTotal
+    };
+    // -----------------------------------------------------------------
+
     // A. Atualiza o Pai
     const { error: errPai } = await supabase
       .from('auditorias_vinculos')
-      .update(dadosCabecalho)
+      .update(dadosParaAtualizar)
       .eq('id', req.params.auditoriaId);
 
     if (errPai) throw errPai;

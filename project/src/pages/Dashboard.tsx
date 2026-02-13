@@ -13,7 +13,8 @@ import {
   Link as LinkIcon,
   ChevronLeft,
   ChevronRight,
-  BarChart3
+  BarChart3,
+  CheckCircle
 } from 'lucide-react';
 
 export default function Dashboard() {
@@ -101,12 +102,8 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <div className="mb-8">
-        {/* Passando o filtro selecionado no topo da página para o card */}
-        <BalancoEnergeticoCard mesFiltro={mesFiltro} />
-      </div>
-
-      {/* --- PARTE 1: CONTADORES (CARDS PEQUENOS) --- */}
+      {/* --- PARTE 1: ESTRUTURA (CONTADORES) --- */}
+      {/* Movido para o topo: Visão rápida de "O que eu tenho agora" */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
 
         {/* Usinas */}
@@ -153,7 +150,8 @@ export default function Dashboard() {
       </div>
 
       {/* --- PARTE 2: FINANCEIRO (CARDS GRANDES) --- */}
-      <div className="mt-8">
+      {/* O resultado financeiro é o que o gestor quer ver logo de cara */}
+      <div>
         <h2 className="text-lg font-bold text-gray-800 mb-6 flex items-center gap-2">
           <div className="w-1 h-6 bg-blue-600 rounded-full"></div>
           Resultado Financeiro de {new Date(mesFiltro + '-15').toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}
@@ -232,17 +230,28 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* --- PARTE 3: GRÁFICO DE EVOLUÇÃO --- */}
-      <div className="bg-white rounded-3xl border border-gray-100 p-8 shadow-sm mt-8">
+      {/* --- PARTE 3: OPERACIONAL (BALANÇO DE ENERGIA) --- */}
+      {/* Agora vem a explicação técnica do "porquê" do financeiro */}
+      <div>
+         <h2 className="text-lg font-bold text-gray-800 mb-6 flex items-center gap-2">
+            <div className="w-1 h-6 bg-orange-500 rounded-full"></div>
+            Performance Operacional (kWh)
+          </h2>
+        <BalancoEnergeticoCard mesFiltro={mesFiltro} />
+      </div>
+
+      {/* --- PARTE 4: GRÁFICO DE EVOLUÇÃO --- */}
+      {/* Por fim, o histórico para análise de tendência */}
+      <div className="bg-white rounded-3xl border border-gray-100 p-8 shadow-sm">
 
         {/* Header do Gráfico */}
         <div className="flex flex-col md:flex-row items-center justify-between mb-8 gap-4">
           <div>
             <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
               <BarChart3 className="text-blue-500" size={24} />
-              Evolução Anual
+              Evolução Financeira Anual
             </h3>
-            <p className="text-gray-500 text-sm mt-1">Comparativo de performance mês a mês.</p>
+            <p className="text-gray-500 text-sm mt-1">Comparativo de performance financeira mês a mês.</p>
           </div>
 
           {/* SELETOR DE ANO */}

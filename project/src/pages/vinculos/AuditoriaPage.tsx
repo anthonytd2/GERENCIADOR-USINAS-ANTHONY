@@ -24,18 +24,18 @@ export default function AuditoriaPage() {
       
       {/* Cabeçalho de Navegação */}
       <div className="mb-8">
-        <Link to={`/vinculos/${id}`} className="inline-flex items-center gap-2 text-gray-500 hover:text-blue-600 mb-4 transition-colors font-medium">
+        <Link to={`/vinculos/${id}`} className="inline-flex items-center gap-2 text-gray-500 hover:text-blue-600 mb-4 transition-colors ">
           <ArrowLeft className="w-5 h-5" /> Voltar ao Detalhe do Contrato
         </Link>
 
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between">
+        <div className="bg-gray-50-card p-6 rounded-lg shadow-sm border border-gray-200 flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
               <FileText className="text-blue-600" />
               Auditoria de Créditos
             </h1>
             <p className="text-gray-500 mt-1">
-              Cliente: <strong className="text-gray-800">{vinculo.consumidores?.nome}</strong> | 
+              Cliente: <strong className="text-gray-900">{vinculo.consumidores?.nome}</strong> | 
               Alocação: <strong className="text-blue-600">{vinculo.percentual}%</strong>
             </p>
           </div>

@@ -7,7 +7,6 @@ const router = express.Router();
 // 1. LISTAR TODAS
 router.get('/', async (req, res) => {
   try {
-    // Busca usinas e seus vínculos (onde vinculo tem coluna 'id')
     const { data, error } = await supabase
       .from('usinas')
       .select('*, vinculos(id)');
@@ -16,8 +15,6 @@ router.get('/', async (req, res) => {
 
     const usinasFormatadas = data.map(usina => ({
       ...usina,
-      // O frontend antigo pode esperar 'usina_id', então fazemos um alias se precisar
-      // mas o principal é manter o objeto original.
       is_locada: usina.vinculos && usina.vinculos.length > 0
     }));
 
@@ -38,7 +35,7 @@ router.get('/:id', async (req, res) => {
     const { data, error } = await supabase
       .from('usinas')
       .select('*')
-      .eq('id', req.params.id) // CORRETO: A chave é 'id'
+      .eq('id', req.params.id)
       .single();
 
     if (error) throw error;
@@ -54,7 +51,6 @@ router.get('/:id/vinculos', async (req, res) => {
     const { data, error } = await supabase
       .from('vinculos')
       .select('*, consumidores(nome), status(descricao)')
-      // CORRETO: Na tabela vinculos, a coluna que aponta pra usina é 'usina_id'
       .eq('usina_id', req.params.id); 
 
     if (error) throw error;
@@ -67,7 +63,16 @@ router.get('/:id/vinculos', async (req, res) => {
 // 4. CRIAR (POST)
 router.post('/', async (req, res) => {
   try {
+    // Tenta validar, mas se o schema estiver incompleto, pode perder dados
     const dadosLimpos = usinaSchema.parse(req.body);
+
+    // FIX: Se o schema limpar o tipo_pagamento, reinserimos manualmente
+    if (req.body.tipo_pagamento) {
+        dadosLimpos.tipo_pagamento = req.body.tipo_pagamento;
+    }
+    if (req.body.endereco_proprietario) {
+        dadosLimpos.endereco_proprietario = req.body.endereco_proprietario;
+    }
 
     const { data, error } = await supabase
       .from('usinas')
@@ -87,21 +92,38 @@ router.post('/', async (req, res) => {
   }
 });
 
-// 5. ATUALIZAR (PUT)
+// 5. ATUALIZAR (PUT) - AQUI ESTAVA O PROBLEMA
 router.put('/:id', async (req, res) => {
   try {
-    const dadosLimpos = usinaSchema.partial().parse(req.body);
+    // 1. O Schema filtra os dados
+    let dadosLimpos = usinaSchema.partial().parse(req.body);
+
+    // 2. CORREÇÃO FORÇADA:
+    // Se o schema removeu o 'tipo_pagamento' ou 'endereco_proprietario', 
+    // nós os colocamos de volta manualmente se eles vieram no req.body.
+    
+    if (req.body.tipo_pagamento !== undefined) {
+        dadosLimpos.tipo_pagamento = req.body.tipo_pagamento;
+    }
+    
+    if (req.body.endereco_proprietario !== undefined) {
+        dadosLimpos.endereco_proprietario = req.body.endereco_proprietario;
+    }
+
+    console.log("Atualizando Usina ID:", req.params.id);
+    console.log("Dados enviados ao banco:", dadosLimpos); // Para você ver no terminal se está indo
 
     const { data, error } = await supabase
       .from('usinas')
       .update(dadosLimpos)
-      .eq('id', req.params.id) // CORRETO: id
+      .eq('id', req.params.id)
       .select()
       .single();
 
     if (error) throw error;
     res.json(data);
   } catch (error) {
+    console.error("Erro update:", error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -112,7 +134,7 @@ router.delete('/:id', async (req, res) => {
     const { error } = await supabase
       .from('usinas')
       .delete()
-      .eq('id', req.params.id); // CORRETO: id
+      .eq('id', req.params.id);
 
     if (error) throw error;
     res.json({ message: 'Usina excluída com sucesso' });

@@ -84,8 +84,8 @@ export default function ListaProtocolos() {
 
   // --- SEMÁFORO DE PRAZOS ---
   const getStatusPrazo = (dataLimite: string, status: string) => {
-    if (status === 'CONCLUIDO') return { style: 'border-l-4 border-emerald-500 bg-white text-emerald-700', icon: CheckCircle, label: 'Finalizado' };
-    if (!dataLimite) return { style: 'border-l-4 border-slate-200 bg-white text-slate-400', icon: Calendar, label: 'S/ Prazo' };
+    if (status === 'CONCLUIDO') return { style: 'border-l-4 border-emerald-500 bg-gray-50-card text-emerald-700', icon: CheckCircle, label: 'Finalizado' };
+    if (!dataLimite) return { style: 'border-l-4 border-slate-200 bg-gray-50-card text-slate-400', icon: Calendar, label: 'S/ Prazo' };
 
     const hoje = new Date();
     hoje.setHours(0, 0, 0, 0);
@@ -97,7 +97,7 @@ export default function ListaProtocolos() {
     if (diffDias < 0) return { style: 'border-l-4 border-red-500 bg-red-50 text-red-700 font-bold', icon: AlertCircle, label: 'VENCIDO' };
     if (diffDias <= 2) return { style: 'border-l-4 border-amber-500 bg-amber-50 text-amber-600 font-bold', icon: AlertTriangle, label: 'Vence Logo' };
     
-    return { style: 'border-l-4 border-blue-300 bg-white text-blue-600', icon: Clock, label: new Date(dataLimite).toLocaleDateString('pt-BR') };
+    return { style: 'border-l-4 border-blue-300 bg-gray-50-card text-blue-600', icon: Clock, label: new Date(dataLimite).toLocaleDateString('pt-BR') };
   };
 
   const onDragEnd = async (result: DropResult) => {
@@ -182,11 +182,11 @@ export default function ListaProtocolos() {
             <FileText className="text-indigo-600 w-8 h-8" /> 
             Afazeres e Protocolos
           </h1>
-          <p className="text-slate-500 font-medium mt-1">Controle operacional de processos.</p>
+          <p className="text-slate-500  mt-1">Controle operacional de processos.</p>
         </div>
         <button 
           onClick={handleNovo}
-          className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 shadow-lg hover:shadow-indigo-200 transition-all transform hover:-translate-y-0.5"
+          className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 shadow-sm hover:shadow-indigo-200 transition-all transform hover:-translate-y-0.5"
         >
           <Plus className="w-5 h-5" /> Nova Atividade
         </button>
@@ -233,8 +233,8 @@ export default function ListaProtocolos() {
                                   onClick={() => handleEditar(card)}
                                   style={{ ...provided.draggableProps.style }}
                                   className={`
-                                    p-5 rounded-xl shadow-sm cursor-pointer group relative transition-all duration-200 border border-slate-100 bg-white
-                                    hover:shadow-md hover:border-indigo-300 hover:-translate-y-1
+                                    p-5 rounded-xl shadow-sm cursor-pointer group relative transition-all duration-200 border border-slate-100 bg-gray-50-card
+                                    hover:shadow-sm hover:border-indigo-300 hover:-translate-y-1
                                     ${prazo.style} 
                                     ${snapshot.isDragging ? 'shadow-2xl scale-105 rotate-1 z-50 ring-2 ring-indigo-400' : ''}
                                   `}
@@ -247,13 +247,13 @@ export default function ListaProtocolos() {
                                   )}
 
                                   {/* Título */}
-                                  <h4 className="font-bold text-slate-800 text-base leading-snug mb-3 pr-6">
+                                  <h4 className="font-bold text-slate-800 text-sm leading-snug mb-3 pr-6">
                                     {card.titulo}
                                   </h4>
 
                                   {/* Descrição */}
                                   {card.descricao && (
-                                    <p className="text-xs text-slate-500 mb-4 line-clamp-2 leading-relaxed font-medium">
+                                    <p className="text-xs text-slate-500 mb-4 line-clamp-2 leading-relaxed ">
                                       {card.descricao}
                                     </p>
                                   )}
@@ -299,7 +299,7 @@ export default function ListaProtocolos() {
       {/* --- MODAL --- */}
       {modalOpen && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[9999] p-4 animate-in fade-in">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden transform transition-all scale-100">
+          <div className="bg-gray-50-card rounded-lg shadow-2xl w-full max-w-lg overflow-hidden transform transition-all scale-100">
             {/* Cabeçalho */}
             <div className="bg-slate-50 px-6 py-4 border-b border-slate-100 flex justify-between items-center">
               <h3 className="text-xl font-bold text-slate-800 flex items-center gap-2">
@@ -320,7 +320,7 @@ export default function ListaProtocolos() {
                   autoFocus
                   required
                   placeholder="Ex: Troca de Titularidade - Usina X"
-                  className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-4 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all font-medium"
+                  className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-4 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all "
                   value={formData.titulo}
                   onChange={e => setFormData({...formData, titulo: e.target.value})}
                 />
@@ -354,7 +354,7 @@ export default function ListaProtocolos() {
                 </label>
                 <input 
                   type="date"
-                  className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-4 focus:ring-red-500/20 focus:border-red-500 outline-none transition-all font-medium text-slate-700"
+                  className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-4 focus:ring-red-500/20 focus:border-red-500 outline-none transition-all  text-slate-700"
                   value={formData.data_limite}
                   onChange={e => setFormData({...formData, data_limite: e.target.value})}
                 />
@@ -392,7 +392,7 @@ export default function ListaProtocolos() {
                   </button>
                   <button 
                     type="submit" 
-                    className="px-8 py-2.5 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 shadow-lg hover:shadow-indigo-200 transition-all transform hover:-translate-y-0.5"
+                    className="px-8 py-2.5 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 shadow-sm hover:shadow-indigo-200 transition-all transform hover:-translate-y-0.5"
                   >
                     {isEditing ? 'Salvar Alterações' : 'Criar Protocolo'}
                   </button>

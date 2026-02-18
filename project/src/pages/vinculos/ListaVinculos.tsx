@@ -100,7 +100,7 @@ export default function ListaVinculos() {
 
         <Link
           to="/vinculos/novo"
-          className="flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white font-bold rounded-xl shadow-lg shadow-indigo-200 hover:bg-indigo-700 hover:-translate-y-1 transition-all"
+          className="flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white font-bold rounded-xl shadow-sm shadow-indigo-200 hover:bg-indigo-700 hover:-translate-y-1 transition-all"
         >
           <Plus className="w-5 h-5" />
           <span>Novo Vínculo</span>
@@ -109,48 +109,48 @@ export default function ListaVinculos() {
 
       {/* CARDS DE KPI */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-4">
+        <div className="bg-gray-50-card p-6 rounded-lg border border-gray-200 shadow-sm flex items-center gap-4">
           <div className="p-3 bg-indigo-50 text-indigo-600 rounded-xl">
             <LinkIcon className="w-8 h-8" />
           </div>
           <div>
-            <p className="text-sm text-gray-500 font-medium uppercase tracking-wide">Total Alocado</p>
+            <p className="text-sm text-gray-500  uppercase tracking-wide">Total Alocado</p>
             <p className="text-3xl font-bold text-gray-900">{stats.total}</p>
           </div>
         </div>
-        <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-4">
+        <div className="bg-gray-50-card p-6 rounded-lg border border-gray-200 shadow-sm flex items-center gap-4">
           <div className="p-3 bg-emerald-50 text-emerald-600 rounded-xl">
             <CheckCircle className="w-8 h-8" />
           </div>
           <div>
-            <p className="text-sm text-gray-500 font-medium uppercase tracking-wide">Ativos</p>
+            <p className="text-sm text-gray-500  uppercase tracking-wide">Ativos</p>
             <p className="text-3xl font-bold text-gray-900">{stats.ativos}</p>
           </div>
         </div>
-        <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-4">
+        <div className="bg-gray-50-card p-6 rounded-lg border border-gray-200 shadow-sm flex items-center gap-4">
           <div className="p-3 bg-purple-50 text-purple-600 rounded-xl">
             <BarChart3 className="w-8 h-8" />
           </div>
           <div>
-            <p className="text-sm text-gray-500 font-medium uppercase tracking-wide">Média %</p>
+            <p className="text-sm text-gray-500  uppercase tracking-wide">Média %</p>
             <p className="text-3xl font-bold text-gray-900">{stats.mediaPercentual}%</p>
           </div>
         </div>
       </div>
 
       {/* BARRA DE BUSCA */}
-      <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-4">
+      <div className="bg-gray-50-card p-4 rounded-lg shadow-sm border border-gray-200 flex items-center gap-4">
         <div className="relative flex-1 max-w-lg">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 w-5 h-5" />
           <input
             type="text"
             placeholder="Buscar por usina ou consumidor..."
-            className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all outline-none font-medium"
+            className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:bg-gray-50-card transition-all outline-none "
             value={busca}
             onChange={e => setBusca(e.target.value)}
           />
         </div>
-        <div className="text-sm text-gray-400 font-medium hidden md:block px-2">
+        <div className="text-sm text-gray-500  hidden md:block px-2">
           {filtrados.length} alocações
         </div>
       </div>
@@ -158,12 +158,12 @@ export default function ListaVinculos() {
       {/* LISTA DE CARDS */}
       {loading ? (
         <div className="grid grid-cols-1 gap-4">
-          {[1, 2, 3].map(i => <Skeleton key={i} className="h-32 w-full rounded-2xl" />)}
+          {[1, 2, 3].map(i => <Skeleton key={i} className="h-32 w-full rounded-lg" />)}
         </div>
       ) : filtrados.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-16 bg-white rounded-3xl border border-dashed border-gray-300 text-center">
+        <div className="flex flex-col items-center justify-center py-16 bg-gray-50-card rounded-lg border border-dashed border-gray-200 text-center">
           <div className="bg-gray-50 p-4 rounded-full mb-4">
-            <Share2 className="w-8 h-8 text-gray-400" />
+            <Share2 className="w-8 h-8 text-gray-500" />
           </div>
           <h3 className="text-lg font-bold text-gray-900">Nenhum vínculo encontrado</h3>
           <p className="text-gray-500 max-w-xs mt-2">Conecte uma usina a um consumidor para começar.</p>
@@ -179,7 +179,7 @@ export default function ListaVinculos() {
                 // CORREÇÃO: vinculo_id -> id
                 to={`/vinculos/${v.id}`} 
                 key={v.id}
-                className="group bg-white p-5 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md hover:border-indigo-200 transition-all flex flex-col md:flex-row items-center gap-4 md:gap-8 relative overflow-hidden"
+                className="group bg-gray-50-card p-5 rounded-lg border border-gray-200 shadow-sm hover:shadow-sm hover:border-indigo-200 transition-all flex flex-col md:flex-row items-center gap-4 md:gap-6 relative overflow-hidden"
               >
                 {/* Faixa lateral decorativa */}
                 <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-indigo-500 group-hover:bg-indigo-600 transition-colors"></div>
@@ -190,8 +190,8 @@ export default function ListaVinculos() {
                     <Zap className="w-6 h-6 fill-yellow-700" />
                   </div>
                   <div className="overflow-hidden">
-                    <p className="text-xs text-gray-400 font-bold uppercase tracking-wider mb-0.5">Gerador (Usina)</p>
-                    <h3 className="text-base font-bold text-gray-900 truncate pr-2 group-hover:text-indigo-700 transition-colors">
+                    <p className="text-xs text-gray-500 font-bold uppercase tracking-wider mb-0.5">Gerador (Usina)</p>
+                    <h3 className="text-sm font-bold text-gray-900 truncate pr-2 group-hover:text-indigo-700 transition-colors">
                       {/* CORREÇÃO: nome_proprietario -> nome */}
                       {v.usinas?.nome || 'Usina Desconhecida'}
                     </h3>
@@ -219,8 +219,8 @@ export default function ListaVinculos() {
                 {/* COLUNA 3: CONSUMIDOR (DESTINO) */}
                 <div className="flex items-center gap-3 min-w-[240px] justify-end text-right">
                   <div className="overflow-hidden">
-                    <p className="text-xs text-gray-400 font-bold uppercase tracking-wider mb-0.5">Cliente (Consumidor)</p>
-                    <h3 className="text-base font-bold text-gray-900 truncate pl-2 group-hover:text-blue-700 transition-colors">
+                    <p className="text-xs text-gray-500 font-bold uppercase tracking-wider mb-0.5">Cliente (Consumidor)</p>
+                    <h3 className="text-sm font-bold text-gray-900 truncate pl-2 group-hover:text-blue-700 transition-colors">
                       {/* CORREÇÃO: nome (consumidor já usava nome, mas só confirmando) */}
                       {v.consumidores?.nome || 'Cliente Desconhecido'}
                     </h3>
@@ -231,11 +231,11 @@ export default function ListaVinculos() {
                 </div>
 
                 {/* AÇÕES (Sempre visíveis) */}
-                <div className="flex items-center gap-2 border-l pl-4 ml-2 border-gray-100">
+                <div className="flex items-center gap-2 border-l pl-4 ml-2 border-gray-200">
                   <button 
                     // CORREÇÃO: vinculo_id -> id
                     onClick={(e) => solicitarExclusao(v.id, e)}
-                    className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                    className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                     title="Excluir"
                   >
                     <Trash2 className="w-5 h-5" />

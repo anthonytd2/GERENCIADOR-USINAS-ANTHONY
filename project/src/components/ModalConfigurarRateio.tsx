@@ -106,7 +106,7 @@ export default function ModalConfigurarRateio({ isOpen, onClose, vinculoId, cons
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
+      <div className="bg-gray-50-card rounded-lg shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
         
         {/* Header */}
         <div className="bg-slate-900 p-6 flex justify-between items-center text-white shrink-0">
@@ -125,7 +125,7 @@ export default function ModalConfigurarRateio({ isOpen, onClose, vinculoId, cons
         <div className="p-6 overflow-y-auto bg-gray-50 flex-1">
           
           {/* BARRA DE TOTAL */}
-          <div className="mb-6 bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex items-center justify-between">
+          <div className="mb-6 bg-gray-50-card p-4 rounded-xl border border-gray-200 shadow-sm flex items-center justify-between">
              <div className="text-sm font-bold text-gray-500 uppercase">Total Distribuído</div>
              <div className={`text-2xl font-black ${totalPercentual > 100 ? 'text-red-500' : totalPercentual === 100 ? 'text-emerald-600' : 'text-blue-600'}`}>
                 {totalPercentual}%
@@ -134,17 +134,17 @@ export default function ModalConfigurarRateio({ isOpen, onClose, vinculoId, cons
 
           {/* LISTA DE VINCULADAS (EDITÁVEL) */}
           <div className="space-y-3 mb-8">
-            <label className="text-xs font-bold text-gray-400 uppercase">Unidades no Contrato</label>
+            <label className="text-xs font-bold text-gray-500 uppercase">Unidades no Contrato</label>
             
             {loading ? (
-                <div className="text-center py-4 text-gray-400">Carregando...</div>
+                <div className="text-center py-4 text-gray-500">Carregando...</div>
             ) : vinculadas.length === 0 ? (
-                <p className="text-center py-4 text-gray-400 italic bg-white rounded-lg border border-dashed">Nenhuma unidade configurada.</p>
+                <p className="text-center py-4 text-gray-500 italic bg-gray-50-card rounded-lg border border-dashed">Nenhuma unidade configurada.</p>
             ) : (
                 vinculadas.map((item) => (
-                    <div key={item.id} className="flex items-center gap-3 bg-white p-3 rounded-xl border border-gray-200 shadow-sm">
+                    <div key={item.id} className="flex items-center gap-3 bg-gray-50-card p-3 rounded-xl border border-gray-200 shadow-sm">
                         <div className="flex-1">
-                            <p className="font-bold text-gray-800 text-sm">UC {item.unidades_consumidoras.codigo_uc}</p>
+                            <p className="font-bold text-gray-900 text-sm">UC {item.unidades_consumidoras.codigo_uc}</p>
                             <p className="text-xs text-gray-500 truncate">{item.unidades_consumidoras.endereco}</p>
                         </div>
                         
@@ -152,14 +152,14 @@ export default function ModalConfigurarRateio({ isOpen, onClose, vinculoId, cons
                         <div className="flex items-center gap-2 bg-gray-50 p-1 rounded-lg border border-gray-200">
                             <input 
                                 type="number" 
-                                className="w-14 bg-transparent text-right font-bold text-gray-800 outline-none"
+                                className="w-14 bg-transparent text-right font-bold text-gray-900 outline-none"
                                 defaultValue={item.percentual_rateio}
                                 onBlur={(e) => handleUpdate(item.id, e.target.value)}
                             />
-                            <span className="text-xs font-bold text-gray-400 pr-2">%</span>
+                            <span className="text-xs font-bold text-gray-500 pr-2">%</span>
                         </div>
 
-                        <button onClick={() => handleRemove(item.id)} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg">
+                        <button onClick={() => handleRemove(item.id)} className="p-2 text-gray-500 hover:text-red-500 hover:bg-red-50 rounded-lg">
                             <Trash2 size={18} />
                         </button>
                     </div>
@@ -176,7 +176,7 @@ export default function ModalConfigurarRateio({ isOpen, onClose, vinculoId, cons
                 <div className="flex-1">
                     <select 
                         required
-                        className="w-full p-3 rounded-xl border border-blue-200 text-sm outline-none focus:border-blue-500 bg-white"
+                        className="w-full p-3 rounded-xl border border-blue-200 text-sm outline-none focus:border-blue-500 bg-gray-50-card"
                         value={selectedUcId}
                         onChange={e => setSelectedUcId(e.target.value)}
                     >
@@ -212,7 +212,7 @@ export default function ModalConfigurarRateio({ isOpen, onClose, vinculoId, cons
         </div>
         
         <div className="p-4 bg-gray-100 text-center">
-            <button onClick={() => { onSuccess(); onClose(); }} className="px-8 py-2 bg-white border border-gray-300 rounded-lg font-bold text-gray-600 hover:bg-gray-200">
+            <button onClick={() => { onSuccess(); onClose(); }} className="px-8 py-2 bg-gray-50-card border border-gray-200 rounded-lg font-bold text-gray-500 hover:bg-gray-200">
                 Concluir Configuração
             </button>
         </div>

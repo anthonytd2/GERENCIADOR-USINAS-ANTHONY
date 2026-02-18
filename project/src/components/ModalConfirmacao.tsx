@@ -27,7 +27,7 @@ export default function ModalConfirmacao({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden transform transition-all scale-100">
+      <div className="bg-gray-50-card rounded-lg shadow-2xl w-full max-w-md overflow-hidden transform transition-all scale-100">
         
         {/* Cabeçalho */}
         <div className="p-6 pb-0 flex items-start justify-between">
@@ -37,27 +37,27 @@ export default function ModalConfirmacao({
             </div>
             <h3 className="text-xl font-bold text-gray-900">{title}</h3>
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-gray-100">
+          <button onClick={onClose} className="text-gray-500 hover:text-gray-500 p-1 rounded-full hover:bg-gray-100">
             <X size={20} />
           </button>
         </div>
 
         {/* Corpo */}
         <div className="p-6">
-          <p className="text-gray-600 leading-relaxed">{message}</p>
+          <p className="text-gray-500 leading-relaxed">{message}</p>
         </div>
 
         {/* Rodapé (Botões) */}
         <div className="p-6 pt-0 flex justify-end gap-3">
           <button 
             onClick={onClose}
-            className="px-5 py-2.5 rounded-xl border border-gray-200 text-gray-700 font-semibold hover:bg-gray-50 transition-colors"
+            className="px-5 py-2.5 rounded-xl border border-gray-200 text-gray-700 font-bold hover:bg-gray-50 transition-colors"
           >
             {cancelText}
           </button>
           <button 
             onClick={() => { onConfirm(); onClose(); }}
-            className={`px-5 py-2.5 rounded-xl text-white font-bold shadow-lg transition-all transform active:scale-95 ${
+            className={`px-5 py-2.5 rounded-xl text-white font-bold shadow-sm transition-all transform active:scale-95 ${
               isDestructive 
                 ? 'bg-red-600 hover:bg-red-700 shadow-red-200' 
                 : 'bg-blue-600 hover:bg-blue-700 shadow-blue-200'

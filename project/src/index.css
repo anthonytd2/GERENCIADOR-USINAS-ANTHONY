@@ -1,20 +1,24 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  font-family: 'Inter', sans-serif; /* Fonte mais bonita e moderna */
-  font-size: 14px; /* Tamanho ideal (nem gigante, nem minúsculo) */
+  font-family: 'Inter', sans-serif;
+  font-size: 14px; 
 }
 
 body {
+  /* Aqui você garante o fundo CLARO que você escolheu */
   @apply bg-slate-50 text-slate-900;
-  /* Removi o 'zoom' que estava quebrando o layout */
 }
 
 /* Tabelas mais elegantes */
 td, th {
   @apply py-3 px-4 !important;
+}
+
+/* Força a fonte Inter em todos os elementos */
+body, input, textarea, select, button {
+  font-family: 'Inter', sans-serif;
+  -webkit-font-smoothing: antialiased;
 }

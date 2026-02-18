@@ -297,7 +297,7 @@ export default function AuditoriaVinculoComponent({ vinculoId, percentualVinculo
     <div className="space-y-6 animate-fade-in-down">
 
       {/* HEADER */}
-      <div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-gradient-to-r from-slate-900 to-slate-800 p-6 rounded-2xl shadow-lg text-white">
+      <div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-gradient-to-r from-slate-900 to-slate-800 p-6 rounded-lg shadow-sm text-white">
         <div>
           <h3 className="text-2xl font-bold flex items-center gap-2">
             <Activity className="w-6 h-6 text-emerald-400" />
@@ -321,7 +321,7 @@ export default function AuditoriaVinculoComponent({ vinculoId, percentualVinculo
         ) : (
           <button
             onClick={abrirModalNovo}
-            className="px-6 py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-500 shadow-lg shadow-blue-900/50 flex items-center gap-2 transition-all hover:scale-105"
+            className="px-6 py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-500 shadow-sm shadow-blue-900/50 flex items-center gap-2 transition-all hover:scale-105"
           >
             <Plus className="w-5 h-5" /> Nova Conferência
           </button>
@@ -331,37 +331,37 @@ export default function AuditoriaVinculoComponent({ vinculoId, percentualVinculo
       {/* LISTA (HISTÓRICO) */}
       <div className="space-y-3">
         {auditorias.map((item) => (
-          <div key={item.id} className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all flex flex-col md:flex-row items-center gap-6 group">
+          <div key={item.id} className="bg-gray-50-card p-5 rounded-lg border border-gray-200 shadow-sm hover:shadow-sm transition-all flex flex-col md:flex-row items-center gap-6 group">
 
             <div className="flex-shrink-0 text-center md:text-left min-w-[100px]">
-              <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Referência</p>
+              <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Referência</p>
               <div className="flex items-center gap-2">
                 <div className="p-2 bg-blue-50 text-blue-600 rounded-lg"><Calendar size={20} /></div>
-                <span className="text-lg font-bold text-gray-800">
+                <span className="text-lg font-bold text-gray-900">
                   {new Date(item.mes_referencia).toLocaleDateString('pt-BR', { timeZone: 'UTC', month: 'short', year: 'numeric' }).toUpperCase()}
                 </span>
               </div>
             </div>
 
-            <div className="flex-1 w-full grid grid-cols-3 gap-2 text-center border-x border-gray-100 px-4">
+            <div className="flex-1 w-full grid grid-cols-3 gap-2 text-center border-x border-gray-200 px-4">
               <div>
-                <p className="text-[10px] uppercase text-gray-400 font-bold">Total Injetado</p>
-                <p className="text-base font-bold text-emerald-600">
+                <p className="text-[10px] uppercase text-gray-500 font-bold">Total Injetado</p>
+                <p className="text-sm font-bold text-emerald-600">
                   {item.faturas && item.faturas.length > 0
                     ? item.faturas.reduce((acc, f) => acc + (f.creditos_injetados || 0), 0).toLocaleString('pt-BR')
                     : Number(item.creditos_injetados).toLocaleString('pt-BR')} kWh
                 </p>
               </div>
               <div>
-                <p className="text-[10px] uppercase text-gray-400 font-bold">Total Consumido</p>
-                <p className="text-base font-bold text-red-500">
+                <p className="text-[10px] uppercase text-gray-500 font-bold">Total Consumido</p>
+                <p className="text-sm font-bold text-red-500">
                   -{item.faturas && item.faturas.length > 0
                     ? item.faturas.reduce((acc, f) => acc + (f.creditos_consumidos || 0), 0).toLocaleString('pt-BR')
                     : Number(item.creditos_consumidos).toLocaleString('pt-BR')} kWh
                 </p>
               </div>
               <div>
-                <p className="text-[10px] uppercase text-gray-400 font-bold">Saldo Final</p>
+                <p className="text-[10px] uppercase text-gray-500 font-bold">Saldo Final</p>
                 <p className="text-lg font-black text-gray-900">
                   {item.faturas && item.faturas.length > 0
                     ? item.faturas.reduce((acc, f) => acc + (f.saldo_final || 0), 0).toLocaleString('pt-BR')
@@ -383,8 +383,8 @@ export default function AuditoriaVinculoComponent({ vinculoId, percentualVinculo
             </div>
 
             <div className="flex gap-2">
-              <button onClick={() => abrirModalEdicao(item)} className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"><Pencil size={18} /></button>
-              <button onClick={() => handleDelete(item.id)} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"><Trash2 size={18} /></button>
+              <button onClick={() => abrirModalEdicao(item)} className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"><Pencil size={18} /></button>
+              <button onClick={() => handleDelete(item.id)} className="p-2 text-gray-500 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"><Trash2 size={18} /></button>
             </div>
           </div>
         ))}
@@ -393,7 +393,7 @@ export default function AuditoriaVinculoComponent({ vinculoId, percentualVinculo
       {/* --- MODAL --- */}
       {modalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-gray-900/60 p-4 backdrop-blur-sm animate-fade-in">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-7xl overflow-hidden flex flex-col max-h-[90vh]">
+          <div className="bg-gray-50-card rounded-lg shadow-2xl w-full max-w-7xl overflow-hidden flex flex-col max-h-[90vh]">
 
             <div className="bg-slate-900 p-6 flex justify-between items-center text-white shrink-0">
               <div>
@@ -406,7 +406,7 @@ export default function AuditoriaVinculoComponent({ vinculoId, percentualVinculo
             <form onSubmit={handleSave} className="flex-1 overflow-y-auto p-6 bg-gray-50">
 
               <div className="mb-6 flex justify-center">
-                <div className="bg-white p-2 px-6 rounded-full border border-gray-200 shadow-sm flex items-center gap-3">
+                <div className="bg-gray-50-card p-2 px-6 rounded-full border border-gray-200 shadow-sm flex items-center gap-3">
                   <label className="text-xs font-bold text-gray-500 uppercase">Mês de Competência:</label>
                   <input type="month" required className="bg-transparent font-bold text-gray-900 outline-none cursor-pointer"
                     value={form.mes_referencia} onChange={e => setForm({ ...form, mes_referencia: e.target.value })} />
@@ -417,23 +417,23 @@ export default function AuditoriaVinculoComponent({ vinculoId, percentualVinculo
 
                 {/* ESQUERDA: USINA */}
                 <div className="lg:w-1/3 space-y-4">
-                  <div className="bg-white p-5 rounded-2xl border border-amber-200 shadow-sm space-y-4 sticky top-0">
+                  <div className="bg-gray-50-card p-5 rounded-lg border border-amber-200 shadow-sm space-y-4 sticky top-0">
                     <h4 className="font-bold text-amber-900 flex items-center gap-2 border-b border-amber-100 pb-2">
                       <Zap className="text-amber-500 w-5 h-5" /> Dados do Gerador
                     </h4>
                     <div>
-                      <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Data Leitura</label>
+                      <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Data Leitura</label>
                       <input type="date" className="w-full p-2 border border-gray-200 rounded-lg text-sm"
                         value={form.data_leitura_gerador} onChange={e => setForm({ ...form, data_leitura_gerador: e.target.value })} />
                     </div>
                     <div className="grid grid-cols-2 gap-2">
                       <div>
-                        <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Geração</label>
-                        <input type="number" className="w-full p-2 border border-gray-200 rounded-lg font-bold text-gray-800" placeholder="0"
+                        <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Geração</label>
+                        <input type="number" className="w-full p-2 border border-gray-200 rounded-lg font-bold text-gray-900" placeholder="0"
                           value={form.geracao_usina} onChange={e => setForm({ ...form, geracao_usina: e.target.value })} />
                       </div>
                       <div>
-                        <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Consumo</label>
+                        <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Consumo</label>
                         <input type="number" className="w-full p-2 border border-gray-200 rounded-lg font-bold text-red-500" placeholder="0"
                           value={form.consumo_proprio_usina} onChange={e => setForm({ ...form, consumo_proprio_usina: e.target.value })} />
                       </div>
@@ -489,13 +489,13 @@ export default function AuditoriaVinculoComponent({ vinculoId, percentualVinculo
                       // ===========================================
 
                       return (
-                        <div key={fatura._tempId || index} className="bg-white p-4 rounded-2xl border border-blue-100 shadow-sm relative group hover:border-blue-300 transition-colors">
-                          <div className="flex justify-between items-start mb-3 border-b border-gray-100 pb-2">
+                        <div key={fatura._tempId || index} className="bg-gray-50-card p-4 rounded-lg border border-blue-100 shadow-sm relative group hover:border-blue-300 transition-colors">
+                          <div className="flex justify-between items-start mb-3 border-b border-gray-200 pb-2">
                             <div>
-                              <p className="font-bold text-gray-800 text-sm flex items-center gap-1">
+                              <p className="font-bold text-gray-900 text-sm flex items-center gap-1">
                                 <Users size={14} className="text-blue-400" /> {fatura.codigo_uc || 'UC Nova'}
                               </p>
-                              <p className="text-[10px] text-gray-400 truncate w-48">{fatura.endereco || 'Endereço não carregado'}</p>
+                              <p className="text-[10px] text-gray-500 truncate w-48">{fatura.endereco || 'Endereço não carregado'}</p>
                             </div>
                             <span className="bg-blue-50 text-blue-700 text-[10px] font-bold px-2 py-1 rounded-full">
                               {fatura.percentual_aplicado}% Rateio
@@ -505,15 +505,15 @@ export default function AuditoriaVinculoComponent({ vinculoId, percentualVinculo
                           <div className="space-y-2">
                             {/* DATA */}
                             <div className="flex items-center gap-2">
-                              <label className="w-20 text-[10px] font-bold text-gray-400 uppercase text-right">Data</label>
+                              <label className="w-20 text-[10px] font-bold text-gray-500 uppercase text-right">Data</label>
                               <input type="date" className="flex-1 p-1.5 border border-gray-200 rounded text-xs"
                                 value={fatura.data_leitura} onChange={e => updateFaturaField(index, 'data_leitura', e.target.value)} />
                             </div>
 
                             {/* SALDO ANTERIOR */}
                             <div className="flex items-center gap-2">
-                              <label className="w-20 text-[10px] font-bold text-gray-400 uppercase text-right">Saldo Ant.</label>
-                              <input type="number" className="flex-1 p-1.5 border border-gray-200 rounded text-right text-sm text-gray-600" placeholder="0"
+                              <label className="w-20 text-[10px] font-bold text-gray-500 uppercase text-right">Saldo Ant.</label>
+                              <input type="number" className="flex-1 p-1.5 border border-gray-200 rounded text-right text-sm text-gray-500" placeholder="0"
                                 value={fatura.saldo_anterior} onChange={e => updateFaturaField(index, 'saldo_anterior', e.target.value)} />
                             </div>
 
@@ -532,15 +532,15 @@ export default function AuditoriaVinculoComponent({ vinculoId, percentualVinculo
                             </div>
 
                             {/* SALDO FINAL (COM VALIDAÇÃO VISUAL) */}
-                            <div className="border-t border-gray-100 my-1 pt-1">
+                            <div className="border-t border-gray-200 my-1 pt-1">
                               <div className="flex items-center gap-2">
-                                <label className="w-20 text-[10px] font-bold text-gray-800 uppercase text-right">Final (=)</label>
+                                <label className="w-20 text-[10px] font-bold text-gray-900 uppercase text-right">Final (=)</label>
                                 <input
                                   type="number"
                                   className={`flex-1 p-1.5 border rounded text-right text-sm font-black 
                                         ${isContaErrada
                                       ? 'border-red-500 bg-red-50 text-red-900 focus:border-red-500 ring-1 ring-red-200'
-                                      : 'border-gray-300 text-gray-900 focus:border-blue-500'
+                                      : 'border-gray-200 text-gray-900 focus:border-blue-500'
                                     }`}
                                   placeholder="="
                                   value={fatura.saldo_final}
@@ -580,7 +580,7 @@ export default function AuditoriaVinculoComponent({ vinculoId, percentualVinculo
 
                   <div className="flex gap-3 justify-end pt-4">
                     <button type="button" onClick={() => setModalOpen(false)} className="px-6 py-3 border rounded-xl font-bold text-gray-500 hover:bg-gray-50">Cancelar</button>
-                    <button type="submit" className="px-8 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 shadow-lg">Salvar Auditoria</button>
+                    <button type="submit" className="px-8 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 shadow-sm">Salvar Auditoria</button>
                   </div>
                 </div>
               </div>

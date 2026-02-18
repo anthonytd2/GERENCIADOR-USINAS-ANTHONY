@@ -66,13 +66,13 @@ export default function ModalEditarVinculo({ isOpen, onClose, onSuccess, vinculo
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden transform transition-all scale-100">
+      <div className="bg-gray-50-card rounded-lg shadow-2xl w-full max-w-md overflow-hidden transform transition-all scale-100">
         
         {/* Cabeçalho */}
-        <div className="bg-gray-50 px-6 py-4 border-b border-gray-100 flex justify-between items-center">
+        <div className="bg-gray-50 px-6 py-4 border-b border-gray-200 flex justify-between items-center">
           {/* CORREÇÃO: Exibe id */}
-          <h3 className="font-bold text-lg text-gray-800">Editar Vínculo #{vinculo.id}</h3>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors p-1 rounded-full hover:bg-gray-200">
+          <h3 className="font-bold text-lg text-gray-900">Editar Vínculo #{vinculo.id}</h3>
+          <button onClick={onClose} className="text-gray-500 hover:text-gray-500 transition-colors p-1 rounded-full hover:bg-gray-200">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -82,12 +82,12 @@ export default function ModalEditarVinculo({ isOpen, onClose, onSuccess, vinculo
           
           {/* Campo Status */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
+            <label className="block text-sm  text-gray-700 mb-1 flex items-center gap-2">
               <Activity className="w-4 h-4 text-blue-600" /> Alterar Status
             </label>
             <select
               {...register('status_id', { required: true })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white transition-all"
+              className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-gray-50-card transition-all"
             >
               {listaStatus.map(s => (
                 <option key={s.status_id} value={s.status_id}>
@@ -99,13 +99,13 @@ export default function ModalEditarVinculo({ isOpen, onClose, onSuccess, vinculo
 
           {/* Campo Observações */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
+            <label className="block text-sm  text-gray-700 mb-1 flex items-center gap-2">
               <FileText className="w-4 h-4 text-gray-500" /> Notas / Observações
             </label>
             <textarea
               {...register('observacao')} // CORREÇÃO: observacao
               rows={5}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none resize-none transition-all"
+              className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none resize-none transition-all"
               placeholder="Ex: Protocolo Copel, motivo da pendência, etc..."
             />
           </div>
@@ -114,7 +114,7 @@ export default function ModalEditarVinculo({ isOpen, onClose, onSuccess, vinculo
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 font-bold flex justify-center items-center gap-2 transition-all shadow-lg shadow-blue-500/20 active:scale-95"
+            className="w-full py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 font-bold flex justify-center items-center gap-2 transition-all shadow-sm shadow-blue-500/20 active:scale-95"
           >
             <Save className="w-5 h-5" />
             {loading ? 'Salvando...' : 'Salvar Alterações'}

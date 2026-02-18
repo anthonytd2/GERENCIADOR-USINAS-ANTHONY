@@ -81,8 +81,8 @@ const ReciboTemplate = React.forwardRef((props: any, ref: any) => {
   const valorExtenso = valor ? valorPorExtenso(parseFloat(valor)) : '';
 
   return (
-    <div ref={ref} className="p-10 font-sans text-black bg-white" style={{ width: '210mm', minHeight: '148mm' }}>
-      <div className="border-4 border-black p-8 h-full flex flex-col justify-between relative">
+    <div ref={ref} className="p-10 font-sans text-black bg-gray-50-card" style={{ width: '210mm', minHeight: '148mm' }}>
+      <div className="border-4 border-black p-6 h-full flex flex-col justify-between relative">
 
         {/* CABEÇALHO */}
         <div className="flex justify-between items-end mb-8 border-b-4 border-black pb-4">
@@ -308,16 +308,16 @@ export default function GerenciadorRecibos() {
           </h1>
         </div>
 
-        <div className="flex bg-white rounded-lg p-1 shadow-sm border">
+        <div className="flex bg-gray-50-card rounded-lg p-1 shadow-sm border">
           <button
             onClick={() => setActiveTab('emitir')}
-            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === 'emitir' ? 'bg-blue-100 text-blue-700' : 'text-slate-600 hover:bg-slate-50'}`}
+            className={`px-4 py-2 rounded-md text-sm  transition-colors ${activeTab === 'emitir' ? 'bg-blue-100 text-blue-700' : 'text-slate-600 hover:bg-slate-50'}`}
           >
             Emitir Recibo
           </button>
           <button
             onClick={() => setActiveTab('empresas')}
-            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === 'empresas' ? 'bg-blue-100 text-blue-700' : 'text-slate-600 hover:bg-slate-50'}`}
+            className={`px-4 py-2 rounded-md text-sm  transition-colors ${activeTab === 'empresas' ? 'bg-blue-100 text-blue-700' : 'text-slate-600 hover:bg-slate-50'}`}
           >
             Cadastrar Empresas
           </button>
@@ -325,14 +325,14 @@ export default function GerenciadorRecibos() {
       </div>
 
       {activeTab === 'emitir' && (
-        <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-6">
-            <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 relative">
+            <div className="bg-gray-50-card p-6 rounded-xl shadow-sm border border-slate-200 relative">
               <div className="absolute top-0 left-0 w-1 h-full bg-red-500 rounded-l-xl"></div>
               <h2 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">1. Quem Paga (Pagador)</h2>
               <div className="bg-slate-50 p-3 rounded mb-4 border border-slate-200">
                 <label className="text-xs font-bold text-slate-500 uppercase mb-1 block">Buscar da Lista</label>
-                <select onChange={(e) => selecionarPagador(e.target.value)} className="w-full p-2 border rounded bg-white uppercase text-sm font-bold">
+                <select onChange={(e) => selecionarPagador(e.target.value)} className="w-full p-2 border rounded bg-gray-50-card uppercase text-sm font-bold">
                   <option value="">Selecione...</option>
                   {empresas.map(e => <option key={e.id} value={e.id}>{e.nome}</option>)}
                 </select>
@@ -344,12 +344,12 @@ export default function GerenciadorRecibos() {
               </div>
             </div>
 
-            <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 relative">
+            <div className="bg-gray-50-card p-6 rounded-xl shadow-sm border border-slate-200 relative">
               <div className="absolute top-0 left-0 w-1 h-full bg-blue-600 rounded-l-xl"></div>
               <h2 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">2. Quem Recebe (Emitente)</h2>
               <div className="bg-slate-50 p-3 rounded mb-4 border border-slate-200">
                 <label className="text-xs font-bold text-slate-500 uppercase mb-1 block">Buscar da Lista</label>
-                <select onChange={(e) => selecionarEmitente(e.target.value)} className="w-full p-2 border rounded bg-white uppercase text-sm font-bold">
+                <select onChange={(e) => selecionarEmitente(e.target.value)} className="w-full p-2 border rounded bg-gray-50-card uppercase text-sm font-bold">
                   <option value="">Selecione...</option>
                   {empresas.map(e => <option key={e.id} value={e.id}>{e.nome}</option>)}
                 </select>
@@ -365,29 +365,29 @@ export default function GerenciadorRecibos() {
           </div>
 
           <div className="space-y-6">
-            <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 h-full flex flex-col">
+            <div className="bg-gray-50-card p-6 rounded-xl shadow-sm border border-slate-200 h-full flex flex-col">
               <h2 className="text-lg font-bold text-slate-800 mb-6 border-b pb-2">3. Detalhes do Recibo</h2>
               <div className="grid grid-cols-2 gap-4 mb-4">
                 <div>
-                  <label className="block text-sm font-medium text-slate-600 mb-1">Valor (R$)</label>
+                  <label className="block text-sm  text-slate-600 mb-1">Valor (R$)</label>
                   <input type="number" step="0.01" value={valor} onChange={e => setValor(e.target.value)} className="w-full p-3 border rounded text-lg font-bold" placeholder="0.00" />
                   <p className="text-sm text-green-600 mt-1 font-bold">{formatarMoeda(valor)}</p>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-600 mb-1">Nº Recibo</label>
+                  <label className="block text-sm  text-slate-600 mb-1">Nº Recibo</label>
                   <input type="text" value={numero} onChange={e => setNumero(e.target.value)} className="w-full p-3 border rounded font-bold" />
                 </div>
               </div>
               <div className="mb-4">
-                <label className="block text-sm font-medium text-slate-600 mb-1">Referente a</label>
+                <label className="block text-sm  text-slate-600 mb-1">Referente a</label>
                 <input type="text" value={referente} onChange={handleInputUppercase(setReferente)} className="w-full p-3 border rounded uppercase font-bold" />
               </div>
               <div className="mb-8">
-                <label className="block text-sm font-medium text-slate-600 mb-1">Data de Emissão</label>
+                <label className="block text-sm  text-slate-600 mb-1">Data de Emissão</label>
                 <input type="date" value={data} onChange={e => setData(e.target.value)} className="w-full p-3 border rounded font-bold" />
               </div>
               <div className="mt-auto">
-                <button onClick={handlePrint} className="w-full flex items-center justify-center gap-3 bg-slate-900 hover:bg-slate-800 text-white py-4 rounded-xl font-bold text-xl shadow-lg transition-transform hover:scale-[1.02]">
+                <button onClick={handlePrint} className="w-full flex items-center justify-center gap-3 bg-slate-900 hover:bg-slate-800 text-white py-4 rounded-xl font-bold text-xl shadow-sm transition-transform hover:scale-[1.02]">
                   <Printer className="w-6 h-6" /> IMPRIMIR RECIBO
                 </button>
               </div>
@@ -398,7 +398,7 @@ export default function GerenciadorRecibos() {
 
       {activeTab === 'empresas' && (
         <div className="max-w-4xl mx-auto">
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 mb-6">
+          <div className="bg-gray-50-card p-6 rounded-xl shadow-sm border border-slate-200 mb-6">
             <h2 className="text-lg font-bold text-slate-800 mb-4 border-b pb-2">Cadastrar Empresa</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
@@ -423,15 +423,15 @@ export default function GerenciadorRecibos() {
               </div>
             </div>
             <div className="mt-4 flex justify-end">
-              <button onClick={salvarNovaEmpresa} className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 font-medium flex items-center gap-2">
+              <button onClick={salvarNovaEmpresa} className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700  flex items-center gap-2">
                 <Save className="w-4 h-4" /> SALVAR
               </button>
             </div>
           </div>
 
-          <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+          <div className="bg-gray-50-card rounded-xl shadow-sm border border-slate-200 overflow-hidden">
             <table className="w-full text-left text-sm text-slate-600">
-              <thead className="bg-slate-50 text-slate-800 font-semibold border-b">
+              <thead className="bg-slate-50 text-slate-800 font-bold border-b">
                 <tr>
                   <th className="p-4">Nome</th>
                   <th className="p-4">cpf_cnpj</th>

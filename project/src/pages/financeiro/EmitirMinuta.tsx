@@ -160,7 +160,7 @@ export default function EmitirMinuta() {
     <div className="space-y-6 animate-fade-in-down p-6">
       
       {/* HEADER */}
-      <div className="bg-gradient-to-r from-slate-900 to-slate-800 p-6 rounded-2xl shadow-lg text-white flex justify-between items-center">
+      <div className="bg-gradient-to-r from-slate-900 to-slate-800 p-6 rounded-lg shadow-sm text-white flex justify-between items-center">
         <div>
           <h3 className="text-2xl font-bold flex items-center gap-2">
             <FileText className="w-6 h-6 text-blue-400" /> Emitir Relatório para Financeiro
@@ -175,27 +175,27 @@ export default function EmitirMinuta() {
       <form onSubmit={handleGerarPDF} className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         
         {/* === COLUNA ESQUERDA: CONSUMIDOR === */}
-        <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm space-y-5">
-            <div className="flex items-center gap-3 border-b border-gray-100 pb-3">
+        <div className="bg-gray-50-card p-6 rounded-lg border border-gray-200 shadow-sm space-y-5">
+            <div className="flex items-center gap-3 border-b border-gray-200 pb-3">
                 <div className="p-2 bg-green-100 text-green-700 rounded-lg"><User size={20} /></div>
-                <h4 className="font-bold text-gray-800">Dados do Tomador (Consumidor)</h4>
+                <h4 className="font-bold text-gray-900">Dados do Tomador (Consumidor)</h4>
             </div>
 
             {/* ABAS */}
             <div className="flex gap-2 mb-2 p-1 bg-gray-100 rounded-lg">
                 <button type="button" onClick={() => setModoConsumidor('buscar')} 
-                    className={`flex-1 text-xs font-bold py-2 rounded-md transition-all ${modoConsumidor === 'buscar' ? 'bg-white shadow text-blue-600' : 'text-gray-500'}`}>
+                    className={`flex-1 text-xs font-bold py-2 rounded-md transition-all ${modoConsumidor === 'buscar' ? 'bg-gray-50-card shadow text-blue-600' : 'text-gray-500'}`}>
                     🔍 Buscar Cadastrado
                 </button>
                 <button type="button" onClick={() => setModoConsumidor('novo')} 
-                    className={`flex-1 text-xs font-bold py-2 rounded-md transition-all ${modoConsumidor === 'novo' ? 'bg-white shadow text-green-600' : 'text-gray-500'}`}>
+                    className={`flex-1 text-xs font-bold py-2 rounded-md transition-all ${modoConsumidor === 'novo' ? 'bg-gray-50-card shadow text-green-600' : 'text-gray-500'}`}>
                     ➕ Novo Cadastro
                 </button>
             </div>
 
             {modoConsumidor === 'buscar' ? (
                 <div className="relative">
-                    <select className="w-full p-3 border border-gray-300 rounded-xl text-sm bg-white outline-none focus:border-blue-500"
+                    <select className="w-full p-3 border border-gray-200 rounded-xl text-sm bg-gray-50-card outline-none focus:border-blue-500"
                         onChange={(e) => selecionarConsumidor(e.target.value)} defaultValue="">
                         <option value="" disabled>Selecione um cliente...</option>
                         {listaConsumidores.map((c: any) => (
@@ -228,7 +228,7 @@ export default function EmitirMinuta() {
                 )}
             </div>
 
-            <div className="pt-4 border-t border-gray-100">
+            <div className="pt-4 border-t border-gray-200">
                 <label className="block text-xs font-bold text-green-700 uppercase mb-1">Valor Recebido</label>
                 <div className="relative">
                     <span className="absolute left-3 top-3 text-green-600 font-bold">R$</span>
@@ -239,27 +239,27 @@ export default function EmitirMinuta() {
         </div>
 
         {/* === COLUNA DIREITA: GERADOR === */}
-        <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm space-y-5">
-            <div className="flex items-center gap-3 border-b border-gray-100 pb-3">
+        <div className="bg-gray-50-card p-6 rounded-lg border border-gray-200 shadow-sm space-y-5">
+            <div className="flex items-center gap-3 border-b border-gray-200 pb-3">
                 <div className="p-2 bg-red-100 text-red-700 rounded-lg"><Building size={20} /></div>
-                <h4 className="font-bold text-gray-800">Dados do Prestador (Usina)</h4>
+                <h4 className="font-bold text-gray-900">Dados do Prestador (Usina)</h4>
             </div>
 
             {/* ABAS */}
             <div className="flex gap-2 mb-2 p-1 bg-gray-100 rounded-lg">
                 <button type="button" onClick={() => setModoUsina('buscar')} 
-                    className={`flex-1 text-xs font-bold py-2 rounded-md transition-all ${modoUsina === 'buscar' ? 'bg-white shadow text-blue-600' : 'text-gray-500'}`}>
+                    className={`flex-1 text-xs font-bold py-2 rounded-md transition-all ${modoUsina === 'buscar' ? 'bg-gray-50-card shadow text-blue-600' : 'text-gray-500'}`}>
                     🔍 Buscar Cadastrado
                 </button>
                 <button type="button" onClick={() => setModoUsina('novo')} 
-                    className={`flex-1 text-xs font-bold py-2 rounded-md transition-all ${modoUsina === 'novo' ? 'bg-white shadow text-red-600' : 'text-gray-500'}`}>
+                    className={`flex-1 text-xs font-bold py-2 rounded-md transition-all ${modoUsina === 'novo' ? 'bg-gray-50-card shadow text-red-600' : 'text-gray-500'}`}>
                     ➕ Novo Cadastro
                 </button>
             </div>
 
             {modoUsina === 'buscar' ? (
                 <div className="relative">
-                    <select className="w-full p-3 border border-gray-300 rounded-xl text-sm bg-white outline-none focus:border-blue-500"
+                    <select className="w-full p-3 border border-gray-200 rounded-xl text-sm bg-gray-50-card outline-none focus:border-blue-500"
                         onChange={(e) => selecionarUsina(e.target.value)} defaultValue="">
                         <option value="" disabled>Selecione uma Usina...</option>
                         {listaUsinas.map((u: any) => (
@@ -286,7 +286,7 @@ export default function EmitirMinuta() {
                 )}
             </div>
 
-            <div className="pt-4 border-t border-gray-100 mt-auto">
+            <div className="pt-4 border-t border-gray-200 mt-auto">
                 <label className="block text-xs font-bold text-red-700 uppercase mb-1">Valor Pago (Custo)</label>
                 <div className="relative">
                     <span className="absolute left-3 top-3 text-red-600 font-bold">R$</span>
@@ -297,7 +297,7 @@ export default function EmitirMinuta() {
         </div>
 
         {/* RODAPÉ */}
-        <div className="lg:col-span-2 bg-slate-900 text-white p-6 rounded-2xl shadow-lg flex flex-col md:flex-row items-center justify-between gap-6">
+        <div className="lg:col-span-2 bg-slate-900 text-white p-6 rounded-lg shadow-sm flex flex-col md:flex-row items-center justify-between gap-6">
             <div className="flex items-center gap-4">
                 <div className="p-3 bg-blue-600 rounded-full"><Calculator size={32} className="text-white" /></div>
                 <div>
@@ -308,7 +308,7 @@ export default function EmitirMinuta() {
                     <p className="text-xs text-blue-300 mt-1">Margem: {resultado.margem.toFixed(1)}%</p>
                 </div>
             </div>
-            <button type="submit" className="px-8 py-4 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-xl shadow-lg shadow-emerald-900/50 flex items-center gap-3 transition-transform hover:scale-105">
+            <button type="submit" className="px-8 py-4 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-xl shadow-sm shadow-emerald-900/50 flex items-center gap-3 transition-transform hover:scale-105">
                 <FileDown size={24} /> <span>Baixar Minuta PDF</span>
             </button>
         </div>

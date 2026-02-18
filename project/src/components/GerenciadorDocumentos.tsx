@@ -107,9 +107,9 @@ export default function GerenciadorDocumentos({ tipoEntidade, entidadeId }: Gere
   };
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mt-8">
+    <div className="bg-gray-50-card rounded-xl shadow-sm border border-gray-200 overflow-hidden mt-8">
       {/* CABEÇALHO DO COFRE */}
-      <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+      <div className="p-6 border-b border-gray-200 flex justify-between items-center bg-gray-50">
         <div>
           <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
             <FileText className="w-5 h-5 text-blue-600" /> 
@@ -122,9 +122,9 @@ export default function GerenciadorDocumentos({ tipoEntidade, entidadeId }: Gere
         
         {/* BOTÃO DE UPLOAD */}
         <div>
-          <label className={`cursor-pointer flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-md ${uploading ? 'opacity-50 cursor-not-allowed' : ''}`}>
+          <label className={`cursor-pointer flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-sm ${uploading ? 'opacity-50 cursor-not-allowed' : ''}`}>
             {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
-            <span className="font-medium">{uploading ? 'Enviando...' : 'Adicionar Arquivo'}</span>
+            <span className="">{uploading ? 'Enviando...' : 'Adicionar Arquivo'}</span>
             <input 
               type="file" 
               className="hidden" 
@@ -146,9 +146,9 @@ export default function GerenciadorDocumentos({ tipoEntidade, entidadeId }: Gere
       {/* LISTA DE ARQUIVOS */}
       <div className="p-0">
         {loading ? (
-          <div className="p-8 text-center text-gray-400">Carregando documentos...</div>
+          <div className="p-6 text-center text-gray-500">Carregando documentos...</div>
         ) : documentos.length === 0 ? (
-          <div className="p-10 text-center flex flex-col items-center justify-center text-gray-400 border-2 border-dashed border-gray-100 m-4 rounded-xl">
+          <div className="p-10 text-center flex flex-col items-center justify-center text-gray-500 border-2 border-dashed border-gray-200 m-4 rounded-xl">
             <Upload className="w-10 h-10 mb-2 opacity-20" />
             <p>Nenhum documento arquivado ainda.</p>
             <p className="text-xs mt-1">Envie contratos ou comprovantes para manter organizado.</p>
@@ -157,10 +157,10 @@ export default function GerenciadorDocumentos({ tipoEntidade, entidadeId }: Gere
           <table className="w-full text-sm text-left">
             <thead className="bg-gray-50 text-gray-500 uppercase text-xs">
               <tr>
-                <th className="px-6 py-3 font-medium">Nome do Arquivo</th>
-                <th className="px-6 py-3 font-medium">Data Envio</th>
-                <th className="px-6 py-3 font-medium">Tamanho</th>
-                <th className="px-6 py-3 text-right font-medium">Ações</th>
+                <th className="px-6 py-3 ">Nome do Arquivo</th>
+                <th className="px-6 py-3 ">Data Envio</th>
+                <th className="px-6 py-3 ">Tamanho</th>
+                <th className="px-6 py-3 text-right ">Ações</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -170,12 +170,12 @@ export default function GerenciadorDocumentos({ tipoEntidade, entidadeId }: Gere
                     <div className="p-2 bg-blue-100 text-blue-600 rounded-lg">
                       <File className="w-4 h-4" />
                     </div>
-                    <span className="font-medium text-gray-700 group-hover:text-blue-700">
+                    <span className=" text-gray-700 group-hover:text-blue-700">
                       {doc.nome_arquivo}
                     </span>
                   </td>
                   <td className="px-6 py-4 text-gray-500">
-                    {new Date(doc.created_at).toLocaleDateString()} <span className="text-xs text-gray-400">{new Date(doc.created_at).toLocaleTimeString().slice(0,5)}</span>
+                    {new Date(doc.created_at).toLocaleDateString()} <span className="text-xs text-gray-500">{new Date(doc.created_at).toLocaleTimeString().slice(0,5)}</span>
                   </td>
                   <td className="px-6 py-4 text-gray-500 font-mono text-xs">
                     {formatBytes(doc.tamanho_bytes)}
@@ -184,14 +184,14 @@ export default function GerenciadorDocumentos({ tipoEntidade, entidadeId }: Gere
                     <div className="flex justify-end gap-2">
                       <button 
                         onClick={() => handleDownload(doc)}
-                        className="p-2 text-gray-500 hover:text-blue-600 hover:bg-white rounded-lg transition-all"
+                        className="p-2 text-gray-500 hover:text-blue-600 hover:bg-gray-50-card rounded-lg transition-all"
                         title="Baixar"
                       >
                         <Download className="w-4 h-4" />
                       </button>
                       <button 
                         onClick={() => handleExcluir(doc.id)}
-                        className="p-2 text-gray-400 hover:text-red-600 hover:bg-white rounded-lg transition-all"
+                        className="p-2 text-gray-500 hover:text-red-600 hover:bg-gray-50-card rounded-lg transition-all"
                         title="Excluir"
                       >
                         <Trash2 className="w-4 h-4" />

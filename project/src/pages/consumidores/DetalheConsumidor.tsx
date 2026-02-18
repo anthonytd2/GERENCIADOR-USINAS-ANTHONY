@@ -81,8 +81,8 @@ export default function DetalheConsumidor() {
     }
   };
 
-  if (loading) return <div className="p-8 text-center text-gray-500">Carregando...</div>;
-  if (!consumidor) return <div className="p-8 text-center">Consumidor não encontrado</div>;
+  if (loading) return <div className="p-6 text-center text-gray-500">Carregando...</div>;
+  if (!consumidor) return <div className="p-6 text-center">Consumidor não encontrado</div>;
 
   return (
     <div className="animate-fade-in-down pb-20">
@@ -97,7 +97,7 @@ export default function DetalheConsumidor() {
             <h1 className="text-3xl font-bold text-gray-900">Detalhes do Cliente</h1>
           </div>
           <div className="flex gap-2">
-            <Link to={`/consumidores/${id}/editar`} className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 flex items-center gap-2 transition-colors shadow-sm">
+            <Link to={`/consumidores/${id}/editar`} className="px-4 py-2 bg-gray-50-card border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 flex items-center gap-2 transition-colors shadow-sm">
               <Edit className="w-4 h-4" /> Editar
             </Link>
             <button 
@@ -113,7 +113,7 @@ export default function DetalheConsumidor() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
         
         {/* CARTÃO 1: DADOS PESSOAIS (Agora inclui Nome e Documento) */}
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
+        <div className="bg-gray-50-card p-6 rounded-lg shadow-sm border border-gray-200">
           <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2 border-b pb-2">
             <User className="w-5 h-5 text-blue-600" /> Dados Pessoais
           </h3>
@@ -126,7 +126,7 @@ export default function DetalheConsumidor() {
             </div>
             <div>
                 <p className="text-xs text-gray-500 font-bold uppercase mb-1">CPF / CNPJ</p>
-                <p className="font-mono bg-gray-50 inline-block px-2 py-1 rounded text-gray-800 border border-gray-100">
+                <p className="font-mono bg-gray-50 inline-block px-2 py-1 rounded text-gray-900 border border-gray-200">
                     {consumidor.documento || consumidor.cpf_cnpj || 'Não informado'}
                 </p>
             </div>
@@ -157,14 +157,14 @@ export default function DetalheConsumidor() {
         </div>
 
         {/* CARTÃO 2: DADOS COMERCIAIS */}
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
+        <div className="bg-gray-50-card p-6 rounded-lg shadow-sm border border-gray-200">
           <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2 border-b pb-2">
             <Zap className="w-5 h-5 text-yellow-500" /> Dados Comerciais
           </h3>
           <div className="grid grid-cols-2 gap-6">
-            <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
+            <div className="p-4 bg-gray-50 rounded-xl border border-gray-200">
               <p className="text-xs text-gray-500 font-bold uppercase mb-1">Média Consumo</p>
-              <p className="text-xl font-black text-gray-900">{consumidor.media_consumo?.toLocaleString('pt-BR')} <span className="text-sm font-medium text-gray-500">kWh</span></p>
+              <p className="text-xl font-black text-gray-900">{consumidor.media_consumo?.toLocaleString('pt-BR')} <span className="text-sm  text-gray-500">kWh</span></p>
             </div>
             
             {/* Exibe Valor Fixo OU Desconto dependendo do que estiver preenchido */}
@@ -173,7 +173,7 @@ export default function DetalheConsumidor() {
                     <p className="text-xs text-green-700 font-bold uppercase mb-1">Valor Fixo</p>
                     <p className="text-xl font-black text-green-800">
                         {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 4 }).format(Number(consumidor.valor_kw))}
-                        <span className="text-sm font-medium ml-1">/kWh</span>
+                        <span className="text-sm  ml-1">/kWh</span>
                     </p>
                 </div>
             ) : (
@@ -185,7 +185,7 @@ export default function DetalheConsumidor() {
 
             <div className="col-span-2">
                 <p className="text-xs text-gray-500 font-bold uppercase mb-1">Observações</p>
-                <p className="text-sm text-gray-600 bg-gray-50 p-3 rounded-lg border border-gray-100 italic">
+                <p className="text-sm text-gray-500 bg-gray-50 p-3 rounded-lg border border-gray-200 italic">
                     {consumidor.observacao || "Nenhuma observação registrada."}
                 </p>
             </div>
@@ -194,12 +194,12 @@ export default function DetalheConsumidor() {
       </div>
 
       {/* --- LISTA DE FILIAIS / UCs --- */}
-      <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 mb-8">
+      <div className="bg-gray-50-card p-6 rounded-lg shadow-sm border border-gray-200 mb-8">
         <div className="flex justify-between items-center mb-6">
           <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
             <Building2 className="w-5 h-5 text-purple-600" /> Unidades Consumidoras (UCs)
           </h3>
-          <button onClick={() => setShowModalUC(true)} className="px-3 py-1.5 bg-purple-600 text-white text-sm font-bold rounded-lg hover:bg-purple-700 flex items-center gap-1 transition-colors shadow-md shadow-purple-200">
+          <button onClick={() => setShowModalUC(true)} className="px-3 py-1.5 bg-purple-600 text-white text-sm font-bold rounded-lg hover:bg-purple-700 flex items-center gap-1 transition-colors shadow-sm shadow-purple-200">
             <Plus className="w-4 h-4" /> Nova UC
           </button>
         </div>
@@ -207,29 +207,29 @@ export default function DetalheConsumidor() {
         {unidades.length === 0 ? (
           <div className="text-center py-8 bg-gray-50 rounded-xl border border-dashed border-gray-200">
              <Building2 className="w-8 h-8 text-gray-300 mx-auto mb-2" />
-             <p className="text-gray-500 font-medium">Nenhuma unidade cadastrada.</p>
+             <p className="text-gray-500 ">Nenhuma unidade cadastrada.</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm text-left border-collapse">
               <thead className="bg-gray-50 text-gray-500 font-bold uppercase text-xs">
                 <tr>
-                  <th className="px-4 py-3 rounded-l-lg border-y border-l border-gray-100">Nº da UC</th>
-                  <th className="px-4 py-3 border-y border-gray-100">Endereço / Local</th>
-                  <th className="px-4 py-3 border-y border-gray-100">Cidade</th>
-                  <th className="px-4 py-3 border-y border-gray-100 text-right">Consumo Médio</th>
-                  <th className="px-4 py-3 rounded-r-lg border-y border-r border-gray-100 text-right">Ações</th>
+                  <th className="px-4 py-3 rounded-l-lg border-y border-l border-gray-200">Nº da UC</th>
+                  <th className="px-4 py-3 border-y border-gray-200">Endereço / Local</th>
+                  <th className="px-4 py-3 border-y border-gray-200">Cidade</th>
+                  <th className="px-4 py-3 border-y border-gray-200 text-right">Consumo Médio</th>
+                  <th className="px-4 py-3 rounded-r-lg border-y border-r border-gray-200 text-right">Ações</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {unidades.map((uc) => (
                   <tr key={uc.id} className="hover:bg-purple-50/30 transition-colors group">
                     <td className="px-4 py-3 font-bold text-gray-900">{uc.codigo_uc}</td>
-                    <td className="px-4 py-3 text-gray-600">{uc.endereco} - {uc.bairro}</td>
-                    <td className="px-4 py-3 text-gray-600">{uc.cidade}/{uc.uf}</td>
-                    <td className="px-4 py-3 text-right font-medium text-gray-800">{uc.media_consumo} kWh</td>
+                    <td className="px-4 py-3 text-gray-500">{uc.endereco} - {uc.bairro}</td>
+                    <td className="px-4 py-3 text-gray-500">{uc.cidade}/{uc.uf}</td>
+                    <td className="px-4 py-3 text-right  text-gray-900">{uc.media_consumo} kWh</td>
                     <td className="px-4 py-3 text-right">
-                      <button onClick={() => handleDeleteUC(uc.id)} className="text-gray-400 hover:text-red-600 p-2 hover:bg-white rounded-lg transition-all shadow-sm opacity-0 group-hover:opacity-100">
+                      <button onClick={() => handleDeleteUC(uc.id)} className="text-gray-500 hover:text-red-600 p-2 hover:bg-gray-50-card rounded-lg transition-all shadow-sm opacity-0 group-hover:opacity-100">
                         <Trash2 className="w-4 h-4" />
                       </button>
                     </td>
@@ -249,39 +249,39 @@ export default function DetalheConsumidor() {
       {/* --- MODAL NOVA UC --- */}
       {showModalUC && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 transform transition-all scale-100">
+          <div className="bg-gray-50-card rounded-lg shadow-2xl w-full max-w-md p-6 transform transition-all scale-100">
             <h3 className="text-xl font-bold mb-4 text-gray-900">Adicionar Nova UC</h3>
             <form onSubmit={handleSaveUC} className="space-y-4">
               <div>
                 <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Número da UC (Copel)</label>
-                <input required type="text" className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none font-bold text-gray-900"
+                <input required type="text" className="w-full p-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none font-bold text-gray-900"
                   value={formUC.codigo_uc} onChange={e => setFormUC({ ...formUC, codigo_uc: e.target.value })} />
               </div>
               <div>
                 <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Média de Consumo (kWh)</label>
-                <input type="number" className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
+                <input type="number" className="w-full p-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
                   value={formUC.media_consumo} onChange={e => setFormUC({ ...formUC, media_consumo: e.target.value })} />
               </div>
               <div>
                 <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Endereço / Identificação</label>
-                <input required type="text" placeholder="Ex: Av Brasil, 100 - Filial Centro" className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
+                <input required type="text" placeholder="Ex: Av Brasil, 100 - Filial Centro" className="w-full p-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
                   value={formUC.endereco} onChange={e => setFormUC({ ...formUC, endereco: e.target.value })} />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Bairro</label>
-                  <input type="text" className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
+                  <input type="text" className="w-full p-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
                     value={formUC.bairro} onChange={e => setFormUC({ ...formUC, bairro: e.target.value })} />
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Cidade</label>
-                  <input type="text" className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
+                  <input type="text" className="w-full p-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
                     value={formUC.cidade} onChange={e => setFormUC({ ...formUC, cidade: e.target.value })} />
                 </div>
               </div>
               <div className="flex gap-3 pt-4">
-                <button type="button" onClick={() => setShowModalUC(false)} className="flex-1 py-2.5 border border-gray-300 text-gray-700 font-bold rounded-xl hover:bg-gray-50 transition-colors">Cancelar</button>
-                <button type="submit" className="flex-1 py-2.5 bg-purple-600 text-white rounded-xl hover:bg-purple-700 font-bold transition-colors shadow-lg shadow-purple-200">Salvar UC</button>
+                <button type="button" onClick={() => setShowModalUC(false)} className="flex-1 py-2.5 border border-gray-200 text-gray-700 font-bold rounded-xl hover:bg-gray-50 transition-colors">Cancelar</button>
+                <button type="submit" className="flex-1 py-2.5 bg-purple-600 text-white rounded-xl hover:bg-purple-700 font-bold transition-colors shadow-sm shadow-purple-200">Salvar UC</button>
               </div>
             </form>
           </div>

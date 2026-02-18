@@ -157,17 +157,17 @@ export default function FechamentoMensal() {
             </div>
 
             {/* ETAPA 1: SELEÇÃO */}
-            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 mb-6 transition-all hover:shadow-md">
+            <div className="bg-gray-50-card p-6 rounded-xl shadow-sm border border-gray-200 mb-6 transition-all hover:shadow-sm">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div>
                         <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Mês de Referência</label>
                         <input type="month" value={mesReferencia} onChange={e => setMesReferencia(e.target.value)} 
-                            className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all" />
+                            className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all" />
                     </div>
                     <div className="md:col-span-2">
                         <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Selecione a Usina</label>
                         <select
-                            className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none bg-white transition-all"
+                            className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none bg-gray-50-card transition-all"
                             onChange={e => handleSelectUsina(e.target.value)}
                             value={usinaSelecionada ? (usinaSelecionada.id || usinaSelecionada.usinaid) : ''}
                         >
@@ -185,8 +185,8 @@ export default function FechamentoMensal() {
             {usinaSelecionada && step >= 2 && (
                 <>
                     {/* ETAPA 2: DADOS DA USINA */}
-                    <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 mb-6 animate-fade-in">
-                        <h2 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2 border-b border-gray-100 pb-2">
+                    <div className="bg-gray-50-card p-6 rounded-xl shadow-sm border border-gray-200 mb-6 animate-fade-in">
+                        <h2 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2 border-b border-gray-200 pb-2">
                             <Search className="w-5 h-5 text-blue-500" />
                             Dados do Medidor (GD)
                         </h2>
@@ -196,7 +196,7 @@ export default function FechamentoMensal() {
                                 <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Leitura Anterior</label>
                                 <input type="number" value={dadosUsina.leituraAnterior} 
                                     onChange={e => setDadosUsina({ ...dadosUsina, leituraAnterior: e.target.value })} 
-                                    className="w-full p-3 border rounded-xl text-lg font-mono text-gray-600 focus:border-blue-500 outline-none" placeholder="0" />
+                                    className="w-full p-3 border rounded-xl text-lg font-mono text-gray-500 focus:border-blue-500 outline-none" placeholder="0" />
                             </div>
                             <div>
                                 <label className="block text-xs font-bold text-blue-600 uppercase mb-1">Leitura Atual</label>
@@ -207,7 +207,7 @@ export default function FechamentoMensal() {
                             <div>
                                 <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Valor Fio B (R$)</label>
                                 <div className="relative">
-                                    <span className="absolute left-3 top-3 text-gray-400">R$</span>
+                                    <span className="absolute left-3 top-3 text-gray-500">R$</span>
                                     <input type="number" step="0.001" value={dadosUsina.valorFioB} 
                                         onChange={e => setDadosUsina({ ...dadosUsina, valorFioB: e.target.value })} 
                                         className="w-full pl-8 p-3 border rounded-xl" />
@@ -216,7 +216,7 @@ export default function FechamentoMensal() {
                             <div>
                                 <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Fatura Mínima (R$)</label>
                                 <div className="relative">
-                                    <span className="absolute left-3 top-3 text-gray-400">R$</span>
+                                    <span className="absolute left-3 top-3 text-gray-500">R$</span>
                                     <input type="number" step="0.01" value={dadosUsina.valorFaturaGeradora} 
                                         onChange={e => setDadosUsina({ ...dadosUsina, valorFaturaGeradora: e.target.value })} 
                                         className="w-full pl-8 p-3 border rounded-xl" />
@@ -241,7 +241,7 @@ export default function FechamentoMensal() {
 
                     {/* ETAPA 3 (CONDICIONAL): DADOS DOS CONSUMIDORES */}
                     {(usinaSelecionada.tipo_remuneracao === 'energia_consumida' || usinaSelecionada.tipo_pagamento === 'CONSUMO') && (
-                        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 mb-6 animate-fade-in">
+                        <div className="bg-gray-50-card p-6 rounded-xl shadow-sm border border-gray-200 mb-6 animate-fade-in">
                             <h2 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
                                 <Search className="w-5 h-5 text-purple-500" />
                                 Dados das Faturas (Rateio)
@@ -256,9 +256,9 @@ export default function FechamentoMensal() {
                                             <th className="p-4 w-40">Valor Fatura (R$)</th>
                                         </tr>
                                     </thead>
-                                    <tbody className="divide-y divide-gray-100 bg-white">
+                                    <tbody className="divide-y divide-gray-100 bg-gray-50-card">
                                         {dadosConsumidores.length === 0 ? (
-                                            <tr><td colSpan={4} className="p-6 text-center text-gray-400">Nenhum consumidor vinculado encontrado.</td></tr>
+                                            <tr><td colSpan={4} className="p-6 text-center text-gray-500">Nenhum consumidor vinculado encontrado.</td></tr>
                                         ) : (
                                             dadosConsumidores.map((cliente, index) => (
                                                 <tr key={index} className="hover:bg-slate-50 transition-colors">
@@ -285,7 +285,7 @@ export default function FechamentoMensal() {
                                                     </td>
                                                     <td className="p-4">
                                                         <div className="relative">
-                                                            <span className="absolute left-2 top-2 text-gray-400 text-xs">R$</span>
+                                                            <span className="absolute left-2 top-2 text-gray-500 text-xs">R$</span>
                                                             <input type="number" step="0.01" value={cliente.valorPagoFatura}
                                                                 onChange={e => {
                                                                     const novos = [...dadosConsumidores];
@@ -310,7 +310,7 @@ export default function FechamentoMensal() {
                         <button 
                             onClick={handleSimular} 
                             disabled={calculando} 
-                            className="px-8 py-4 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 flex items-center gap-3 shadow-lg shadow-blue-900/20 disabled:opacity-70 disabled:cursor-not-allowed transition-all hover:scale-105 active:scale-95"
+                            className="px-8 py-4 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 flex items-center gap-3 shadow-sm shadow-blue-900/20 disabled:opacity-70 disabled:cursor-not-allowed transition-all hover:scale-105 active:scale-95"
                         >
                             {calculando ? <RefreshCw className="w-5 h-5 animate-spin" /> : <Calculator className="w-5 h-5" />}
                             {calculando ? 'Calculando Cenários...' : 'Simular Fechamento'}
@@ -321,7 +321,7 @@ export default function FechamentoMensal() {
 
             {/* ETAPA 4: RESULTADOS E SALVAR */}
             {resultado && (
-                <div className="bg-slate-900 text-white p-8 rounded-3xl shadow-2xl animate-fade-in-up mb-20 border border-slate-700">
+                <div className="bg-slate-900 text-white p-6 rounded-lg shadow-2xl animate-fade-in-up mb-20 border border-slate-700">
                     <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
                         <div>
                             <h2 className="text-2xl font-bold flex items-center gap-3">
@@ -338,7 +338,7 @@ export default function FechamentoMensal() {
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                         {/* CARD 1: PRODUÇÃO */}
-                        <div className="bg-slate-800/50 p-6 rounded-2xl border border-slate-700 backdrop-blur-sm">
+                        <div className="bg-slate-800/50 p-6 rounded-lg border border-slate-700 backdrop-blur-sm">
                             <div className="flex items-center gap-2 mb-2">
                                 <div className="w-2 h-2 rounded-full bg-yellow-400"></div>
                                 <p className="text-slate-400 text-xs font-bold uppercase tracking-wider">Geração Total</p>
@@ -349,7 +349,7 @@ export default function FechamentoMensal() {
                         </div>
 
                         {/* CARD 2: PAGAR USINA */}
-                        <div className="bg-slate-800/50 p-6 rounded-2xl border border-slate-700 backdrop-blur-sm">
+                        <div className="bg-slate-800/50 p-6 rounded-lg border border-slate-700 backdrop-blur-sm">
                             <div className="flex items-center gap-2 mb-2">
                                 <div className="w-2 h-2 rounded-full bg-red-400"></div>
                                 <p className="text-slate-400 text-xs font-bold uppercase tracking-wider">Custo Gerador</p>
@@ -360,7 +360,7 @@ export default function FechamentoMensal() {
                         </div>
 
                         {/* CARD 3: RECEITA */}
-                        <div className="bg-slate-800/50 p-6 rounded-2xl border border-slate-700 backdrop-blur-sm relative overflow-hidden">
+                        <div className="bg-slate-800/50 p-6 rounded-lg border border-slate-700 backdrop-blur-sm relative overflow-hidden">
                             <div className="absolute top-0 right-0 p-3 opacity-10">
                                 <Calculator size={64} className="text-white" />
                             </div>
@@ -376,7 +376,7 @@ export default function FechamentoMensal() {
 
                     {/* TABELA DE DETALHES */}
                     {resultado.detalhesConsumidores && resultado.detalhesConsumidores.length > 0 && (
-                        <div className="bg-white text-slate-900 rounded-xl overflow-hidden mb-8 shadow-lg">
+                        <div className="bg-gray-50-card text-slate-900 rounded-xl overflow-hidden mb-8 shadow-sm">
                             <table className="w-full text-sm">
                                 <thead className="bg-slate-100 font-bold text-slate-600 uppercase text-xs">
                                     <tr>
@@ -404,7 +404,7 @@ export default function FechamentoMensal() {
                         <button onClick={() => setResultado(null)} className="px-6 py-3 border border-slate-600 rounded-xl hover:bg-slate-800 text-slate-300 font-bold transition-colors">
                             Voltar e Ajustar
                         </button>
-                        <button onClick={handleSalvar} className="px-8 py-3 bg-emerald-500 hover:bg-emerald-400 text-white font-bold rounded-xl flex items-center gap-2 shadow-lg shadow-emerald-900/50 transition-all hover:scale-105 active:scale-95">
+                        <button onClick={handleSalvar} className="px-8 py-3 bg-emerald-500 hover:bg-emerald-400 text-white font-bold rounded-xl flex items-center gap-2 shadow-sm shadow-emerald-900/50 transition-all hover:scale-105 active:scale-95">
                             <Save className="w-5 h-5" />
                             Confirmar Fechamento Oficial
                         </button>

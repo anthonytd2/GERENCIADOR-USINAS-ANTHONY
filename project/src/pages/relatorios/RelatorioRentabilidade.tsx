@@ -88,7 +88,7 @@ export default function RelatorioRentabilidade() {
       <div className="mb-8 flex flex-col md:flex-row justify-between items-center gap-4 pt-6">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-            <div className="p-3 bg-blue-600 rounded-lg text-white shadow-lg shadow-blue-600/30">
+            <div className="p-3 bg-blue-600 rounded-lg text-white shadow-sm shadow-blue-600/30">
               <BarChart3 className="w-8 h-8" />
             </div>
             Inteligência de Rentabilidade
@@ -96,7 +96,7 @@ export default function RelatorioRentabilidade() {
           <p className="text-gray-500 mt-2 ml-1">Análise detalhada de margem por cliente e usina.</p>
         </div>
         
-        <div className="flex items-center gap-3 bg-white p-2 rounded-xl border border-gray-200 shadow-sm">
+        <div className="flex items-center gap-3 bg-gray-50-card p-2 rounded-xl border border-gray-200 shadow-sm">
           <div className="p-2 bg-gray-100 rounded-lg text-gray-500">
             <Calendar className="w-5 h-5" />
           </div>
@@ -110,7 +110,7 @@ export default function RelatorioRentabilidade() {
       </div>
 
       {loading ? (
-        <div className="flex flex-col items-center justify-center py-32 text-gray-400 animate-pulse">
+        <div className="flex flex-col items-center justify-center py-32 text-gray-500 animate-pulse">
           <BarChart3 size={48} className="mb-4 opacity-50" />
           <p>Calculando indicadores de performance...</p>
         </div>
@@ -118,39 +118,39 @@ export default function RelatorioRentabilidade() {
         <>
           {/* CARDS DE RESUMO */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+            <div className="bg-gray-50-card p-6 rounded-lg shadow-sm border border-gray-200 hover:shadow-sm transition-shadow">
               <div className="flex justify-between items-start mb-4">
                 <div>
-                  <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Lucro Líquido (Spread)</p>
-                  <h3 className="text-4xl font-black text-gray-800 mt-1">{fmt(lucroTotal)}</h3>
+                  <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Lucro Líquido (Spread)</p>
+                  <h3 className="text-4xl font-black text-gray-900 mt-1">{fmt(lucroTotal)}</h3>
                 </div>
                 <div className="p-3 bg-green-50 text-green-600 rounded-xl">
                   <DollarSign size={24} />
                 </div>
               </div>
-              <p className="text-sm text-gray-400">Total acumulado no mês</p>
+              <p className="text-sm text-gray-500">Total acumulado no mês</p>
             </div>
 
-            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+            <div className="bg-gray-50-card p-6 rounded-lg shadow-sm border border-gray-200 hover:shadow-sm transition-shadow">
               <div className="flex justify-between items-start mb-4">
                 <div>
-                  <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Spread Médio</p>
+                  <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Spread Médio</p>
                   <h3 className="text-4xl font-black text-blue-600 mt-1">R$ {fmtUnit(spreadMedio)}</h3>
                 </div>
                 <div className="p-3 bg-blue-50 text-blue-600 rounded-xl">
                   <TrendingUp size={24} />
                 </div>
               </div>
-              <p className="text-sm text-gray-400">Média por kWh compensado</p>
+              <p className="text-sm text-gray-500">Média por kWh compensado</p>
             </div>
 
-            <div className="bg-gradient-to-br from-slate-800 to-slate-900 text-white p-6 rounded-2xl shadow-xl shadow-slate-900/20">
+            <div className="bg-gradient-to-br from-slate-800 to-slate-900 text-white p-6 rounded-lg shadow-xl shadow-slate-900/20">
               <div className="flex justify-between items-start mb-4">
                 <div>
                   <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Melhor Margem</p>
                   <h3 className="text-4xl font-black text-yellow-400 mt-1">R$ {fmtUnit(maiorSpread)}</h3>
                 </div>
-                <div className="p-3 bg-white/10 text-yellow-400 rounded-xl">
+                <div className="p-3 bg-gray-50-card/10 text-yellow-400 rounded-xl">
                   <BarChart3 size={24} />
                 </div>
               </div>
@@ -159,9 +159,9 @@ export default function RelatorioRentabilidade() {
           </div>
 
           {/* GRÁFICO PROFISSIONAL (RECHARTS) */}
-          <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 mb-8">
+          <div className="bg-gray-50-card p-6 rounded-lg shadow-sm border border-gray-200 mb-8">
             <div className="flex justify-between items-center mb-8">
-              <h3 className="font-bold text-xl text-gray-800 flex items-center gap-2">
+              <h3 className="font-bold text-xl text-gray-900 flex items-center gap-2">
                 <TrendingUp className="w-6 h-6 text-blue-600" />
                 Top 10 Melhores Margens (R$/kWh)
               </h3>
@@ -217,7 +217,7 @@ export default function RelatorioRentabilidade() {
                   </BarChart>
                 </ResponsiveContainer>
               ) : (
-                <div className="h-full flex items-center justify-center text-gray-400 bg-gray-50 rounded-xl border border-dashed border-gray-200">
+                <div className="h-full flex items-center justify-center text-gray-500 bg-gray-50 rounded-xl border border-dashed border-gray-200">
                   Sem dados para gerar gráfico neste mês.
                 </div>
               )}
@@ -225,9 +225,9 @@ export default function RelatorioRentabilidade() {
           </div>
 
           {/* TABELA DE RANKING */}
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-            <div className="p-6 border-b border-gray-100 bg-gray-50/50 flex justify-between items-center">
-              <h3 className="font-bold text-gray-800 flex items-center gap-2">
+          <div className="bg-gray-50-card rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+            <div className="p-6 border-b border-gray-200 bg-gray-50/50 flex justify-between items-center">
+              <h3 className="font-bold text-gray-900 flex items-center gap-2">
                 <DollarSign className="w-5 h-5 text-emerald-600" />
                 Ranking Completo
               </h3>
@@ -253,7 +253,7 @@ export default function RelatorioRentabilidade() {
 
                     return (
                       <tr key={item.vinculo_id} className={`hover:bg-blue-50/30 transition-colors group ${isRuim ? 'bg-red-50/10' : ''}`}>
-                        <td className="px-6 py-4 font-bold text-gray-400">
+                        <td className="px-6 py-4 font-bold text-gray-500">
                           {isTop ? (
                             <span className="w-8 h-8 flex items-center justify-center bg-yellow-100 text-yellow-700 rounded-full text-lg shadow-sm">
                               {index === 0 ? '🥇' : index === 1 ? '🥈' : '🥉'}
@@ -263,12 +263,12 @@ export default function RelatorioRentabilidade() {
                           )}
                         </td>
                         <td className="px-6 py-4">
-                          <p className="font-bold text-gray-800 group-hover:text-blue-600 transition-colors">{item.nome_consumidor}</p>
-                          <p className="text-xs text-gray-400 flex items-center gap-1 mt-1">
+                          <p className="font-bold text-gray-900 group-hover:text-blue-600 transition-colors">{item.nome_consumidor}</p>
+                          <p className="text-xs text-gray-500 flex items-center gap-1 mt-1">
                             <ZapIcon /> {item.nome_usina}
                           </p>
                         </td>
-                        <td className="px-6 py-4 text-center text-gray-600 font-mono bg-gray-50/30 rounded-lg mx-2">
+                        <td className="px-6 py-4 text-center text-gray-500 font-mono bg-gray-50/30 rounded-lg mx-2">
                           {item.energia_compensada} kWh
                         </td>
                         <td className="px-6 py-4 text-center">
@@ -276,7 +276,7 @@ export default function RelatorioRentabilidade() {
                             R$ {fmtUnit(unitario)}
                           </span>
                         </td>
-                        <td className="px-6 py-4 text-right font-bold text-emerald-600 text-base">
+                        <td className="px-6 py-4 text-right font-bold text-emerald-600 text-sm">
                           {fmt(item.spread)}
                         </td>
                         <td className="px-6 py-4 text-center">
@@ -296,7 +296,7 @@ export default function RelatorioRentabilidade() {
                 </tbody>
               </table>
               {data.length === 0 && (
-                <div className="p-12 text-center text-gray-400 bg-gray-50">
+                <div className="p-12 text-center text-gray-500 bg-gray-50">
                   Nenhum dado financeiro encontrado para este mês.
                 </div>
               )}

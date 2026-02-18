@@ -281,13 +281,13 @@ export default function FinanceiroVinculo() {
       {/* CABEÇALHO */}
       <div className="flex flex-col md:flex-row items-center justify-between gap-4">
         <div className="flex items-center gap-4 w-full">
-          <Link to={`/vinculos/${id}`} className="p-3 bg-white hover:bg-blue-50 rounded-full text-blue-600 transition-colors shadow-sm border border-gray-100">
+          <Link to={`/vinculos/${id}`} className="p-3 bg-gray-50-card hover:bg-blue-50 rounded-full text-blue-600 transition-colors shadow-sm border border-gray-200">
             <ArrowLeft size={24} />
           </Link>
           <div>
-            <h1 className="text-2xl font-bold text-gray-800">Financeiro do Vínculo</h1>
+            <h1 className="text-2xl font-bold text-gray-900">Financeiro do Vínculo</h1>
             <div className="flex items-center gap-2 text-sm text-gray-500">
-              <span className="font-medium text-blue-600">Contrato #{vinculo.vinculo_id}</span>
+              <span className=" text-blue-600">Contrato #{vinculo.vinculo_id}</span>
               <span>•</span>
               <Link to={`/consumidores/${vinculo.consumidores?.cpf_cnpj}`} className="text-blue-600 hover:underline font-bold">
                 {vinculo.consumidores?.nome}
@@ -300,7 +300,7 @@ export default function FinanceiroVinculo() {
           <div className="p-2 bg-orange-100 rounded-lg text-orange-600"><BatteryCharging size={20} /></div>
           <div>
             <p className="text-xs font-bold text-orange-600 uppercase">Saldo de Créditos</p>
-            <p className="text-xl font-black text-gray-800">
+            <p className="text-xl font-black text-gray-900">
               {fechamentos.length > 0 ? fechamentos[0].saldo_acumulado_kwh : 0} kWh
             </p>
           </div>
@@ -314,20 +314,20 @@ export default function FinanceiroVinculo() {
                 unidade_consumidora_id: '', 
                 percentual_desconto: String(vinculo.consumidores?.percentual_desconto || 0) 
             }));
-          }} className="w-full md:w-auto bg-blue-600 text-white px-6 py-3 rounded-xl flex items-center justify-center gap-2 hover:bg-blue-700 shadow-lg shadow-blue-500/20 transition-all font-bold transform hover:scale-105 active:scale-95">
+          }} className="w-full md:w-auto bg-blue-600 text-white px-6 py-3 rounded-xl flex items-center justify-center gap-2 hover:bg-blue-700 shadow-sm shadow-blue-500/20 transition-all font-bold transform hover:scale-105 active:scale-95">
             <DollarSign size={20} /> Novo Fechamento
           </button>
         )}
       </div>
 
       {showForm && (
-        <div className="bg-white rounded-2xl border border-blue-100 shadow-xl p-6 md:p-8 animate-fade-in-down">
-          <div className="flex justify-between items-center mb-6 pb-4 border-b border-gray-100">
-            <h3 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+        <div className="bg-gray-50-card rounded-lg border border-blue-100 shadow-xl p-6 md:p-6 animate-fade-in-down">
+          <div className="flex justify-between items-center mb-6 pb-4 border-b border-gray-200">
+            <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
               <Calculator className="text-blue-600" size={24} />
               {editingId ? 'Editar Cálculo' : 'Novo Cálculo Financeiro'}
             </h3>
-            <button onClick={() => setShowForm(false)} className="p-2 hover:bg-gray-100 rounded-full text-gray-400"><X size={24} /></button>
+            <button onClick={() => setShowForm(false)} className="p-2 hover:bg-gray-100 rounded-full text-gray-500"><X size={24} /></button>
           </div>
 
           <form onSubmit={handleSalvar}>
@@ -338,7 +338,7 @@ export default function FinanceiroVinculo() {
                 <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Unidade Consumidora (UC)</label>
                 <select
                   required
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
                   value={formData.unidade_consumidora_id}
                   onChange={e => setFormData({ ...formData, unidade_consumidora_id: e.target.value })}
                 >
@@ -354,44 +354,44 @@ export default function FinanceiroVinculo() {
               {/* MÊS DE REFERÊNCIA */}
               <div className="w-full md:w-1/2">
                 <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Mês de Referência</label>
-                <input required type="date" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none shadow-sm"
+                <input required type="date" className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none shadow-sm"
                   value={formData.mes_referencia} onChange={e => setFormData({ ...formData, mes_referencia: e.target.value })} />
               </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* COLUNA AZUL: GERADOR */}
-              <div className="bg-blue-50/50 p-6 rounded-2xl border border-blue-100 shadow-sm hover:shadow-md transition-shadow">
+              <div className="bg-blue-50/50 p-6 rounded-lg border border-blue-100 shadow-sm hover:shadow-sm transition-shadow">
                 <h4 className="text-sm font-black text-blue-800 uppercase mb-6 flex items-center gap-2 pb-2 border-b border-blue-200">
                   <Zap size={18} /> Usina (Gerador)
                 </h4>
                 <div className="grid grid-cols-2 gap-5">
                   <div className="col-span-1">
-                    <label className="text-xs text-gray-600 font-bold mb-1 block">Energia Consumida (kWh)</label>
+                    <label className="text-xs text-gray-500 font-bold mb-1 block">Energia Consumida (kWh)</label>
                     <input required type="number" className="w-full p-2 border border-blue-200 rounded-lg focus:border-blue-500 outline-none"
                       value={formData.consumo_rede} onChange={e => setFormData({ ...formData, consumo_rede: e.target.value })} />
                   </div>
                   <div className="col-span-1">
-                    <label className="text-xs text-gray-600 font-bold mb-1 block">Compensada (kWh)</label>
+                    <label className="text-xs text-gray-500 font-bold mb-1 block">Compensada (kWh)</label>
                     <input required type="number" className="w-full p-2 border border-blue-200 rounded-lg focus:border-blue-500 outline-none"
                       value={formData.energia_compensada} onChange={e => setFormData({ ...formData, energia_compensada: e.target.value })} />
                   </div>
                   <div className="col-span-1">
-                    <label className="text-xs text-gray-600 font-bold mb-1 block">Valor kWh (R$)</label>
+                    <label className="text-xs text-gray-500 font-bold mb-1 block">Valor kWh (R$)</label>
                     <input required type="number" step="0.0001" className="w-full p-2 border border-blue-200 rounded-lg focus:border-blue-500 outline-none"
                       value={formData.tarifa_kwh} onChange={e => setFormData({ ...formData, tarifa_kwh: e.target.value })} />
                   </div>
-                  <div className="col-span-1 bg-white p-2 rounded-lg border border-blue-100 flex flex-col justify-center shadow-inner">
+                  <div className="col-span-1 bg-gray-50-card p-2 rounded-lg border border-blue-100 flex flex-col justify-center shadow-inner">
                     <span className="text-[10px] text-blue-400 font-bold">TOTAL BRUTO</span>
-                    <span className="font-bold text-gray-800">R$ {calculos.totalBruto.toFixed(2)}</span>
+                    <span className="font-bold text-gray-900">R$ {calculos.totalBruto.toFixed(2)}</span>
                   </div>
                   <div className="col-span-1">
-                    <label className="text-xs text-gray-600 font-bold mb-1 block">TUSD Fio B</label>
+                    <label className="text-xs text-gray-500 font-bold mb-1 block">TUSD Fio B</label>
                     <input required type="number" step="0.0001" className="w-full p-2 border border-blue-200 rounded-lg outline-none"
                       value={formData.tusd_fio_b} onChange={e => setFormData({ ...formData, tusd_fio_b: e.target.value })} />
                   </div>
                   <div className="col-span-1">
-                    <label className="text-xs text-gray-600 font-bold mb-1 block">Fatura Geradora</label>
+                    <label className="text-xs text-gray-500 font-bold mb-1 block">Fatura Geradora</label>
                     <input required type="number" step="0.01" className="w-full p-2 border border-blue-200 rounded-lg outline-none"
                       value={formData.valor_fatura_geradora} onChange={e => setFormData({ ...formData, valor_fatura_geradora: e.target.value })} />
                   </div>
@@ -404,23 +404,23 @@ export default function FinanceiroVinculo() {
               </div>
 
               {/* COLUNA VERDE: CONSUMIDOR */}
-              <div className="bg-green-50/50 p-6 rounded-2xl border border-green-100 shadow-sm hover:shadow-md transition-shadow">
+              <div className="bg-green-50/50 p-6 rounded-lg border border-green-100 shadow-sm hover:shadow-sm transition-shadow">
                 <h4 className="text-sm font-black text-green-800 uppercase mb-6 flex items-center gap-2 pb-2 border-b border-green-200">
                   <TrendingUp size={18} /> Consumidor
                 </h4>
                 <div className="grid grid-cols-2 gap-5">
                   <div className="col-span-1">
-                    <label className="text-xs text-gray-600 font-bold mb-1 block">Tarifa c/ Imposto</label>
+                    <label className="text-xs text-gray-500 font-bold mb-1 block">Tarifa c/ Imposto</label>
                     <input required type="number" step="0.0001" className="w-full p-2 border border-green-200 rounded-lg focus:border-green-500 outline-none"
                       value={formData.tarifa_com_imposto} onChange={e => setFormData({ ...formData, tarifa_com_imposto: e.target.value })} />
                   </div>
                   <div className="col-span-1">
-                    <label className="text-xs text-gray-600 font-bold mb-1 block">Ilum. Pública</label>
+                    <label className="text-xs text-gray-500 font-bold mb-1 block">Ilum. Pública</label>
                     <input required type="number" step="0.01" className="w-full p-2 border border-green-200 rounded-lg outline-none"
                       value={formData.iluminacao_publica} onChange={e => setFormData({ ...formData, iluminacao_publica: e.target.value })} />
                   </div>
                   <div className="col-span-1">
-                    <label className="text-xs text-gray-600 font-bold mb-1 block">Outras Taxas</label>
+                    <label className="text-xs text-gray-500 font-bold mb-1 block">Outras Taxas</label>
                     <input required type="number" step="0.01" className="w-full p-2 border border-green-200 rounded-lg outline-none"
                       value={formData.outras_taxas} onChange={e => setFormData({ ...formData, outras_taxas: e.target.value })} />
                   </div>
@@ -436,7 +436,7 @@ export default function FinanceiroVinculo() {
                     </label>
                     <input
                       type="number"
-                      className="w-full p-2 rounded border border-orange-200 bg-orange-50 font-bold text-gray-800"
+                      className="w-full p-2 rounded border border-orange-200 bg-orange-50 font-bold text-gray-900"
                       placeholder="Valor da Fatura Copel"
                       value={formData.saldo_acumulado_kwh}
                       onChange={e => setFormData({ ...formData, saldo_acumulado_kwh: e.target.value })}
@@ -445,8 +445,8 @@ export default function FinanceiroVinculo() {
 
                   <div className="col-span-2 border-t border-green-200 pt-3 mt-2">
                     <div className="flex justify-between items-center mb-2">
-                      <span className="text-sm text-gray-600">Total Pagaria Copel:</span>
-                      <span className="text-lg font-bold text-gray-800">R$ {calculos.totalPagariaCopel.toFixed(2)}</span>
+                      <span className="text-sm text-gray-500">Total Pagaria Copel:</span>
+                      <span className="text-lg font-bold text-gray-900">R$ {calculos.totalPagariaCopel.toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between items-center mb-3">
                       <span className="text-sm text-green-700 font-bold uppercase">Economia na Fatura:</span>
@@ -473,9 +473,9 @@ export default function FinanceiroVinculo() {
             </div>
 
             {/* BARRA DE LUCRO FINAL */}
-            <div className="mt-8 bg-slate-800 p-6 rounded-2xl text-white shadow-xl flex flex-col md:flex-row items-center justify-between border border-slate-700 hover:shadow-2xl transition-shadow">
+            <div className="mt-8 bg-slate-800 p-6 rounded-lg text-white shadow-xl flex flex-col md:flex-row items-center justify-between border border-slate-700 hover:shadow-2xl transition-shadow">
               <div className="flex items-center gap-4">
-                <div className="p-4 bg-yellow-500 rounded-full text-slate-900 shadow-lg shadow-yellow-500/50">
+                <div className="p-4 bg-yellow-500 rounded-full text-slate-900 shadow-sm shadow-yellow-500/50">
                   <Wallet size={32} />
                 </div>
                 <div>
@@ -484,31 +484,31 @@ export default function FinanceiroVinculo() {
                 </div>
               </div>
               <div className="text-center md:text-right mt-4 md:mt-0">
-                <span className={`text-5xl font-black drop-shadow-lg ${calculos.lucroEmpresa >= 0 ? 'text-yellow-400' : 'text-red-400'}`}>
+                <span className={`text-5xl font-black drop-shadow-sm ${calculos.lucroEmpresa >= 0 ? 'text-yellow-400' : 'text-red-400'}`}>
                   R$ {calculos.lucroEmpresa.toFixed(2)}
                 </span>
               </div>
             </div>
 
             {/* Uploads */}
-            <div className="mt-8 pt-6 border-t border-gray-100 grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="border border-dashed border-gray-300 rounded-xl p-4 bg-gray-50 hover:bg-white transition-colors cursor-pointer group">
+            <div className="mt-8 pt-6 border-t border-gray-200 grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="border border-dashed border-gray-200 rounded-xl p-4 bg-gray-50 hover:bg-gray-50-card transition-colors cursor-pointer group">
                 <label className="cursor-pointer block">
-                  <span className="text-sm font-bold text-gray-600 flex items-center gap-2 mb-2 group-hover:text-blue-600 transition-colors"><FileText size={16} /> Anexar Planilha</span>
-                  <input type="file" className="text-xs w-full text-gray-400" onChange={e => setFormData({ ...formData, arquivo: e.target.files?.[0] || null })} />
+                  <span className="text-sm font-bold text-gray-500 flex items-center gap-2 mb-2 group-hover:text-blue-600 transition-colors"><FileText size={16} /> Anexar Planilha</span>
+                  <input type="file" className="text-xs w-full text-gray-500" onChange={e => setFormData({ ...formData, arquivo: e.target.files?.[0] || null })} />
                 </label>
               </div>
-              <div className="border border-dashed border-gray-300 rounded-xl p-4 bg-gray-50 hover:bg-white transition-colors cursor-pointer group">
+              <div className="border border-dashed border-gray-200 rounded-xl p-4 bg-gray-50 hover:bg-gray-50-card transition-colors cursor-pointer group">
                 <label className="cursor-pointer block">
-                  <span className="text-sm font-bold text-gray-600 flex items-center gap-2 mb-2 group-hover:text-green-600 transition-colors"><Upload size={16} /> Anexar Recibo</span>
-                  <input type="file" className="text-xs w-full text-gray-400" onChange={e => setFormData({ ...formData, recibo: e.target.files?.[0] || null })} />
+                  <span className="text-sm font-bold text-gray-500 flex items-center gap-2 mb-2 group-hover:text-green-600 transition-colors"><Upload size={16} /> Anexar Recibo</span>
+                  <input type="file" className="text-xs w-full text-gray-500" onChange={e => setFormData({ ...formData, recibo: e.target.files?.[0] || null })} />
                 </label>
               </div>
             </div>
 
             <div className="mt-8 flex justify-end gap-4">
-              <button type="button" onClick={() => setShowForm(false)} className="px-6 py-3 bg-white text-gray-600 border border-gray-200 rounded-xl font-bold hover:bg-gray-50 transition-colors">Cancelar</button>
-              <button type="submit" disabled={uploading} className="px-8 py-3 bg-blue-600 text-white rounded-xl font-bold shadow-lg hover:bg-blue-700 disabled:opacity-50 transition-all transform hover:scale-105 active:scale-95">
+              <button type="button" onClick={() => setShowForm(false)} className="px-6 py-3 bg-gray-50-card text-gray-500 border border-gray-200 rounded-xl font-bold hover:bg-gray-50 transition-colors">Cancelar</button>
+              <button type="submit" disabled={uploading} className="px-8 py-3 bg-blue-600 text-white rounded-xl font-bold shadow-sm hover:bg-blue-700 disabled:opacity-50 transition-all transform hover:scale-105 active:scale-95">
                 {uploading ? 'Salvando...' : 'Salvar Cálculo'}
               </button>
             </div>
@@ -517,7 +517,7 @@ export default function FinanceiroVinculo() {
       )}
 
       {/* TABELA VISUAL */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+      <div className="bg-gray-50-card rounded-lg shadow-sm border border-gray-200 overflow-hidden">
         <table className="w-full text-sm">
           <thead className="bg-gray-50 text-gray-500 font-bold uppercase text-xs">
             <tr>
@@ -535,7 +535,7 @@ export default function FinanceiroVinculo() {
           <tbody className="divide-y divide-gray-100">
             {fechamentos.map((f) => (
               <tr key={f.fechamento_id} className="hover:bg-blue-50/20 transition-colors">
-                <td className="px-6 py-4 font-bold text-gray-800 capitalize">
+                <td className="px-6 py-4 font-bold text-gray-900 capitalize">
                   {new Date(f.mes_referencia).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric', timeZone: 'UTC' })}
                 </td>
                 <td className="px-6 py-4 text-left font-bold text-blue-600 text-xs">
@@ -548,9 +548,9 @@ export default function FinanceiroVinculo() {
                 <td className="px-6 py-4 text-right font-bold text-orange-600 bg-orange-50/30">
                   {f.saldo_acumulado_kwh} kWh
                 </td>
-                <td className="px-6 py-4 text-right text-gray-600">{f.energia_compensada} kWh</td>
+                <td className="px-6 py-4 text-right text-gray-500">{f.energia_compensada} kWh</td>
                 <td className="px-6 py-4 text-right font-bold text-yellow-600">R$ {f.spread?.toFixed(2)}</td>
-                <td className="px-6 py-4 text-right font-medium text-green-600">R$ {f.economia_gerada?.toFixed(2)}</td>
+                <td className="px-6 py-4 text-right  text-green-600">R$ {f.economia_gerada?.toFixed(2)}</td>
                 <td className="px-6 py-4 text-right font-bold text-green-800 bg-green-50/50">R$ {f.valor_recebido?.toFixed(2)}</td>
                 <td className="px-6 py-4 text-center flex justify-center gap-2">
                   {f.arquivo_url && <a href={f.arquivo_url} target="_blank" className="text-blue-400 hover:text-blue-600 p-1 hover:bg-blue-50 rounded"><FileText size={18} /></a>}
@@ -577,7 +577,7 @@ export default function FinanceiroVinculo() {
             ))}
           </tbody>
         </table>
-        {fechamentos.length === 0 && <div className="p-12 text-center text-gray-400">Nenhum registro encontrado.</div>}
+        {fechamentos.length === 0 && <div className="p-12 text-center text-gray-500">Nenhum registro encontrado.</div>}
       </div>
 
       <ModalConfirmacao

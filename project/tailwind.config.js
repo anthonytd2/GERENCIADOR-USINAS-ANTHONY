@@ -6,31 +6,31 @@ export default {
   ],
   theme: {
     extend: {
+      // Configuração da fonte Inter
+      fontFamily: {
+        sans: ['Inter', 'sans-serif'],
+      },
       colors: {
-        // 1. A MARCA (Azul)
         brand: {
-          dark: '#0B1E3F',   // Azul Profundo (Cabeçalhos)
-          DEFAULT: '#1e40af', // Azul Padrão (Botões, Destaques)
-          light: '#3b82f6',   // Azul Claro (Ícones, Hover)
+          dark: '#0B1E3F',   
+          DEFAULT: '#1e40af', 
+          light: '#3b82f6',   
         },
-
-        // 2. O TEMA (Fundo e Texto) - AQUI ESTÁ O SEGREDO
-        // Se quiser voltar para o claro, troque essas cores aqui
+        // Variáveis de tema (Dark Mode) - Estão aqui mas não atrapalham o Light Mode se não usar
         fundo: {
-            DEFAULT: '#0f172a', // Fundo Principal (Slate-900) - Escuro
-            card: '#1e293b',    // Fundo dos Cards (Slate-800) - Um pouco mais claro
-            hover: '#334155',   // Fundo ao passar o mouse (Slate-700)
+          DEFAULT: '#0f172a',
+          card: '#1e293b',    
+          hover: '#334155',   
         },
         texto: {
-            DEFAULT: '#f8fafc', // Texto Principal (Slate-50) - Quase branco
-            secundario: '#94a3b8', // Texto Secundário (Slate-400) - Cinza claro
-            invertido: '#0f172a',  // Texto para fundos claros (Botões brancos)
+          DEFAULT: '#f8fafc', 
+          secundario: '#94a3b8', 
+          invertido: '#0f172a',  
         },
         borda: {
-            DEFAULT: '#334155', // Cor das bordas (Slate-700) - Sutis
+          DEFAULT: '#334155', 
         }
       },
-      // Animações que você já usa
       animation: {
         'fade-in-down': 'fadeInDown 0.5s ease-out',
       },

@@ -170,33 +170,33 @@ export default function ListaPropostas() {
   );
 
   return (
-    <div className="h-full flex flex-col pb-4 font-sans bg-white relative">
+    <div className="h-full flex flex-col pb-4 font-sans bg-gray-50-card relative">
       
       {/* --- MODAL DE VENDA --- */}
       {modalVendaOpen && (
         <div className="fixed inset-0 z-[999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden transform scale-100 transition-all">
+          <div className="bg-gray-50-card rounded-lg shadow-2xl w-full max-w-md overflow-hidden transform scale-100 transition-all">
             <div className="bg-emerald-600 p-6 text-center">
-              <div className="mx-auto bg-white/20 w-16 h-16 rounded-full flex items-center justify-center mb-3">
+              <div className="mx-auto bg-gray-50-card/20 w-16 h-16 rounded-full flex items-center justify-center mb-3">
                 <DollarSign className="w-8 h-8 text-white" />
               </div>
               <h3 className="text-2xl font-bold text-white">Parabéns pela Venda! 🚀</h3>
               <p className="text-emerald-100 mt-1">O cliente aceitou a proposta?</p>
             </div>
             <div className="p-6 space-y-4">
-              <p className="text-gray-600 text-center">
+              <p className="text-gray-500 text-center">
                 Deseja cadastrar este cliente automaticamente no sistema para gerar o contrato agora?
               </p>
               <div className="flex gap-3 mt-4">
                 <button 
                   onClick={() => setModalVendaOpen(false)}
-                  className="flex-1 py-3 px-4 border border-gray-300 text-gray-700 font-bold rounded-xl hover:bg-gray-50 transition-colors"
+                  className="flex-1 py-3 px-4 border border-gray-200 text-gray-700 font-bold rounded-xl hover:bg-gray-50 transition-colors"
                 >
                   Apenas Mover Card
                 </button>
                 <button 
                   onClick={handleConverterVenda}
-                  className="flex-1 py-3 px-4 bg-emerald-600 text-white font-bold rounded-xl hover:bg-emerald-700 shadow-lg shadow-emerald-200 transition-all flex items-center justify-center gap-2"
+                  className="flex-1 py-3 px-4 bg-emerald-600 text-white font-bold rounded-xl hover:bg-emerald-700 shadow-sm shadow-emerald-200 transition-all flex items-center justify-center gap-2"
                 >
                   <Check className="w-5 h-5" /> Sim, Gerar Contrato
                 </button>
@@ -210,24 +210,24 @@ export default function ListaPropostas() {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4 px-1 pt-2">
         <div>
           <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight">Pipeline de Vendas</h2>
-          <p className="text-slate-500 text-base mt-1 font-medium">Gestão visual de negociações.</p>
+          <p className="text-slate-500 text-sm mt-1 ">Gestão visual de negociações.</p>
         </div>
-        <Link to="/propostas/novo" className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300 font-bold text-base">
+        <Link to="/propostas/novo" className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 shadow-sm hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300 font-bold text-sm">
           <Plus className="w-5 h-5" /> Nova Simulação
         </Link>
       </div>
 
       {/* KPI CARDS */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-        <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-lg flex items-center gap-5">
+        <div className="bg-gray-50-card p-6 rounded-lg border border-slate-100 shadow-sm flex items-center gap-5">
           <div className="p-4 bg-blue-50 text-blue-600 rounded-xl"><FileText className="w-8 h-8" /></div>
           <div><p className="text-xs text-slate-500 font-bold uppercase tracking-wider mb-1">Propostas Ativas</p><p className="text-3xl font-black text-slate-800">{propostas.length}</p></div>
         </div>
-        <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-lg flex items-center gap-5">
+        <div className="bg-gray-50-card p-6 rounded-lg border border-slate-100 shadow-sm flex items-center gap-5">
           <div className="p-4 bg-emerald-50 text-emerald-600 rounded-xl"><DollarSign className="w-8 h-8" /></div>
           <div><p className="text-xs text-slate-500 font-bold uppercase tracking-wider mb-1">Potencial Mensal</p><p className="text-3xl font-black text-slate-800">{formatMoney(totalPotencial)}</p></div>
         </div>
-        <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-lg flex items-center gap-5">
+        <div className="bg-gray-50-card p-6 rounded-lg border border-slate-100 shadow-sm flex items-center gap-5">
           <div className="p-4 bg-purple-50 text-purple-600 rounded-xl"><TrendingUp className="w-8 h-8" /></div>
           <div><p className="text-xs text-slate-500 font-bold uppercase tracking-wider mb-1">Conversão</p><p className="text-3xl font-black text-slate-800">{taxaConversao.toFixed(0)}%</p></div>
         </div>
@@ -236,13 +236,13 @@ export default function ListaPropostas() {
       {/* BARRA DE BUSCA */}
       <div className="mb-6 relative px-1">
         <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none"><Search className="h-5 w-5 text-slate-400" /></div>
-        <input type="text" placeholder="Buscar cliente..." className="pl-12 w-full md:w-1/3 rounded-xl border-slate-200 focus:ring-4 focus:ring-blue-100 focus:border-blue-500 py-3 shadow-sm bg-white text-base transition-all" 
+        <input type="text" placeholder="Buscar cliente..." className="pl-12 w-full md:w-1/3 rounded-xl border-slate-200 focus:ring-4 focus:ring-blue-100 focus:border-blue-500 py-3 shadow-sm bg-gray-50-card text-sm transition-all" 
           value={busca} onChange={(e) => setBusca(e.target.value)} />
       </div>
 
       {/* --- KANBAN DRAG AND DROP --- */}
       {loading ? (
-         <div className="p-6 space-y-4">{[1,2,3].map(i => <Skeleton key={i} className="h-28 w-full rounded-2xl" />)}</div>
+         <div className="p-6 space-y-4">{[1,2,3].map(i => <Skeleton key={i} className="h-28 w-full rounded-lg" />)}</div>
       ) : (
         <DragDropContext onDragEnd={onDragEnd}>
           <div className="flex-1 overflow-x-auto pb-4 px-1">
@@ -256,19 +256,19 @@ export default function ListaPropostas() {
                   <Droppable droppableId={coluna.id} key={coluna.id}>
                     {(provided) => (
                       <div 
-                        className="flex-1 flex flex-col min-w-[280px] rounded-2xl bg-slate-50/50"
+                        className="flex-1 flex flex-col min-w-[280px] rounded-lg bg-slate-50/50"
                         {...provided.droppableProps}
                         ref={provided.innerRef}
                       >
                         {/* Título da Coluna */}
                         <div className={`p-4 rounded-t-2xl shadow-sm flex flex-col gap-2 ${coluna.cor}`}>
                           <div className="flex justify-between items-center">
-                              <span className={`font-bold text-base tracking-tight ${coluna.texto}`}>{coluna.titulo}</span>
+                              <span className={`font-bold text-sm tracking-tight ${coluna.texto}`}>{coluna.titulo}</span>
                               <span className={`px-2.5 py-0.5 rounded-full text-xs font-extrabold ${coluna.badge}`}>{itensColuna.length}</span>
                           </div>
                           {totalColuna >= 0 && (
                               <div className={`text-2xl font-black flex items-center gap-1 mt-1 ${coluna.texto}`}>
-                                 <span className="text-xs opacity-60 font-medium mt-1.5">R$</span> {totalColuna.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                 <span className="text-xs opacity-60  mt-1.5">R$</span> {totalColuna.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                               </div>
                           )}
                         </div>
@@ -292,13 +292,13 @@ export default function ListaPropostas() {
                                       {...provided.draggableProps}
                                       {...provided.dragHandleProps}
                                       style={{ ...provided.draggableProps.style }}
-                                      className={`bg-white p-5 rounded-xl border border-slate-100 shadow-sm transition-all group relative
-                                        ${snapshot.isDragging ? 'shadow-2xl scale-105 rotate-2 border-blue-300 z-50' : 'hover:shadow-md hover:-translate-y-1'}
+                                      className={`bg-gray-50-card p-5 rounded-xl border border-slate-100 shadow-sm transition-all group relative
+                                        ${snapshot.isDragging ? 'shadow-2xl scale-105 rotate-2 border-blue-300 z-50' : 'hover:shadow-sm hover:-translate-y-1'}
                                       `}
                                     >
                                       
                                       <div className="flex justify-between items-start mb-3">
-                                        <h4 className="font-bold text-slate-900 text-base leading-snug line-clamp-2" title={item.nome_cliente_prospect}>
+                                        <h4 className="font-bold text-slate-900 text-sm leading-snug line-clamp-2" title={item.nome_cliente_prospect}>
                                           {item.nome_cliente_prospect || 'Cliente Sem Nome'}
                                         </h4>
                                         {/* Relógio de Aging (Novo!) */}
@@ -308,20 +308,20 @@ export default function ListaPropostas() {
                                       </div>
 
                                       <div className="space-y-2.5 mb-4">
-                                        <div className="flex items-center gap-2 text-xs font-medium text-slate-500">
+                                        <div className="flex items-center gap-2 text-xs  text-slate-500">
                                           <Zap size={14} className="text-amber-500 fill-amber-500"/>
                                           <span className="truncate">{usinaNome}</span>
                                         </div>
                                         <div className="flex items-center justify-between bg-emerald-50 p-2.5 rounded-lg border border-emerald-100">
                                           <span className="text-[10px] font-bold text-emerald-600 uppercase">Economia</span>
-                                          <div className="flex items-center gap-1 text-base font-black text-emerald-700">
-                                            <span className="text-xs font-medium">R$</span>{formatMoney(economia).replace('R$', '')}
+                                          <div className="flex items-center gap-1 text-sm font-black text-emerald-700">
+                                            <span className="text-xs ">R$</span>{formatMoney(economia).replace('R$', '')}
                                           </div>
                                         </div>
                                       </div>
 
                                       <div className="pt-3 border-t border-slate-100 flex justify-between items-center">
-                                          <div className="text-[10px] font-medium text-slate-400 flex items-center gap-1">
+                                          <div className="text-[10px]  text-slate-400 flex items-center gap-1">
                                             <Calendar size={12}/> {new Date(item.created_at).toLocaleDateString()}
                                           </div>
 
@@ -343,7 +343,7 @@ export default function ListaPropostas() {
                           {itensColuna.length === 0 && (
                             <div className="text-center py-16 opacity-40">
                               <ListFilter className="w-10 h-10 mx-auto mb-2 text-slate-300"/>
-                              <p className="text-sm font-medium text-slate-400">Arraste para cá</p>
+                              <p className="text-sm  text-slate-400">Arraste para cá</p>
                             </div>
                           )}
                         </div>

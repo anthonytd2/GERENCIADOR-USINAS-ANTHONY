@@ -12,7 +12,7 @@ export function PropostaPDF({ form, resultado }: PropostaPDFProps) {
   const fmtP = (v: number) => new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 1 }).format(v || 0) + '%';
 
   return (
-    <div className="w-[210mm] bg-white text-gray-800 font-sans">
+    <div className="w-[210mm] bg-gray-50-card text-gray-900 font-sans">
       
       {/* --- PÁGINA 1: CAPA (MANTIDA IGUAL - SEM BUGS) --- */}
       <div className="h-[297mm] bg-slate-900 text-white p-14 flex flex-col justify-between relative page-break-after">
@@ -59,13 +59,13 @@ export function PropostaPDF({ form, resultado }: PropostaPDFProps) {
       </div>
 
       {/* --- PÁGINA 2: ANÁLISE E TÉCNICA --- */}
-      <div className="h-[297mm] px-10 py-10 flex flex-col relative bg-white">
+      <div className="h-[297mm] px-10 py-10 flex flex-col relative bg-gray-50-card">
           
           {/* Cabeçalho */}
           <div className="flex justify-between items-end mb-6 border-b-2 border-slate-100 pb-4">
             <div>
               <h2 className="text-3xl font-black text-slate-900 uppercase">Análise Financeira</h2>
-              <p className="text-base text-slate-500">Resumo do seu potencial de economia.</p>
+              <p className="text-sm text-slate-500">Resumo do seu potencial de economia.</p>
             </div>
             <div className="text-right">
                <span className="bg-emerald-100 text-emerald-800 text-xs font-bold px-4 py-2 rounded-full uppercase">Validade: 10 Dias</span>
@@ -75,24 +75,24 @@ export function PropostaPDF({ form, resultado }: PropostaPDFProps) {
           {/* CARDS (TAMANHO MÉDIO - CALIBRADO) */}
           <div className="grid grid-cols-3 gap-5 mb-8">
             {/* Card 1 */}
-            <div className="bg-white p-5 rounded-2xl shadow-lg border-2 border-emerald-50 flex flex-col justify-between h-36">
+            <div className="bg-gray-50-card p-5 rounded-lg shadow-sm border-2 border-emerald-50 flex flex-col justify-between h-36">
               <p className="text-emerald-700 font-bold uppercase text-xs tracking-wider">Economia Mensal</p>
               <div className="text-emerald-600 font-black text-4xl tracking-tight">{fmt(resultado.economiaRealCliente)}</div>
-              <p className="text-xs text-gray-400 font-medium">Livre no seu bolso</p>
+              <p className="text-xs text-gray-500 ">Livre no seu bolso</p>
             </div>
 
             {/* Card 2 */}
-            <div className="bg-white p-5 rounded-2xl shadow-lg border-2 border-blue-50 flex flex-col justify-between h-36">
+            <div className="bg-gray-50-card p-5 rounded-lg shadow-sm border-2 border-blue-50 flex flex-col justify-between h-36">
               <p className="text-blue-700 font-bold uppercase text-xs tracking-wider">Economia Anual</p>
               <div className="text-blue-700 font-black text-4xl tracking-tight">{fmt(resultado.economiaRealCliente * 12)}</div>
-              <p className="text-xs text-gray-400 font-medium">Projeção 12 meses</p>
+              <p className="text-xs text-gray-500 ">Projeção 12 meses</p>
             </div>
 
             {/* Card 3 */}
-            <div className="bg-slate-800 p-5 rounded-2xl shadow-lg flex flex-col justify-between h-36 text-white">
+            <div className="bg-slate-800 p-5 rounded-lg shadow-sm flex flex-col justify-between h-36 text-white">
               <p className="text-slate-400 font-bold uppercase text-xs tracking-wider">Redução na Conta</p>
               <div className="text-emerald-400 font-black text-4xl tracking-tight">{fmtP(resultado.percentualReducaoTotal)}</div>
-              <p className="text-xs text-slate-400 font-medium">Desconto imediato</p>
+              <p className="text-xs text-slate-400 ">Desconto imediato</p>
             </div>
           </div>
 
@@ -115,23 +115,23 @@ export function PropostaPDF({ form, resultado }: PropostaPDFProps) {
                   
                   {/* Linhas de Dados */}
                   <tr>
-                    <td className="p-3 pl-6 text-slate-700 font-medium">TUSD (Encargos)</td>
-                    <td className="p-3 text-right text-red-800 bg-red-50/30 font-medium border-l border-slate-100">{fmt(resultado.dadosOriginais.valorTusd)}</td>
+                    <td className="p-3 pl-6 text-slate-700 ">TUSD (Encargos)</td>
+                    <td className="p-3 text-right text-red-800 bg-red-50/30  border-l border-slate-100">{fmt(resultado.dadosOriginais.valorTusd)}</td>
                     <td className="p-3 text-right text-slate-800 bg-emerald-50/30 font-bold border-l border-slate-100">{fmt(resultado.detalhes.novoTusd)}</td>
                   </tr>
                   <tr>
-                    <td className="p-3 pl-6 text-slate-700 font-medium">Energia (TE)</td>
-                    <td className="p-3 text-right text-red-800 bg-red-50/30 font-medium border-l border-slate-100">{fmt(resultado.dadosOriginais.valorTe)}</td>
+                    <td className="p-3 pl-6 text-slate-700 ">Energia (TE)</td>
+                    <td className="p-3 text-right text-red-800 bg-red-50/30  border-l border-slate-100">{fmt(resultado.dadosOriginais.valorTe)}</td>
                     <td className="p-3 text-right text-emerald-600 bg-emerald-50/30 font-bold border-l border-slate-100">R$ 0,00</td>
                   </tr>
                   <tr>
-                    <td className="p-3 pl-6 text-slate-700 font-medium">Bandeiras / Ilum.</td>
-                    <td className="p-3 text-right text-red-800 bg-red-50/30 font-medium border-l border-slate-100">{fmt(resultado.dadosOriginais.valorBandeira + resultado.dadosOriginais.valorIluminacao)}</td>
+                    <td className="p-3 pl-6 text-slate-700 ">Bandeiras / Ilum.</td>
+                    <td className="p-3 text-right text-red-800 bg-red-50/30  border-l border-slate-100">{fmt(resultado.dadosOriginais.valorBandeira + resultado.dadosOriginais.valorIluminacao)}</td>
                     <td className="p-3 text-right text-slate-800 bg-emerald-50/30 font-bold border-l border-slate-100">{fmt(resultado.dadosOriginais.valorIluminacao)}</td>
                   </tr>
                   <tr>
-                    <td className="p-3 pl-6 text-slate-700 font-medium">Outros Itens</td>
-                    <td className="p-3 text-right text-red-800 bg-red-50/30 font-medium border-l border-slate-100">{fmt(resultado.dadosOriginais.valorOutros)}</td>
+                    <td className="p-3 pl-6 text-slate-700 ">Outros Itens</td>
+                    <td className="p-3 text-right text-red-800 bg-red-50/30  border-l border-slate-100">{fmt(resultado.dadosOriginais.valorOutros)}</td>
                     <td className="p-3 text-right text-slate-800 bg-emerald-50/30 font-bold border-l border-slate-100">{fmt(resultado.dadosOriginais.valorOutros)}</td>
                   </tr>
                   
@@ -145,7 +145,7 @@ export function PropostaPDF({ form, resultado }: PropostaPDFProps) {
                   {/* Assinatura */}
                   <tr className="bg-blue-50 border-t-2 border-white">
                     <td className="p-4 pl-6 text-blue-900 font-bold">+ Assinatura Bionova</td>
-                    <td className="p-4 text-right text-gray-400 font-normal border-l border-white">-</td>
+                    <td className="p-4 text-right text-gray-500 font-normal border-l border-white">-</td>
                     <td className="p-4 text-right text-blue-700 font-bold border-l border-white">{fmt(resultado.pagamentoUsina)}</td>
                   </tr>
 

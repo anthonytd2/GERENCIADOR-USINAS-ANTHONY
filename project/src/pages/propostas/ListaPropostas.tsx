@@ -14,7 +14,7 @@ interface Proposta {
   nome_cliente_prospect: string;
   status: string;
   created_at: string;
-  updated_at?: string; // Novo campo para o relógio funcionar
+  updated_at?: string; 
   dados_simulacao: {
     usinaSelecionada?: { nome_proprietario?: string; nome?: string }; 
     consumoMedia?: number;
@@ -25,13 +25,13 @@ interface Proposta {
   };
 }
 
-// --- CONFIGURAÇÃO VISUAL DAS COLUNAS ---
+// --- CONFIGURAÇÃO VISUAL DAS COLUNAS (Refinada para o novo padrão) ---
 const COLUNAS = [
-  { id: 'NOVO', titulo: 'Novos Leads', cor: 'border-t-4 border-blue-500 bg-gradient-to-b from-blue-50/80 to-slate-50/50', texto: 'text-blue-900', badge: 'bg-blue-100 text-blue-700' },
-  { id: 'ENVIADO', titulo: 'Enviado', cor: 'border-t-4 border-amber-500 bg-gradient-to-b from-amber-50/80 to-slate-50/50', texto: 'text-amber-900', badge: 'bg-amber-100 text-amber-700' },
-  { id: 'NEGOCIACAO', titulo: 'Negociação', cor: 'border-t-4 border-purple-500 bg-gradient-to-b from-purple-50/80 to-slate-50/50', texto: 'text-purple-900', badge: 'bg-purple-100 text-purple-700' },
-  { id: 'FECHADO', titulo: 'Fechado', cor: 'border-t-4 border-emerald-500 bg-gradient-to-b from-emerald-50/80 to-slate-50/50', texto: 'text-emerald-900', badge: 'bg-emerald-100 text-emerald-700' },
-  { id: 'PERDIDO', titulo: 'Perdido', cor: 'border-t-4 border-slate-400 bg-gradient-to-b from-slate-100/80 to-slate-50/50', texto: 'text-slate-700', badge: 'bg-slate-200 text-slate-600' }
+  { id: 'NOVO', titulo: 'Novos Leads', cor: 'border-t-4 border-blue-500 bg-slate-50/50', texto: 'text-blue-700', badge: 'bg-blue-100 text-blue-700 border-blue-200' },
+  { id: 'ENVIADO', titulo: 'Enviado', cor: 'border-t-4 border-amber-500 bg-slate-50/50', texto: 'text-amber-700', badge: 'bg-amber-100 text-amber-700 border-amber-200' },
+  { id: 'NEGOCIACAO', titulo: 'Negociação', cor: 'border-t-4 border-purple-500 bg-slate-50/50', texto: 'text-purple-700', badge: 'bg-purple-100 text-purple-700 border-purple-200' },
+  { id: 'FECHADO', titulo: 'Ganhos', cor: 'border-t-4 border-emerald-500 bg-slate-50/50', texto: 'text-emerald-700', badge: 'bg-emerald-100 text-emerald-700 border-emerald-200' },
+  { id: 'PERDIDO', titulo: 'Perdidos', cor: 'border-t-4 border-slate-400 bg-slate-50/50', texto: 'text-slate-600', badge: 'bg-slate-200 text-slate-600 border-slate-300' }
 ];
 
 // --- COMPONENTE PRINCIPAL ---
@@ -40,7 +40,6 @@ export default function ListaPropostas() {
   const [loading, setLoading] = useState(true);
   const [busca, setBusca] = useState('');
   
-  // Estado para o Modal de Confirmação Bonito
   const [modalVendaOpen, setModalVendaOpen] = useState(false);
   const [propostaParaConverter, setPropostaParaConverter] = useState<number | null>(null);
 
@@ -65,18 +64,18 @@ export default function ListaPropostas() {
     return Number(valor);
   }
 
-  // --- NOVO: LÓGICA DO RELÓGIO (AGING) ---
+  // --- LÓGICA DO RELÓGIO (AGING) ---
   function getTempoNaEtapa(dataStr?: string) {
-    if (!dataStr) return { texto: 'Recente', cor: 'bg-emerald-100 text-emerald-700' };
+    if (!dataStr) return { texto: 'Recente', cor: 'bg-emerald-50 text-emerald-600 border-emerald-100' };
     
     const data = new Date(dataStr);
     const hoje = new Date();
     const diffTime = Math.abs(hoje.getTime() - data.getTime());
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
 
-    if (diffDays <= 2) return { texto: 'Recente', cor: 'bg-emerald-100 text-emerald-700' };
-    if (diffDays <= 7) return { texto: `${diffDays}d na etapa`, cor: 'bg-amber-100 text-amber-700' };
-    return { texto: `${diffDays}d travado`, cor: 'bg-red-100 text-red-700 font-bold' };
+    if (diffDays <= 2) return { texto: 'Recente', cor: 'bg-emerald-50 text-emerald-600 border-emerald-100' };
+    if (diffDays <= 7) return { texto: `${diffDays}d na etapa`, cor: 'bg-amber-50 text-amber-600 border-amber-100' };
+    return { texto: `${diffDays}d travado`, cor: 'bg-red-50 text-red-600 font-bold border-red-100' };
   }
 
   const loadPropostas = async () => {
@@ -120,19 +119,16 @@ export default function ListaPropostas() {
     const novoStatus = destination.droppableId;
     const propostaId = Number(draggableId);
 
-    // 1. Atualiza visualmente na hora (+ Atualiza a data updated_at para AGORA)
     const propostasAtualizadas = propostas.map(p => 
       p.id === propostaId ? { ...p, status: novoStatus, updated_at: new Date().toISOString() } : p
     );
     setPropostas(propostasAtualizadas);
 
-    // 2. Se for FECHADO, abre o Modal
     if (novoStatus === 'FECHADO') {
       setPropostaParaConverter(propostaId);
       setModalVendaOpen(true);
     }
 
-    // 3. Salva no Banco
     try {
       await api.propostas.update(propostaId, { status: novoStatus });
     } catch (e) {
@@ -155,7 +151,7 @@ export default function ListaPropostas() {
   };
 
   const handleDelete = async (id: number) => {
-    if(!confirm('Excluir proposta?')) return;
+    if(!confirm('Excluir proposta permanentemente?')) return;
     try {
       await api.propostas.delete(id);
       setPropostas(prev => prev.filter(p => p.id !== id));
@@ -170,35 +166,40 @@ export default function ListaPropostas() {
   );
 
   return (
-    <div className="h-full flex flex-col pb-4 font-sans bg-gray-50-card relative">
+    <div className="h-full flex flex-col pb-4 font-sans bg-slate-50 relative">
       
       {/* --- MODAL DE VENDA --- */}
       {modalVendaOpen && (
-        <div className="fixed inset-0 z-[999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in">
-          <div className="bg-gray-50-card rounded-lg shadow-2xl w-full max-w-md overflow-hidden transform scale-100 transition-all">
-            <div className="bg-emerald-600 p-6 text-center">
-              <div className="mx-auto bg-gray-50-card/20 w-16 h-16 rounded-full flex items-center justify-center mb-3">
-                <DollarSign className="w-8 h-8 text-white" />
+        <div className="fixed inset-0 z-[999] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-fade-in">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden transform scale-100 transition-all border border-slate-100">
+            <div className="bg-emerald-600 p-8 text-center relative overflow-hidden">
+              <div className="absolute top-0 right-0 p-4 opacity-10">
+                 <DollarSign size={100} />
               </div>
-              <h3 className="text-2xl font-bold text-white">Parabéns pela Venda! 🚀</h3>
-              <p className="text-emerald-100 mt-1">O cliente aceitou a proposta?</p>
+              <div className="relative z-10">
+                <div className="mx-auto bg-white/20 w-16 h-16 rounded-full flex items-center justify-center mb-4 backdrop-blur-md">
+                  <Check className="w-8 h-8 text-white" />
+                </div>
+                <h3 className="text-2xl font-bold text-white tracking-tight">Parabéns pela Venda! 🚀</h3>
+                <p className="text-emerald-100 mt-2 font-medium">O cliente aceitou a proposta?</p>
+              </div>
             </div>
-            <div className="p-6 space-y-4">
-              <p className="text-gray-500 text-center">
-                Deseja cadastrar este cliente automaticamente no sistema para gerar o contrato agora?
+            <div className="p-8 space-y-6 bg-white">
+              <p className="text-slate-600 text-center leading-relaxed">
+                Deseja converter este lead automaticamente em um <strong>Consumidor Ativo</strong> para gerar o contrato?
               </p>
               <div className="flex gap-3 mt-4">
                 <button 
                   onClick={() => setModalVendaOpen(false)}
-                  className="flex-1 py-3 px-4 border border-gray-200 text-gray-700 font-bold rounded-xl hover:bg-gray-50 transition-colors"
+                  className="flex-1 py-3 px-4 border border-slate-200 text-slate-600 font-bold rounded-xl hover:bg-slate-50 transition-colors"
                 >
-                  Apenas Mover Card
+                  Só Mover
                 </button>
                 <button 
                   onClick={handleConverterVenda}
-                  className="flex-1 py-3 px-4 bg-emerald-600 text-white font-bold rounded-xl hover:bg-emerald-700 shadow-sm shadow-emerald-200 transition-all flex items-center justify-center gap-2"
+                  className="flex-1 py-3 px-4 bg-emerald-600 text-white font-bold rounded-xl hover:bg-emerald-700 shadow-lg shadow-emerald-200 hover:-translate-y-0.5 transition-all flex items-center justify-center gap-2"
                 >
-                  <Check className="w-5 h-5" /> Sim, Gerar Contrato
+                  <Check className="w-5 h-5" /> Gerar Contrato
                 </button>
               </div>
             </div>
@@ -207,46 +208,46 @@ export default function ListaPropostas() {
       )}
 
       {/* CABEÇALHO */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4 px-1 pt-2">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4 px-1 pt-2 border-b border-slate-200 pb-6">
         <div>
           <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight">Pipeline de Vendas</h2>
-          <p className="text-slate-500 text-sm mt-1 ">Gestão visual de negociações.</p>
+          <p className="text-slate-500 text-sm mt-1 font-medium">Gestão visual e rápida de negociações.</p>
         </div>
-        <Link to="/propostas/novo" className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 shadow-sm hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300 font-bold text-sm">
+        <Link to="/propostas/novo" className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 shadow-md shadow-blue-200 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 font-bold text-sm">
           <Plus className="w-5 h-5" /> Nova Simulação
         </Link>
       </div>
 
-      {/* KPI CARDS */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-        <div className="bg-gray-50-card p-6 rounded-lg border border-slate-100 shadow-sm flex items-center gap-5">
-          <div className="p-4 bg-blue-50 text-blue-600 rounded-xl"><FileText className="w-8 h-8" /></div>
-          <div><p className="text-xs text-slate-500 font-bold uppercase tracking-wider mb-1">Propostas Ativas</p><p className="text-3xl font-black text-slate-800">{propostas.length}</p></div>
+      {/* KPI CARDS (Padrão novo) */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-6">
+        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-5 hover:shadow-md transition-shadow">
+          <div className="p-4 bg-blue-50 text-blue-600 rounded-xl"><FileText className="w-7 h-7" /></div>
+          <div><p className="text-xs text-slate-500 font-bold uppercase tracking-wider mb-1">Propostas Ativas</p><p className="text-3xl font-black text-slate-900">{propostas.length}</p></div>
         </div>
-        <div className="bg-gray-50-card p-6 rounded-lg border border-slate-100 shadow-sm flex items-center gap-5">
-          <div className="p-4 bg-emerald-50 text-emerald-600 rounded-xl"><DollarSign className="w-8 h-8" /></div>
-          <div><p className="text-xs text-slate-500 font-bold uppercase tracking-wider mb-1">Potencial Mensal</p><p className="text-3xl font-black text-slate-800">{formatMoney(totalPotencial)}</p></div>
+        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-5 hover:shadow-md transition-shadow">
+          <div className="p-4 bg-emerald-50 text-emerald-600 rounded-xl"><DollarSign className="w-7 h-7" /></div>
+          <div><p className="text-xs text-slate-500 font-bold uppercase tracking-wider mb-1">Potencial Mensal</p><p className="text-3xl font-black text-slate-900">{formatMoney(totalPotencial)}</p></div>
         </div>
-        <div className="bg-gray-50-card p-6 rounded-lg border border-slate-100 shadow-sm flex items-center gap-5">
-          <div className="p-4 bg-purple-50 text-purple-600 rounded-xl"><TrendingUp className="w-8 h-8" /></div>
-          <div><p className="text-xs text-slate-500 font-bold uppercase tracking-wider mb-1">Conversão</p><p className="text-3xl font-black text-slate-800">{taxaConversao.toFixed(0)}%</p></div>
+        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-5 hover:shadow-md transition-shadow">
+          <div className="p-4 bg-purple-50 text-purple-600 rounded-xl"><TrendingUp className="w-7 h-7" /></div>
+          <div><p className="text-xs text-slate-500 font-bold uppercase tracking-wider mb-1">Taxa Conversão</p><p className="text-3xl font-black text-slate-900">{taxaConversao.toFixed(0)}%</p></div>
         </div>
       </div>
 
-      {/* BARRA DE BUSCA */}
-      <div className="mb-6 relative px-1">
-        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none"><Search className="h-5 w-5 text-slate-400" /></div>
-        <input type="text" placeholder="Buscar cliente..." className="pl-12 w-full md:w-1/3 rounded-xl border-slate-200 focus:ring-4 focus:ring-blue-100 focus:border-blue-500 py-3 shadow-sm bg-gray-50-card text-sm transition-all" 
+      {/* BARRA DE BUSCA (Estilo Limpo) */}
+      <div className="mb-8 relative px-1">
+        <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none"><Search className="h-5 w-5 text-slate-400" /></div>
+        <input type="text" placeholder="Buscar prospect por nome..." className="pl-12 w-full md:w-1/3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 py-3.5 shadow-sm bg-white text-slate-700 font-semibold transition-all outline-none placeholder:text-slate-400 placeholder:font-normal" 
           value={busca} onChange={(e) => setBusca(e.target.value)} />
       </div>
 
       {/* --- KANBAN DRAG AND DROP --- */}
       {loading ? (
-         <div className="p-6 space-y-4">{[1,2,3].map(i => <Skeleton key={i} className="h-28 w-full rounded-lg" />)}</div>
+         <div className="p-6 space-y-4">{[1,2,3].map(i => <Skeleton key={i} className="h-32 w-full rounded-2xl" />)}</div>
       ) : (
         <DragDropContext onDragEnd={onDragEnd}>
           <div className="flex-1 overflow-x-auto pb-4 px-1">
-            <div className="flex gap-6 min-w-[1500px] h-full">
+            <div className="flex gap-6 min-w-[1500px] h-full items-start">
               
               {COLUNAS.map(coluna => {
                 const itensColuna = filtered.filter(p => (p.status || 'NOVO') === coluna.id);
@@ -256,32 +257,34 @@ export default function ListaPropostas() {
                   <Droppable droppableId={coluna.id} key={coluna.id}>
                     {(provided) => (
                       <div 
-                        className="flex-1 flex flex-col min-w-[280px] rounded-lg bg-slate-50/50"
+                        className={`flex-1 flex flex-col min-w-[290px] max-w-[320px] rounded-2xl border border-slate-200/60 ${coluna.cor}`}
                         {...provided.droppableProps}
                         ref={provided.innerRef}
                       >
                         {/* Título da Coluna */}
-                        <div className={`p-4 rounded-t-2xl shadow-sm flex flex-col gap-2 ${coluna.cor}`}>
+                        <div className={`p-4 rounded-t-2xl flex flex-col gap-2 border-b border-slate-200/50 bg-white`}>
                           <div className="flex justify-between items-center">
-                              <span className={`font-bold text-sm tracking-tight ${coluna.texto}`}>{coluna.titulo}</span>
-                              <span className={`px-2.5 py-0.5 rounded-full text-xs font-extrabold ${coluna.badge}`}>{itensColuna.length}</span>
+                              <span className={`font-extrabold text-sm tracking-tight uppercase ${coluna.texto}`}>{coluna.titulo}</span>
+                              <span className={`px-2.5 py-0.5 rounded-md text-[11px] font-extrabold border ${coluna.badge}`}>{itensColuna.length}</span>
                           </div>
                           {totalColuna >= 0 && (
-                              <div className={`text-2xl font-black flex items-center gap-1 mt-1 ${coluna.texto}`}>
-                                 <span className="text-xs opacity-60  mt-1.5">R$</span> {totalColuna.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                              <div className={`text-xl font-black flex items-center gap-1 mt-0.5 ${coluna.texto}`}>
+                                 <span className="text-[10px] opacity-60 mt-1">R$</span> {totalColuna.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                               </div>
                           )}
                         </div>
 
                         {/* Área dos Cards */}
-                        <div className="p-3 rounded-b-2xl flex-1 space-y-3 overflow-y-auto max-h-[600px] scrollbar-thin">
+                        <div className="p-3 flex-1 space-y-3 overflow-y-auto max-h-[650px] scrollbar-thin scrollbar-thumb-slate-200 bg-transparent">
                           {itensColuna.map((item, index) => {
                               const economia = getEconomia(item);
                               const usinaNome = item.dados_simulacao?.usinaSelecionada?.nome_proprietario 
                                              || item.dados_simulacao?.usinaSelecionada?.nome 
                                              || 'Usina N/A';
                               
-                              // Cálculo do Aging (Relógio)
+                              // IDEA 3: Pegando o consumo
+                              const consumo = item.dados_simulacao?.consumoMedia || item.dados_simulacao?.consumoKwh || 0;
+                              
                               const tempoEtapa = getTempoNaEtapa(item.updated_at || item.created_at);
 
                               return (
@@ -292,43 +295,58 @@ export default function ListaPropostas() {
                                       {...provided.draggableProps}
                                       {...provided.dragHandleProps}
                                       style={{ ...provided.draggableProps.style }}
-                                      className={`bg-gray-50-card p-5 rounded-xl border border-slate-100 shadow-sm transition-all group relative
-                                        ${snapshot.isDragging ? 'shadow-2xl scale-105 rotate-2 border-blue-300 z-50' : 'hover:shadow-sm hover:-translate-y-1'}
+                                      className={`bg-white p-4 rounded-xl border border-slate-200 shadow-sm transition-all group relative
+                                        ${snapshot.isDragging ? 'shadow-2xl scale-105 rotate-2 border-blue-400 z-50 ring-4 ring-blue-50' : 'hover:shadow-md hover:border-slate-300'}
                                       `}
                                     >
                                       
-                                      <div className="flex justify-between items-start mb-3">
-                                        <h4 className="font-bold text-slate-900 text-sm leading-snug line-clamp-2" title={item.nome_cliente_prospect}>
+                                      {/* Cabeçalho do Card (Nome + Relógio) */}
+                                      <div className="flex justify-between items-start mb-2 gap-2">
+                                        <h4 className="font-bold text-slate-800 text-[15px] leading-snug line-clamp-2" title={item.nome_cliente_prospect}>
                                           {item.nome_cliente_prospect || 'Cliente Sem Nome'}
                                         </h4>
-                                        {/* Relógio de Aging (Novo!) */}
-                                        <div className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] whitespace-nowrap ${tempoEtapa.cor}`}>
+                                        <div className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] whitespace-nowrap border ${tempoEtapa.cor}`}>
                                           <Clock size={10} /> {tempoEtapa.texto}
                                         </div>
                                       </div>
 
-                                      <div className="space-y-2.5 mb-4">
-                                        <div className="flex items-center gap-2 text-xs  text-slate-500">
-                                          <Zap size={14} className="text-amber-500 fill-amber-500"/>
-                                          <span className="truncate">{usinaNome}</span>
-                                        </div>
-                                        <div className="flex items-center justify-between bg-emerald-50 p-2.5 rounded-lg border border-emerald-100">
-                                          <span className="text-[10px] font-bold text-emerald-600 uppercase">Economia</span>
-                                          <div className="flex items-center gap-1 text-sm font-black text-emerald-700">
-                                            <span className="text-xs ">R$</span>{formatMoney(economia).replace('R$', '')}
-                                          </div>
+                                      {/* NOVO: Pílulas de Contexto Técnico (Consumo e Usina) */}
+                                      <div className="flex flex-wrap items-center gap-1.5 mb-3">
+                                         {consumo > 0 && (
+                                            <span className="bg-slate-100 text-slate-600 border border-slate-200 text-[10px] font-bold px-2 py-0.5 rounded-md flex items-center gap-1">
+                                               <Zap size={10} className="text-yellow-500 fill-yellow-500" /> 
+                                               {consumo.toLocaleString('pt-BR')} kWh
+                                            </span>
+                                         )}
+                                         <span className="bg-slate-50 text-slate-500 border border-slate-100 text-[10px] font-bold px-2 py-0.5 rounded-md flex items-center gap-1 truncate max-w-[140px]" title={usinaNome}>
+                                            {usinaNome}
+                                         </span>
+                                      </div>
+
+                                      {/* Caixa de Valor (Economia) */}
+                                      <div className="flex items-center justify-between bg-emerald-50/50 p-2.5 rounded-lg border border-emerald-100 mb-4">
+                                        <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-wide">Potencial</span>
+                                        <div className="flex items-center gap-1 text-sm font-black text-emerald-700">
+                                          {formatMoney(economia)}
                                         </div>
                                       </div>
 
+                                      {/* Rodapé do Card (Data e Ações) */}
                                       <div className="pt-3 border-t border-slate-100 flex justify-between items-center">
-                                          <div className="text-[10px]  text-slate-400 flex items-center gap-1">
+                                          <div className="text-[10px] font-medium text-slate-400 flex items-center gap-1">
                                             <Calendar size={12}/> {new Date(item.created_at).toLocaleDateString()}
                                           </div>
 
-                                          <div className="flex gap-1.5">
-                                              <Link to={`/propostas/${item.id}`} className="p-1.5 text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors" title="Ver Detalhes"><ExternalLink size={16}/></Link>
-                                              <button onClick={() => window.open(`https://wa.me/?text=Olá ${item.nome_cliente_prospect}`, '_blank')} className="p-1.5 text-green-600 bg-green-50 hover:bg-green-100 rounded-lg transition-colors" title="WhatsApp"><MessageCircle size={16}/></button>
-                                              <button onClick={() => handleDelete(item.id)} className="p-1.5 text-red-500 bg-red-50 hover:bg-red-100 rounded-lg transition-colors" title="Excluir"><Trash2 size={16}/></button>
+                                          <div className="flex gap-1">
+                                              <Link to={`/propostas/${item.id}`} className="p-1.5 text-blue-500 hover:text-blue-700 hover:bg-blue-50 rounded-md transition-colors" title="Ver Detalhes">
+                                                <ExternalLink size={14}/>
+                                              </Link>
+                                              <button onClick={() => window.open(`https://wa.me/?text=Olá ${item.nome_cliente_prospect}`, '_blank')} className="p-1.5 text-emerald-500 hover:text-emerald-700 hover:bg-emerald-50 rounded-md transition-colors" title="WhatsApp">
+                                                <MessageCircle size={14}/>
+                                              </button>
+                                              <button onClick={() => handleDelete(item.id)} className="p-1.5 text-slate-300 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors" title="Excluir">
+                                                <Trash2 size={14}/>
+                                              </button>
                                           </div>
                                       </div>
                                     </div>
@@ -337,13 +355,12 @@ export default function ListaPropostas() {
                               );
                           })}
                           
-                          {/* Placeholder para manter o tamanho quando arrasta */}
                           {provided.placeholder}
 
                           {itensColuna.length === 0 && (
-                            <div className="text-center py-16 opacity-40">
-                              <ListFilter className="w-10 h-10 mx-auto mb-2 text-slate-300"/>
-                              <p className="text-sm  text-slate-400">Arraste para cá</p>
+                            <div className="text-center py-10 opacity-50 bg-white/50 rounded-xl border border-dashed border-slate-200 m-2">
+                              <ListFilter className="w-8 h-8 mx-auto mb-2 text-slate-300"/>
+                              <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Vazio</p>
                             </div>
                           )}
                         </div>

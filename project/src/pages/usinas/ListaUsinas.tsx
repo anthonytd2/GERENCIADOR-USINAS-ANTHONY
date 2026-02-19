@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { api } from '../../lib/api';
 import { 
   Plus, Edit, Trash2, Zap, ArrowRight, Sun, Search, 
-  CheckCircle, XCircle, BarChart3, Leaf 
+  CheckCircle, BarChart3, Leaf 
 } from 'lucide-react';
 import Skeleton from '../../components/Skeleton';
 import toast from 'react-hot-toast';
@@ -14,7 +14,7 @@ export default function ListaUsinas() {
   const [loading, setLoading] = useState(true);
   
   // Filtro
-  const [filtro, setFiltro] = useState<'todos' | 'INJETADO' | 'CONSUMO'>('todos');
+  const [filtro, setFiltro] = useState<'todos' | 'DISPONIVEL' | 'LOCADA'>('todos');
   const [busca, setBusca] = useState('');
 
   // Controle de Modal
@@ -64,22 +64,28 @@ export default function ListaUsinas() {
   const totalPotencia = usinas.reduce((acc, u) => acc + (Number(u.potencia) || 0), 0);
   const totalGeracao = usinas.reduce((acc, u) => acc + (Number(u.geracao_estimada) || 0), 0);
 
-  // --- FILTRO ---
+  // --- LÓGICA DE FILTRO ---
   const usinasFiltradas = usinas.filter(u => {
-    let tipoBanco = u.tipo_pagamento ? u.tipo_pagamento.toUpperCase() : '';
-    if (!tipoBanco) {
-        tipoBanco = u.is_locada ? 'CONSUMO' : 'INJETADO';
+    const estaLocada = u.is_locada === true;
+    
+    let passaFiltroStatus = true;
+    
+    if (filtro === 'LOCADA') {
+        passaFiltroStatus = estaLocada;
+    } else if (filtro === 'DISPONIVEL') {
+        passaFiltroStatus = !estaLocada;
     }
-    const passaFiltroStatus = filtro === 'todos' ? true : tipoBanco === filtro;
+
     const nomeReal = u.nome || u.nome_proprietario || '';
     const passaBusca = nomeReal.toLowerCase().includes(busca.toLowerCase());
+
     return passaFiltroStatus && passaBusca;
   });
 
   return (
     <div className="space-y-8 animate-fade-in-down pb-20">
 
-      {/* 1. CABEÇALHO COM ÍCONE GRANDE */}
+      {/* 1. CABEÇALHO */}
       <div className="flex flex-col md:flex-row justify-between items-end gap-4 border-b border-gray-100 pb-6">
         <div className="flex items-center gap-4">
           <div className="p-3 bg-yellow-100 text-yellow-600 rounded-2xl shadow-sm">
@@ -90,7 +96,7 @@ export default function ListaUsinas() {
               Usinas Solares
             </h1>
             <p className="text-gray-500 mt-1 text-sm">
-              Gerencie suas unidades geradoras e monitore a capacidade.
+              Gerencie suas unidades geradoras e monitore a disponibilidade.
             </p>
           </div>
         </div>
@@ -104,7 +110,7 @@ export default function ListaUsinas() {
         </Link>
       </div>
 
-      {/* 2. AREA DE KPIS (RESUMO RÁPIDO) - A NOVIDADE */}
+      {/* 2. AREA DE KPIS */}
       {!loading && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="bg-white p-5 rounded-xl border border-gray-100 shadow-sm flex items-center gap-4">
@@ -139,7 +145,7 @@ export default function ListaUsinas() {
         </div>
       )}
 
-      {/* 3. BARRA DE BUSCA E FILTROS */}
+      {/* 3. BOTÕES DE FILTRO */}
       <div className="bg-white p-2 rounded-2xl border border-gray-200 shadow-sm flex flex-col md:flex-row items-center gap-2">
         <div className="relative flex-1 w-full">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
@@ -152,24 +158,41 @@ export default function ListaUsinas() {
           />
         </div>
 
-        <div className="flex gap-1 p-1 bg-gray-100/50 rounded-xl w-full md:w-auto">
-          {['todos', 'INJETADO', 'CONSUMO'].map((f) => (
-            <button
-              key={f}
-              onClick={() => setFiltro(f as any)}
-              className={`px-4 py-2 rounded-lg text-xs font-bold transition-all uppercase ${
-                filtro === f 
-                  ? 'bg-white text-blue-600 shadow-sm' 
-                  : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200/50'
-              }`}
-            >
-              {f === 'todos' ? 'Todas' : f === 'INJETADO' ? 'Injeção' : 'Rateio'}
-            </button>
-          ))}
+        <div className="flex gap-1 p-1 bg-gray-100/50 rounded-xl w-full md:w-auto overflow-x-auto">
+          <button
+            onClick={() => setFiltro('todos')}
+            className={`px-4 py-2 rounded-lg text-xs font-bold transition-all uppercase whitespace-nowrap ${
+              filtro === 'todos' 
+                ? 'bg-white text-blue-600 shadow-sm' 
+                : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200/50'
+            }`}
+          >
+            Todas
+          </button>
+          <button
+            onClick={() => setFiltro('DISPONIVEL')}
+            className={`px-4 py-2 rounded-lg text-xs font-bold transition-all uppercase whitespace-nowrap ${
+              filtro === 'DISPONIVEL' 
+                ? 'bg-white text-emerald-600 shadow-sm' 
+                : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200/50'
+            }`}
+          >
+            Disponíveis
+          </button>
+          <button
+            onClick={() => setFiltro('LOCADA')}
+            className={`px-4 py-2 rounded-lg text-xs font-bold transition-all uppercase whitespace-nowrap ${
+              filtro === 'LOCADA' 
+                ? 'bg-white text-orange-600 shadow-sm' 
+                : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200/50'
+            }`}
+          >
+            Locadas
+          </button>
         </div>
       </div>
 
-      {/* 4. LISTA DE CARDS REFINADA */}
+      {/* 4. LISTA DE CARDS */}
       {loading ? (
         <div className="grid grid-cols-1 gap-4">
           {[1, 2, 3].map(i => <Skeleton key={i} className="h-32 w-full rounded-2xl" />)}
@@ -185,7 +208,7 @@ export default function ListaUsinas() {
       ) : (
         <div className="grid grid-cols-1 gap-4">
           {usinasFiltradas.map((u) => {
-            const isRateio = u.tipo_pagamento === 'CONSUMO' || u.is_locada;
+            const estaLocada = u.is_locada;
             const nomeExibicao = u.nome || u.nome_proprietario || 'Sem Nome';
             const idReal = u.id || u.usina_id;
 
@@ -195,12 +218,12 @@ export default function ListaUsinas() {
                 key={idReal}
                 className="group bg-white p-0 rounded-2xl border border-gray-200 shadow-sm hover:shadow-md hover:border-blue-300 transition-all flex flex-col md:flex-row items-stretch overflow-hidden relative"
               >
-                {/* Faixa lateral indicativa */}
-                <div className={`w-1.5 ${isRateio ? 'bg-orange-500' : 'bg-emerald-500'}`}></div>
+                {/* Faixa lateral */}
+                <div className={`w-1.5 ${estaLocada ? 'bg-orange-500' : 'bg-emerald-500'}`}></div>
 
                 <div className="flex-1 p-5 flex flex-col md:flex-row items-center gap-6">
                   
-                  {/* Ícone */}
+                  {/* Ícone Usina */}
                   <div className="flex-shrink-0">
                     <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center shadow-md shadow-orange-100 text-white transform group-hover:scale-105 transition-transform">
                       <Zap className="w-8 h-8 fill-white" />
@@ -213,13 +236,14 @@ export default function ListaUsinas() {
                       <h3 className="text-lg font-bold text-gray-900 group-hover:text-blue-700 transition-colors">
                         {nomeExibicao}
                       </h3>
-                      {isRateio ? (
-                        <span className="bg-orange-50 text-orange-700 text-[10px] font-bold px-2 py-0.5 rounded-md border border-orange-100 uppercase tracking-wide">
-                          Rateio
+                      
+                      {estaLocada ? (
+                        <span className="bg-orange-50 text-orange-700 text-[10px] font-bold px-2 py-0.5 rounded-md border border-orange-100 uppercase tracking-wide flex items-center gap-1">
+                          <CheckCircle size={10} /> Locada
                         </span>
                       ) : (
-                        <span className="bg-emerald-50 text-emerald-700 text-[10px] font-bold px-2 py-0.5 rounded-md border border-emerald-100 uppercase tracking-wide">
-                          Injeção
+                        <span className="bg-emerald-50 text-emerald-700 text-[10px] font-bold px-2 py-0.5 rounded-md border border-emerald-100 uppercase tracking-wide flex items-center gap-1">
+                          <CheckCircle size={10} /> Disponível
                         </span>
                       )}
                     </div>
@@ -236,19 +260,38 @@ export default function ListaUsinas() {
                     </div>
                   </div>
 
-                  {/* Dados Técnicos (Grid compacta) */}
-                  <div className="flex gap-8 border-t md:border-t-0 md:border-l border-gray-100 pt-4 md:pt-0 md:pl-8">
-                    <div className="text-center md:text-right">
-                      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Potência</p>
-                      <p className="text-lg font-bold text-gray-900">{u.potencia} <span className="text-xs text-gray-400 font-medium">kWp</span></p>
+                  {/* DADOS TÉCNICOS (VISUAL NOVO COM ÍCONES E CORES) */}
+                  <div className="flex flex-col md:flex-row gap-3 bg-gray-50 p-3 rounded-xl border border-gray-100">
+                    
+                    {/* Bloco Potência */}
+                    <div className="flex items-center gap-3 pr-4 md:border-r border-gray-200">
+                      <div className="p-2 bg-yellow-100 text-yellow-600 rounded-lg">
+                        <Zap className="w-4 h-4 fill-yellow-600" />
+                      </div>
+                      <div className="text-left">
+                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Potência</p>
+                        <p className="text-base font-bold text-gray-900 leading-none">
+                          {u.potencia} <span className="text-xs text-gray-500 font-medium">kWp</span>
+                        </p>
+                      </div>
                     </div>
-                    <div className="text-center md:text-right">
-                      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Geração</p>
-                      <p className="text-lg font-bold text-gray-900">{u.geracao_estimada?.toLocaleString('pt-BR')} <span className="text-xs text-gray-400 font-medium">kWh</span></p>
+
+                    {/* Bloco Geração */}
+                    <div className="flex items-center gap-3 pl-2">
+                      <div className="p-2 bg-emerald-100 text-emerald-600 rounded-lg">
+                        <Sun className="w-4 h-4 fill-emerald-600" />
+                      </div>
+                      <div className="text-left">
+                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Geração Est.</p>
+                        <p className="text-base font-bold text-gray-900 leading-none">
+                          {u.geracao_estimada?.toLocaleString('pt-BR')} <span className="text-xs text-gray-500 font-medium">kWh</span>
+                        </p>
+                      </div>
                     </div>
+
                   </div>
 
-                  {/* Ações (Só aparecem no hover) */}
+                  {/* Ações (Hover) */}
                   <div className="flex items-center gap-1 md:ml-4 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
                     <button 
                       onClick={(e) => {

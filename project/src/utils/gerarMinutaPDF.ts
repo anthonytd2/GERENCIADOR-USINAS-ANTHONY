@@ -4,156 +4,201 @@ import toast from 'react-hot-toast';
 export const gerarMinutaPDF = (form: any, resultado: any) => {
   const doc = new jsPDF();
 
-  // Paleta de Cores Moderna
-  const corPrimaria = "#0f172a";   // Slate 900
-  const corSecundaria = "#3b82f6"; // Blue 500
-  const corCinzaTexto = "#64748b"; // Slate 500
-  const corFundoVerde = "#ecfdf5"; // Emerald 50
-  const corTextoVerde = "#047857"; // Emerald 700
-  const corFundoVermelho = "#fef2f2"; // Red 50
-  const corTextoVermelho = "#b91c1c"; // Red 700
+  // Paleta de Cores Corporativa
+  const corBase = "#0f172a";      // Preto chumbo escuro (Textos e Base)
+  const corAzul = "#2563eb";      // Azul vibrante (Destaques e Títulos)
+  const corCinzaEscuro = "#475569"; // Cinza profundo (Labels secundárias)
+  const corCinzaMedio = "#94a3b8";  // Cinza médio (Linhas e textos auxiliares)
+  const corCinzaClaro = "#f1f5f9";  // Cinza muito claro (Fundos de caixas)
+  const corVerde = "#059669";     // Verde positivo (Valores de lucro)
 
-  // Variáveis de Layout
-  let y = 0;
+  // Medidas Padrão
   const margemEsq = 20;
-  const larguraUtil = 170;
+  const margemDir = 190;
+  const larguraUtil = margemDir - margemEsq;
+  let y = 0;
 
-  // --- 1. CABEÇALHO ---
-  doc.setFillColor(corSecundaria);
-  doc.rect(0, 0, 6, 297, 'F');
+  // --- FUNÇÕES AUXILIARES DE DESENHO ---
+  const formatMoney = (v: number) => `R$ ${Number(v).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  
+  // Linha horizontal suave
+  const drawLine = (yPos: number, color = 226) => {
+    doc.setDrawColor(color);
+    doc.setLineWidth(0.5);
+    doc.line(margemEsq, yPos, margemDir, yPos);
+  };
 
-  y = 30;
+  // --- 1. CABEÇALHO (TOPO ESCURO) ---
+  doc.setFillColor(corBase);
+  doc.rect(0, 0, 210, 45, 'F'); // Barra superior
+
+  // Título Principal
+  y = 20;
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(26);
-  doc.setTextColor(corPrimaria);
+  doc.setFontSize(22);
+  doc.setTextColor("#ffffff");
   doc.text("MINUTA DE FATURAMENTO", margemEsq, y);
 
-  y += 8;
+  // Subtítulo
+  y += 6;
   doc.setFontSize(10);
-  doc.setTextColor(corCinzaTexto);
+  doc.setTextColor("#94a3b8"); // Cinza claro
   doc.setFont("helvetica", "normal");
-  doc.text("cpf_cnpj auxiliar para emissão de Nota Fiscal de Serviço", margemEsq, y);
+  // Texto corrigido
+  doc.text("Documento auxiliar para emissão de Nota Fiscal de Serviço", margemEsq, y);
 
-  // Box de Data
-  doc.setFillColor(248, 250, 252);
-  doc.setDrawColor(226, 232, 240);
-  doc.roundedRect(140, 20, 50, 20, 2, 2, 'FD');
+  // Box de Data no Topo Direita
+  doc.setFillColor("#1e293b"); // Box ligeiramente mais claro que o fundo
+  doc.roundedRect(margemDir - 45, 12, 45, 20, 2, 2, 'F');
+  
+  doc.setFontSize(7);
+  doc.setTextColor("#94a3b8");
+  doc.setFont("helvetica", "bold");
+  doc.text("DATA DE EMISSÃO", margemDir - 22.5, 18, { align: "center" });
+  
+  doc.setFontSize(12);
+  doc.setTextColor("#ffffff");
+  doc.text(new Date(form.data_emissao).toLocaleDateString('pt-BR'), margemDir - 22.5, 26, { align: "center" });
+
+  // --- 2. BLOCOS LADO A LADO: TOMADOR E PRESTADOR ---
+  y = 55;
+  const larguraBox = (larguraUtil - 5) / 2; // 5 é o espaçamento entre as caixas
+
+  // CAIXA 1: TOMADOR (QUEM PAGA)
+  doc.setFillColor(corCinzaClaro);
+  doc.roundedRect(margemEsq, y, larguraBox, 45, 3, 3, 'F');
   
   doc.setFontSize(8);
-  doc.setTextColor(corCinzaTexto);
-  doc.text("DATA DE EMISSÃO", 145, 26);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(corAzul);
+  doc.text("TOMADOR DO SERVIÇO (CLIENTE)", margemEsq + 5, y + 8);
+  
   doc.setFontSize(11);
-  doc.setTextColor(corPrimaria);
-  doc.setFont("helvetica", "bold");
-  doc.text(new Date(form.data_emissao).toLocaleDateString('pt-BR'), 145, 33);
-
-  // Divisória
-  y += 20;
-  doc.setDrawColor(226, 232, 240);
-  doc.setLineWidth(0.5);
-  doc.line(margemEsq, y, 190, y);
-
-  // --- 2. TOMADOR ---
-  y += 15;
+  doc.setTextColor(corBase);
+  const nomeCliente = doc.splitTextToSize(form.consumidor_nome || "NOME NÃO INFORMADO", larguraBox - 10);
+  doc.text(nomeCliente, margemEsq + 5, y + 16);
+  
   doc.setFontSize(9);
-  doc.setTextColor(corSecundaria);
+  doc.setTextColor(corCinzaEscuro);
+  doc.setFont("helvetica", "normal");
+  doc.text(`CNPJ/CPF: ${form.consumidor_doc || '-'}`, margemEsq + 5, y + 25);
+  doc.text(`IE: ${form.consumidor_inscricao || '-'}`, margemEsq + 5, y + 31);
+  const endCliente = doc.splitTextToSize(`Endereço: ${form.consumidor_endereco || '-'}`, larguraBox - 10);
+  doc.text(endCliente, margemEsq + 5, y + 37);
+
+  // CAIXA 2: PRESTADOR (USINA)
+  const margemEsqCaixa2 = margemEsq + larguraBox + 5;
+  doc.setFillColor(corCinzaClaro);
+  doc.roundedRect(margemEsqCaixa2, y, larguraBox, 45, 3, 3, 'F');
+  
+  doc.setFontSize(8);
   doc.setFont("helvetica", "bold");
-  doc.text("TOMADOR DE SERVIÇO (QUEM PAGOU)", margemEsq, y);
+  doc.setTextColor(corAzul);
+  doc.text("PRESTADOR DO SERVIÇO (USINA)", margemEsqCaixa2 + 5, y + 8);
+  
+  doc.setFontSize(11);
+  doc.setTextColor(corBase);
+  const nomeUsina = doc.splitTextToSize(form.gerador_nome || "NOME NÃO INFORMADO", larguraBox - 10);
+  doc.text(nomeUsina, margemEsqCaixa2 + 5, y + 16);
+  
+  doc.setFontSize(9);
+  doc.setTextColor(corCinzaEscuro);
+  doc.setFont("helvetica", "normal");
+  doc.text(`CNPJ/CPF: ${form.gerador_doc || '-'}`, margemEsqCaixa2 + 5, y + 25);
+
+  // --- 3. TABELA DE DEMONSTRATIVO FINANCEIRO ---
+  y += 60;
+  
+  // Título da Seção
+  doc.setFontSize(12);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(corBase);
+  doc.text("DEMONSTRATIVO FINANCEIRO", margemEsq, y);
+  drawLine(y + 3);
+
+  y += 12;
+  
+  // LINHA 1: VALOR RECEBIDO
+  doc.setFontSize(10);
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(corCinzaEscuro);
+  doc.text("Valor Faturado (Recebido do Tomador)", margemEsq, y);
+  
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(corBase);
+  doc.text(formatMoney(form.valor_recebido), margemDir, y, { align: "right" });
 
   y += 8;
-  doc.setFontSize(14);
-  doc.setTextColor(corPrimaria);
-  doc.text(form.consumidor_nome || "Nome não informado", margemEsq, y);
+  doc.setDrawColor(240);
+  doc.line(margemEsq, y, margemDir, y); // Linha fina divisória
 
-  y += 7;
+  y += 8;
+  // LINHA 2: VALOR REPASSADO
   doc.setFontSize(10);
-  doc.setTextColor(corCinzaTexto);
   doc.setFont("helvetica", "normal");
-  const yDetalhes = y;
-  doc.text(`CNPJ/CPF: ${form.consumidor_doc}`, margemEsq, yDetalhes);
-  doc.text(`Insc. Estadual: ${form.consumidor_inscricao}`, margemEsq + 70, yDetalhes);
-  y += 6;
-  doc.text(`Endereço: ${form.consumidor_endereco}`, margemEsq, y);
-
-  // --- 3. PRESTADOR ---
-  y += 15;
-  doc.setFillColor(248, 250, 252);
-  doc.roundedRect(margemEsq, y, larguraUtil, 35, 2, 2, 'F');
+  doc.setTextColor(corCinzaEscuro);
+  doc.text("Custo Repassado (Pagamento à Usina)", margemEsq, y);
   
-  const yBox = y + 10;
-  doc.setFontSize(9);
-  doc.setTextColor(corSecundaria);
   doc.setFont("helvetica", "bold");
-  doc.text("PRESTADOR DO SERVIÇO (DONO DA USINA)", margemEsq + 5, yBox);
+  doc.setTextColor(corBase);
+  doc.text(formatMoney(form.valor_pago), margemDir, y, { align: "right" });
+
+  y += 8;
+  // Linha grossa antes do total
+  doc.setDrawColor(200);
+  doc.setLineWidth(1);
+  doc.line(margemDir - 50, y, margemDir, y); 
+  doc.setLineWidth(0.5); // volta ao normal
+
+  y += 12;
+  // LINHA 3: BASE DE CÁLCULO (SPREAD / LUCRO)
+  doc.setFillColor("#f8fafc"); // Fundo cinza bem claro para destacar a linha inteira do total
+  doc.rect(margemEsq, y - 8, larguraUtil, 16, 'F');
 
   doc.setFontSize(12);
-  doc.setTextColor(corPrimaria);
-  doc.text(form.gerador_nome || "Nome não informado", margemEsq + 5, yBox + 7);
-
-  doc.setFontSize(10);
-  doc.setTextColor(corCinzaTexto);
-  doc.setFont("helvetica", "normal");
-  doc.text(`CPF/CNPJ: ${form.gerador_doc}`, margemEsq + 5, yBox + 14);
-
-  // --- 4. VALORES ---
-  y += 50;
-  doc.setFontSize(11);
-  doc.setTextColor(corPrimaria);
   doc.setFont("helvetica", "bold");
-  doc.text("DETALHAMENTO FINANCEIRO", margemEsq, y);
-
-  y += 5;
+  doc.setTextColor(corAzul);
+  doc.text("BASE DE CÁLCULO (SPREAD)", margemEsq + 3, y + 2);
   
-  // Box Verde
-  doc.setFillColor(corFundoVerde);
-  doc.setDrawColor(167, 243, 208);
-  doc.roundedRect(margemEsq, y, 80, 25, 2, 2, 'FD');
-  doc.setFontSize(8);
-  doc.setTextColor(corTextoVerde);
-  doc.text("VALOR RECEBIDO (FATURAMENTO)", margemEsq + 5, y + 8);
   doc.setFontSize(14);
-  doc.setFont("helvetica", "bold");
-  doc.text(`R$ ${Number(form.valor_recebido).toLocaleString('pt-BR', {minimumFractionDigits: 2})}`, margemEsq + 5, y + 18);
+  // Se for negativo, vermelho, se for positivo, verde corporativo
+  doc.setTextColor(resultado.spread < 0 ? "#ef4444" : corVerde);
+  doc.text(formatMoney(resultado.spread), margemDir - 3, y + 2, { align: "right" });
 
-  // Box Vermelho
-  doc.setFillColor(corFundoVermelho);
-  doc.setDrawColor(254, 202, 202);
-  doc.roundedRect(110, y, 80, 25, 2, 2, 'FD');
-  doc.setFontSize(8);
-  doc.setTextColor(corTextoVermelho);
-  doc.text("VALOR REPASSADO (CUSTO)", 115, y + 8);
-  doc.setFontSize(14);
-  doc.text(`R$ ${Number(form.valor_pago).toLocaleString('pt-BR', {minimumFractionDigits: 2})}`, 115, y + 18);
-
-  // --- 5. RESULTADO ---
-  y += 40;
-  doc.setDrawColor(200, 200, 200);
-  doc.setLineDashPattern([2, 2], 0);
-  doc.line(margemEsq, y, 190, y);
-  doc.setLineDashPattern([], 0); 
-
-  y += 15;
-  doc.setFontSize(14);
-  doc.setTextColor(corPrimaria);
-  doc.setFont("helvetica", "bold");
-  doc.text("BASE DE CÁLCULO (SPREAD)", margemEsq, y);
-
-  doc.setFontSize(30);
-  doc.setTextColor(corSecundaria);
-  doc.text(`R$ ${resultado.spread.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`, 190, y, { align: "right" });
-
-  y += 8;
-  doc.setFontSize(10);
-  doc.setTextColor(corCinzaTexto);
+  y += 16;
+  // LINHA 4: MARGEM
+  doc.setFontSize(9);
   doc.setFont("helvetica", "normal");
-  doc.text(`Margem de Lucro Bruto: ${resultado.margem.toFixed(2)}%`, 190, y, { align: "right" });
+  doc.setTextColor(corCinzaMedio);
+  doc.text(`Margem de Lucro Bruto Operacional: ${resultado.margem.toFixed(2)}%`, margemDir, y, { align: "right" });
 
-  // Rodapé
-  doc.setFontSize(8);
-  doc.setTextColor(150, 150, 150);
-  doc.text(`Gerado em ${new Date().toLocaleString('pt-BR')} via Sistema de Solar Locações.`, 105, 290, { align: "center" });
+  // --- 4. ASSINATURAS (OPCIONAL, MAS DEIXA PROFISSIONAL) ---
+  y += 60;
+  
+  // Linha de assinatura
+  doc.setDrawColor(corCinzaMedio);
+  doc.line(105 - 40, y, 105 + 40, y);
+  
+  y += 5;
+  doc.setFontSize(9);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(corBase);
+  doc.text("RESPONSÁVEL FINANCEIRO", 105, y, { align: "center" });
 
-  const nomeArquivo = `Minuta_${(form.consumidor_nome || 'Doc').substring(0, 15).trim()}_${form.data_emissao}.pdf`;
+  // --- 5. RODAPÉ ---
+  doc.setFontSize(7);
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(corCinzaMedio);
+  doc.text(`Gerado em ${new Date().toLocaleString('pt-BR')} via Sistema de Locação Solar.`, 105, 290, { align: "center" });
+  
+  // Linha colorida na base da página
+  doc.setFillColor(corAzul);
+  doc.rect(0, 295, 210, 2, 'F');
+
+  // --- SALVAR PDF ---
+  const nomeLimpo = (form.consumidor_nome || 'Documento').substring(0, 20).trim().replace(/[^a-zA-Z0-9]/g, "_");
+  const nomeArquivo = `Faturamento_${nomeLimpo}_${form.data_emissao}.pdf`;
+  
   doc.save(nomeArquivo);
-  toast.success("PDF gerado com sucesso!");
+  toast.success("Relatório gerado com sucesso!");
 };

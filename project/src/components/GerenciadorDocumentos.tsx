@@ -4,7 +4,7 @@ import { api } from '../lib/api';
 import { FileText, Trash2, Upload, Download, AlertCircle, Loader2, File } from 'lucide-react';
 
 interface GerenciadorDocumentosProps {
-  tipoEntidade: 'consumidor' | 'usina' | 'vinculo'; 
+  tipoEntidade: 'consumidor' | 'usina' | 'vinculo';
   entidadeId: number;
 }
 
@@ -72,19 +72,22 @@ export default function GerenciadorDocumentos({ tipoEntidade, entidadeId }: Gere
 
   const handleDownload = async (doc: any) => {
     try {
-      // Bucket CORRETO: 'documentos'
-      const { data } = supabase.storage
-        .from('documentos') // <--- CORREÇÃO AQUI
-        .getPublicUrl(doc.caminho_storage);
-      
-      if (data?.publicUrl) {
-        window.open(data.publicUrl, '_blank');
+      // 🟢 AJUSTE DE SEGURANÇA: Cria um link temporário (expira em 60 segundos)
+      // O Supabase só gera esse link se o usuário estiver logado e tiver o Token válido.
+      const { data, error } = await supabase.storage
+        .from('documentos')
+        .createSignedUrl(doc.caminho_storage, 60); // 60 segundos de validade
+
+      if (error) throw error;
+
+      if (data?.signedUrl) {
+        window.open(data.signedUrl, '_blank');
       } else {
-        alert('Erro ao gerar link de download');
+        alert('Erro ao gerar o link seguro de download.');
       }
     } catch (error) {
-      console.error(error);
-      alert('Erro ao baixar arquivo');
+      console.error('Erro ao baixar arquivo:', error);
+      alert('Acesso negado. Você precisa estar autenticado para abrir este contrato.');
     }
   };
 
@@ -112,25 +115,25 @@ export default function GerenciadorDocumentos({ tipoEntidade, entidadeId }: Gere
       <div className="p-6 border-b border-gray-200 flex justify-between items-center bg-gray-50">
         <div>
           <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-            <FileText className="w-5 h-5 text-blue-600" /> 
+            <FileText className="w-5 h-5 text-blue-600" />
             Cofre de Documentos
           </h3>
           <p className="text-sm text-gray-500">
             Contratos, faturas e arquivos importantes
           </p>
         </div>
-        
+
         {/* BOTÃO DE UPLOAD */}
         <div>
           <label className={`cursor-pointer flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-sm ${uploading ? 'opacity-50 cursor-not-allowed' : ''}`}>
             {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
             <span className="">{uploading ? 'Enviando...' : 'Adicionar Arquivo'}</span>
-            <input 
-              type="file" 
-              className="hidden" 
-              onChange={handleUpload} 
+            <input
+              type="file"
+              className="hidden"
+              onChange={handleUpload}
               disabled={uploading}
-              accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx" 
+              accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx"
             />
           </label>
         </div>
@@ -175,21 +178,21 @@ export default function GerenciadorDocumentos({ tipoEntidade, entidadeId }: Gere
                     </span>
                   </td>
                   <td className="px-6 py-4 text-gray-500">
-                    {new Date(doc.created_at).toLocaleDateString()} <span className="text-xs text-gray-500">{new Date(doc.created_at).toLocaleTimeString().slice(0,5)}</span>
+                    {new Date(doc.created_at).toLocaleDateString()} <span className="text-xs text-gray-500">{new Date(doc.created_at).toLocaleTimeString().slice(0, 5)}</span>
                   </td>
                   <td className="px-6 py-4 text-gray-500 font-mono text-xs">
                     {formatBytes(doc.tamanho_bytes)}
                   </td>
                   <td className="px-6 py-4 text-right">
                     <div className="flex justify-end gap-2">
-                      <button 
+                      <button
                         onClick={() => handleDownload(doc)}
                         className="p-2 text-gray-500 hover:text-blue-600 hover:bg-gray-50-card rounded-lg transition-all"
                         title="Baixar"
                       >
                         <Download className="w-4 h-4" />
                       </button>
-                      <button 
+                      <button
                         onClick={() => handleExcluir(doc.id)}
                         className="p-2 text-gray-500 hover:text-red-600 hover:bg-gray-50-card rounded-lg transition-all"
                         title="Excluir"

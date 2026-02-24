@@ -1,4 +1,4 @@
-import 'dotenv/config'; 
+import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import usinasRoutes from './routes/usinas.js';
@@ -8,7 +8,7 @@ import financeiroRoutes from './routes/financeiro.js';
 import fechamentosRoutes from './routes/fechamentos.js';
 import statusRoutes from './routes/status.js';
 import concessionariasRoutes from './routes/concessionarias.js';
-import documentosRoutes from './routes/documentos.js'; 
+import documentosRoutes from './routes/documentos.js';
 import dashboardRoutes from './routes/dashboard.js';
 import propostasRoutes from './routes/propostas.js';
 import entidadesRoutes from './routes/entidades.js';
@@ -20,7 +20,26 @@ import { verificarToken } from './middlewares/auth.js';
 const app = express();
 const port = process.env.PORT || 3000;
 
-app.use(cors());
+// Configuração de Segurança do CORS
+const allowedOrigins = [
+  process.env.FRONTEND_URL, // Vai pegar o link da Vercel (Produção)
+  'http://localhost:5173',  // Para rodar no seu PC (Vite padrão)
+  'http://localhost:3000'   // Para rodar no seu PC (Alternativo)
+];
+
+app.use(cors({
+  origin: function (origin, callback) {
+    // Permite requisições sem origin (como ferramentas de backend) ou requisições da lista permitida
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      console.warn(`Tentativa de acesso bloqueada pelo CORS: ${origin}`);
+      callback(new Error('Bloqueado pelo CORS: Origem não permitida'));
+    }
+  },
+  credentials: true
+}));
+
 app.use(express.json());
 
 // Registro das Rotas na API
@@ -31,7 +50,7 @@ app.use('/api/financeiro', verificarToken, financeiroRoutes);
 app.use('/api/fechamentos', verificarToken, fechamentosRoutes);
 app.use('/api/status', verificarToken, statusRoutes);
 app.use('/api/concessionarias', verificarToken, concessionariasRoutes);
-app.use('/api/cpf_cnpjs', verificarToken, documentosRoutes); 
+app.use('/api/cpf_cnpjs', verificarToken, documentosRoutes);
 app.use('/api/dashboard', verificarToken, dashboardRoutes);
 app.use('/api/propostas', verificarToken, propostasRoutes);
 app.use('/api/entidades', verificarToken, entidadesRoutes);

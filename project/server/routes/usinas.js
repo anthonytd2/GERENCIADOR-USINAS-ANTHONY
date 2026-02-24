@@ -4,12 +4,13 @@ import { usinaSchema } from '../validators/schemas.js';
 
 const router = express.Router();
 
-// 1. LISTAR TODAS
+// 1. LISTAR TODAS (Apenas as não deletadas)
 router.get('/', async (req, res) => {
   try {
     const { data, error } = await supabase
       .from('usinas')
-      .select('*, vinculos(id)');
+      .select('*, vinculos(id)')
+      .is('deleted_at', null); // 🟢 Filtro do Soft Delete
 
     if (error) throw error;
 
@@ -18,13 +19,9 @@ router.get('/', async (req, res) => {
       is_locada: usina.vinculos && usina.vinculos.length > 0
     }));
 
-    usinasFormatadas.sort((a, b) => 
-      (a.nome || '').localeCompare(b.nome || '')
-    );
-
+    usinasFormatadas.sort((a, b) => (a.nome || '').localeCompare(b.nome || ''));
     res.json(usinasFormatadas);
   } catch (error) {
-    console.error("Erro ao listar usinas:", error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -36,6 +33,7 @@ router.get('/:id', async (req, res) => {
       .from('usinas')
       .select('*')
       .eq('id', req.params.id)
+      .is('deleted_at', null) // Impede acesso direto via URL a uma apagada
       .single();
 
     if (error) throw error;
@@ -51,7 +49,8 @@ router.get('/:id/vinculos', async (req, res) => {
     const { data, error } = await supabase
       .from('vinculos')
       .select('*, consumidores(nome), status(descricao)')
-      .eq('usina_id', req.params.id); 
+      .eq('usina_id', req.params.id)
+      .is('deleted_at', null); // 🟢 Filtro do Soft Delete nos vínculos
 
     if (error) throw error;
     res.json(data);
@@ -63,16 +62,7 @@ router.get('/:id/vinculos', async (req, res) => {
 // 4. CRIAR (POST)
 router.post('/', async (req, res) => {
   try {
-    // Tenta validar, mas se o schema estiver incompleto, pode perder dados
     const dadosLimpos = usinaSchema.parse(req.body);
-
-    // FIX: Se o schema limpar o tipo_pagamento, reinserimos manualmente
-    if (req.body.tipo_pagamento) {
-        dadosLimpos.tipo_pagamento = req.body.tipo_pagamento;
-    }
-    if (req.body.endereco_proprietario) {
-        dadosLimpos.endereco_proprietario = req.body.endereco_proprietario;
-    }
 
     const { data, error } = await supabase
       .from('usinas')
@@ -80,38 +70,30 @@ router.post('/', async (req, res) => {
       .select()
       .single();
 
-    if (error) {
-      console.error("ERRO SUPABASE (CRIAR):", error.message);
-      throw error;
-    }
+    if (error) throw error;
     res.status(201).json(data);
   } catch (error) {
-    console.error("ERRO SERVIDOR (CRIAR):", error);
-    const msg = error.issues ? 'Dados inválidos' : error.message;
-    res.status(500).json({ error: msg });
+    console.error("Erro na operação da usina:", error);
+
+    // 1. Erro de Validação do Zod
+    if (error.issues) {
+      return res.status(400).json({ error: 'Dados inválidos. Verifique os campos.', detalhes: error.issues });
+    }
+
+    // 2. Erro de Duplicidade do Banco (Ex: Documento ou UC já existente)
+    if (error.code === '23505') {
+      return res.status(400).json({ error: 'Já existe uma Usina cadastrada com este Documento ou Número de UC.' });
+    }
+
+    // 3. Erro genérico
+    res.status(500).json({ error: 'Erro interno no servidor.', detalhes: error.message });
   }
 });
 
-// 5. ATUALIZAR (PUT) - AQUI ESTAVA O PROBLEMA
+// 5. ATUALIZAR (PUT)
 router.put('/:id', async (req, res) => {
   try {
-    // 1. O Schema filtra os dados
-    let dadosLimpos = usinaSchema.partial().parse(req.body);
-
-    // 2. CORREÇÃO FORÇADA:
-    // Se o schema removeu o 'tipo_pagamento' ou 'endereco_proprietario', 
-    // nós os colocamos de volta manualmente se eles vieram no req.body.
-    
-    if (req.body.tipo_pagamento !== undefined) {
-        dadosLimpos.tipo_pagamento = req.body.tipo_pagamento;
-    }
-    
-    if (req.body.endereco_proprietario !== undefined) {
-        dadosLimpos.endereco_proprietario = req.body.endereco_proprietario;
-    }
-
-    console.log("Atualizando Usina ID:", req.params.id);
-    console.log("Dados enviados ao banco:", dadosLimpos); // Para você ver no terminal se está indo
+    const dadosLimpos = usinaSchema.partial().parse(req.body);
 
     const { data, error } = await supabase
       .from('usinas')
@@ -123,21 +105,33 @@ router.put('/:id', async (req, res) => {
     if (error) throw error;
     res.json(data);
   } catch (error) {
-    console.error("Erro update:", error);
-    res.status(500).json({ error: error.message });
+    console.error("Erro na operação da usina:", error);
+
+    // 1. Erro de Validação do Zod
+    if (error.issues) {
+      return res.status(400).json({ error: 'Dados inválidos. Verifique os campos.', detalhes: error.issues });
+    }
+
+    // 2. Erro de Duplicidade do Banco (Ex: Documento ou UC já existente)
+    if (error.code === '23505') {
+      return res.status(400).json({ error: 'Já existe uma Usina cadastrada com este Documento ou Número de UC.' });
+    }
+
+    // 3. Erro genérico
+    res.status(500).json({ error: 'Erro interno no servidor.', detalhes: error.message });
   }
 });
 
-// 6. EXCLUIR
+// 6. EXCLUIR (🟢 SOFT DELETE)
 router.delete('/:id', async (req, res) => {
   try {
     const { error } = await supabase
       .from('usinas')
-      .delete()
+      .update({ deleted_at: new Date().toISOString() }) // Ao invés de .delete()
       .eq('id', req.params.id);
 
     if (error) throw error;
-    res.json({ message: 'Usina excluída com sucesso' });
+    res.json({ message: 'Usina movida para lixeira (Soft Delete)' });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

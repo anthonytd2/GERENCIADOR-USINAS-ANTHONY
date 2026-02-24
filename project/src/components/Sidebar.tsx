@@ -1,6 +1,8 @@
 import { Link, useLocation } from 'react-router-dom';
-// 1. ADICIONE BarChart3 AQUI NOS IMPORTS
 import { LayoutDashboard, Sun, Users, Link as LinkIcon, FileText, Calculator, LogOut, BarChart3 } from 'lucide-react';
+// 1. IMPORTAMOS O CLIENTE E O TOAST PARA FEEDBACK
+import { supabaseClient } from '../lib/supabaseClient'; 
+import toast from 'react-hot-toast';
 
 export default function Sidebar() {
   const location = useLocation();
@@ -8,6 +10,18 @@ export default function Sidebar() {
   const isActive = (path: string) => {
     if (path === '/' && location.pathname !== '/') return false;
     return location.pathname.startsWith(path);
+  };
+
+  // 2. FUNÇÃO PARA ENCERRAR A SESSÃO
+  const handleLogout = async () => {
+    try {
+      const { error } = await supabaseClient.auth.signOut();
+      if (error) throw error;
+      
+      toast.success('Sessão encerrada com segurança!');
+    } catch (error: any) {
+      toast.error('Erro ao sair: ' + error.message);
+    }
   };
 
   const menuItems = [
@@ -36,7 +50,7 @@ export default function Sidebar() {
         </div>
       </div>
 
-      <nav className="flex-1 py-6 px-3 space-y-2">
+      <nav className="flex-1 py-6 px-3 space-y-2 overflow-y-auto">
         {menuItems.map((item) => {
           const active = isActive(item.path);
           return (
@@ -58,10 +72,14 @@ export default function Sidebar() {
         })}
       </nav>
 
+      {/* 3. BOTÃO DE SAÍDA CONFIGURADO */}
       <div className="p-4 border-t border-blue-900/50">
-        <button className="flex items-center gap-3 px-4 py-3 w-full text-blue-300 hover:text-white hover:bg-gray-50-card/5 rounded-xl transition-colors">
-          <LogOut className="w-5 h-5" />
-          <span>Sair do Sistema</span>
+        <button 
+          onClick={handleLogout}
+          className="flex items-center gap-3 px-4 py-3 w-full text-blue-300 hover:text-white hover:bg-red-500/10 rounded-xl transition-all duration-200 group"
+        >
+          <LogOut className="w-5 h-5 group-hover:text-red-400" />
+          <span className="group-hover:text-red-400">Sair do Sistema</span>
         </button>
       </div>
     </aside>

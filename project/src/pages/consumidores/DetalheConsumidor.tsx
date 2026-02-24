@@ -4,12 +4,13 @@ import { api } from '../../lib/api';
 import { ArrowLeft, Edit, Trash2, User, Zap, Plus, Building2, Phone, Mail, MapPin } from 'lucide-react';
 import GerenciadorDocumentos from "../../components/GerenciadorDocumentos";
 import ModalConfirmacao from '../../components/ModalConfirmacao';
+import { formatarDocumento } from '../../components/formatters';
 
 export default function DetalheConsumidor() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [consumidor, setConsumidor] = useState<any>(null);
-  const [unidades, setUnidades] = useState<any[]>([]); 
+  const [unidades, setUnidades] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Controle do Modal de Exclusão
@@ -26,6 +27,7 @@ export default function DetalheConsumidor() {
     cep: '',
     media_consumo: ''
   });
+
 
   useEffect(() => {
     carregarDados();
@@ -62,7 +64,7 @@ export default function DetalheConsumidor() {
     if (!confirm('Excluir esta Unidade Consumidora?')) return;
     try {
       await api.consumidores.deleteUnidade(ucId);
-      carregarDados(); 
+      carregarDados();
     } catch (error) {
       alert('Erro ao excluir unidade');
     }
@@ -86,7 +88,7 @@ export default function DetalheConsumidor() {
 
   return (
     <div className="animate-fade-in-down pb-20">
-      
+
       {/* Cabeçalho Simplificado */}
       <div className="mb-8">
         <Link to="/consumidores" className="inline-flex items-center gap-2 text-gray-500 hover:text-gray-900 mb-4 transition-colors">
@@ -100,8 +102,8 @@ export default function DetalheConsumidor() {
             <Link to={`/consumidores/${id}/editar`} className="px-4 py-2 bg-gray-50-card border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 flex items-center gap-2 transition-colors shadow-sm">
               <Edit className="w-4 h-4" /> Editar
             </Link>
-            <button 
-              onClick={() => setModalExcluirOpen(true)} 
+            <button
+              onClick={() => setModalExcluirOpen(true)}
               className="px-4 py-2 bg-red-50 border border-red-100 text-red-600 rounded-lg hover:bg-red-100 flex items-center gap-2 transition-colors shadow-sm"
             >
               <Trash2 className="w-4 h-4" /> Excluir
@@ -111,47 +113,47 @@ export default function DetalheConsumidor() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-        
+
         {/* CARTÃO 1: DADOS PESSOAIS (Agora inclui Nome e Documento) */}
         <div className="bg-gray-50-card p-6 rounded-lg shadow-sm border border-gray-200">
           <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2 border-b pb-2">
             <User className="w-5 h-5 text-blue-600" /> Dados Pessoais
           </h3>
           <div className="space-y-4 text-gray-700">
-            
+
             {/* Nome e Documento */}
             <div>
-                <p className="text-xs text-gray-500 font-bold uppercase mb-1">Nome Completo</p>
-                <p className="font-bold text-lg text-gray-900">{consumidor.nome}</p>
+              <p className="text-xs text-gray-500 font-bold uppercase mb-1">Nome Completo</p>
+              <p className="font-bold text-lg text-gray-900">{consumidor.nome}</p>
             </div>
             <div>
-                <p className="text-xs text-gray-500 font-bold uppercase mb-1">CPF / CNPJ</p>
-                <p className="font-mono bg-gray-50 inline-block px-2 py-1 rounded text-gray-900 border border-gray-200">
-                    {consumidor.documento || consumidor.cpf_cnpj || 'Não informado'}
-                </p>
+              <p className="text-xs text-gray-500 font-bold uppercase mb-1">CPF / CNPJ</p>
+              <p className="font-mono bg-gray-50 inline-block px-2 py-1 rounded text-gray-900 border border-gray-200">
+                {formatarDocumento(consumidor.documento || consumidor.cpf_cnpj)}
+              </p>
             </div>
 
             {/* Contatos */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-gray-50">
-                <div>
-                    <p className="text-xs text-gray-500 font-bold uppercase mb-1 flex items-center gap-1"><Mail size={12}/> E-mail</p>
-                    <p className="text-sm truncate" title={consumidor.email}>{consumidor.email || '-'}</p>
-                </div>
-                <div>
-                    <p className="text-xs text-gray-500 font-bold uppercase mb-1 flex items-center gap-1"><Phone size={12}/> Telefone</p>
-                    <p className="text-sm">{consumidor.telefone || '-'}</p>
-                </div>
+              <div>
+                <p className="text-xs text-gray-500 font-bold uppercase mb-1 flex items-center gap-1"><Mail size={12} /> E-mail</p>
+                <p className="text-sm truncate" title={consumidor.email}>{consumidor.email || '-'}</p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-500 font-bold uppercase mb-1 flex items-center gap-1"><Phone size={12} /> Telefone</p>
+                <p className="text-sm">{consumidor.telefone || '-'}</p>
+              </div>
             </div>
 
             {/* Endereço */}
             <div className="pt-2 border-t border-gray-50">
-                <p className="text-xs text-gray-500 font-bold uppercase mb-1 flex items-center gap-1"><MapPin size={12}/> Endereço</p>
-                <p className="text-sm">
-                    {consumidor.endereco}, {consumidor.bairro}
-                </p>
-                <p className="text-sm">
-                    {consumidor.cidade}/{consumidor.uf} - {consumidor.cep}
-                </p>
+              <p className="text-xs text-gray-500 font-bold uppercase mb-1 flex items-center gap-1"><MapPin size={12} /> Endereço</p>
+              <p className="text-sm">
+                {consumidor.endereco}, {consumidor.bairro}
+              </p>
+              <p className="text-sm">
+                {consumidor.cidade}/{consumidor.uf} - {consumidor.cep}
+              </p>
             </div>
           </div>
         </div>
@@ -166,28 +168,28 @@ export default function DetalheConsumidor() {
               <p className="text-xs text-gray-500 font-bold uppercase mb-1">Média Consumo</p>
               <p className="text-xl font-black text-gray-900">{consumidor.media_consumo?.toLocaleString('pt-BR')} <span className="text-sm  text-gray-500">kWh</span></p>
             </div>
-            
+
             {/* Exibe Valor Fixo OU Desconto dependendo do que estiver preenchido */}
             {Number(consumidor.valor_kw) > 0 ? (
-                <div className="p-4 bg-green-50 rounded-xl border border-green-100">
-                    <p className="text-xs text-green-700 font-bold uppercase mb-1">Valor Fixo</p>
-                    <p className="text-xl font-black text-green-800">
-                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 4 }).format(Number(consumidor.valor_kw))}
-                        <span className="text-sm  ml-1">/kWh</span>
-                    </p>
-                </div>
+              <div className="p-4 bg-green-50 rounded-xl border border-green-100">
+                <p className="text-xs text-green-700 font-bold uppercase mb-1">Valor Fixo</p>
+                <p className="text-xl font-black text-green-800">
+                  {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 4 }).format(Number(consumidor.valor_kw))}
+                  <span className="text-sm  ml-1">/kWh</span>
+                </p>
+              </div>
             ) : (
-                <div className="p-4 bg-blue-50 rounded-xl border border-blue-100">
-                    <p className="text-xs text-blue-700 font-bold uppercase mb-1">Desconto</p>
-                    <p className="text-xl font-black text-blue-800">{consumidor.percentual_desconto}%</p>
-                </div>
+              <div className="p-4 bg-blue-50 rounded-xl border border-blue-100">
+                <p className="text-xs text-blue-700 font-bold uppercase mb-1">Desconto</p>
+                <p className="text-xl font-black text-blue-800">{consumidor.percentual_desconto}%</p>
+              </div>
             )}
 
             <div className="col-span-2">
-                <p className="text-xs text-gray-500 font-bold uppercase mb-1">Observações</p>
-                <p className="text-sm text-gray-500 bg-gray-50 p-3 rounded-lg border border-gray-200 italic">
-                    {consumidor.observacao || "Nenhuma observação registrada."}
-                </p>
+              <p className="text-xs text-gray-500 font-bold uppercase mb-1">Observações</p>
+              <p className="text-sm text-gray-500 bg-gray-50 p-3 rounded-lg border border-gray-200 italic">
+                {consumidor.observacao || "Nenhuma observação registrada."}
+              </p>
             </div>
           </div>
         </div>
@@ -206,8 +208,8 @@ export default function DetalheConsumidor() {
 
         {unidades.length === 0 ? (
           <div className="text-center py-8 bg-gray-50 rounded-xl border border-dashed border-gray-200">
-             <Building2 className="w-8 h-8 text-gray-300 mx-auto mb-2" />
-             <p className="text-gray-500 ">Nenhuma unidade cadastrada.</p>
+            <Building2 className="w-8 h-8 text-gray-300 mx-auto mb-2" />
+            <p className="text-gray-500 ">Nenhuma unidade cadastrada.</p>
           </div>
         ) : (
           <div className="overflow-x-auto">

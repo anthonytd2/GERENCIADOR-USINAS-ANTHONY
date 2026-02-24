@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../../lib/api';
-import { 
-  Plus, Search, Edit, Trash2, MapPin, Zap, User, ArrowRight, Wallet 
+import {
+  Plus, Search, Edit, Trash2, MapPin, Zap, User, ArrowRight, Wallet, ChevronLeft, ChevronRight
 } from 'lucide-react';
 import Skeleton from '../../components/Skeleton';
 import toast from 'react-hot-toast';
@@ -16,16 +16,22 @@ interface Consumidor {
   media_consumo: number;
   status?: string;
   cpf_cnpj?: string;
+  documento?: string;
 }
 
 export default function ListaConsumidores() {
   const [consumidores, setConsumidores] = useState<Consumidor[]>([]);
   const [loading, setLoading] = useState(true);
   const [busca, setBusca] = useState('');
-  
+
+  // 🟢 ESTADOS DE PAGINAÇÃO (FRONTEND)
+  const [paginaAtual, setPaginaAtual] = useState(1);
+  const itensPorPagina = 10;
+
   const [modalAberto, setModalAberto] = useState(false);
   const [idParaExcluir, setIdParaExcluir] = useState<number | null>(null);
 
+  // Carrega todos os dados normalmente
   const loadConsumidores = () => {
     setLoading(true);
     api.consumidores.list()
@@ -39,6 +45,11 @@ export default function ListaConsumidores() {
   useEffect(() => {
     loadConsumidores();
   }, []);
+
+  // Quando o usuário digita algo na busca, volta para a página 1
+  useEffect(() => {
+    setPaginaAtual(1);
+  }, [busca]);
 
   const solicitarExclusao = (id: number, e: React.MouseEvent) => {
     e.preventDefault();
@@ -61,18 +72,25 @@ export default function ListaConsumidores() {
     }
   };
 
+  // 1. PRIMEIRO: Filtramos todos os registros baseado na busca
   const filtrados = consumidores.filter(c =>
     c.nome.toLowerCase().includes(busca.toLowerCase()) ||
-    (c.cidade && c.cidade.toLowerCase().includes(busca.toLowerCase()))
+    (c.cidade && c.cidade.toLowerCase().includes(busca.toLowerCase())) ||
+    (c.documento && c.documento.includes(busca))
   );
+
+  // 2. SEGUNDO: Calculamos a paginação em cima dos filtrados
+  const totalPaginas = Math.ceil(filtrados.length / itensPorPagina);
+  const indexUltimoItem = paginaAtual * itensPorPagina;
+  const indexPrimeiroItem = indexUltimoItem - itensPorPagina;
+  const itensPaginaAtual = filtrados.slice(indexPrimeiroItem, indexUltimoItem);
 
   return (
     <div className="space-y-8 animate-fade-in-down pb-20">
-      
+
       {/* 1. CABEÇALHO COM MAIS PRESENÇA VISUAL */}
       <div className="flex flex-col md:flex-row justify-between items-end gap-4 border-b border-blue-100 pb-6">
         <div className="flex items-center gap-4">
-          {/* Ícone de destaque com fundo colorido */}
           <div className="p-3 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl text-white shadow-md shadow-blue-200">
             <User className="w-8 h-8" />
           </div>
@@ -108,7 +126,7 @@ export default function ListaConsumidores() {
           onChange={e => setBusca(e.target.value)}
         />
         <div className="hidden md:block pr-4 border-l border-blue-100 pl-4 text-xs font-bold text-blue-400 uppercase">
-          {filtrados.length} Registros
+          {filtrados.length} Registros no total
         </div>
       </div>
 
@@ -126,89 +144,127 @@ export default function ListaConsumidores() {
           <p className="text-gray-500 text-sm">Verifique o termo buscado ou cadastre um novo.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-4">
-          {filtrados.map((c) => (
-            <Link 
-              to={`/consumidores/${c.consumidor_id}`} 
-              key={c.consumidor_id}
-              // Mudança aqui: hover com fundo sutil colorido
-              className="group bg-white p-0 rounded-2xl border border-blue-50 shadow-sm hover:shadow-md hover:border-blue-300 hover:bg-blue-50/30 transition-all flex flex-col md:flex-row items-stretch overflow-hidden relative"
-            >
-              {/* Faixa lateral: Agora é um gradiente */}
-              <div className="w-1.5 bg-gradient-to-b from-blue-500 to-indigo-600 group-hover:from-blue-600 group-hover:to-indigo-700 transition-colors"></div>
+        <>
+          <div className="grid grid-cols-1 gap-4">
+            {/* 🟢 Renderizamos os itens DA PÁGINA ATUAL, não a lista toda */}
+            {itensPaginaAtual.map((c) => (
+              <Link
+                to={`/consumidores/${c.consumidor_id}`}
+                key={c.consumidor_id}
+                className="group bg-white p-0 rounded-2xl border border-blue-50 shadow-sm hover:shadow-md hover:border-blue-300 hover:bg-blue-50/30 transition-all flex flex-col md:flex-row items-stretch overflow-hidden relative"
+              >
+                <div className="w-1.5 bg-gradient-to-b from-blue-500 to-indigo-600 group-hover:from-blue-600 group-hover:to-indigo-700 transition-colors"></div>
 
-              <div className="flex-1 p-5 flex flex-col md:flex-row items-center gap-6">
+                <div className="flex-1 p-5 flex flex-col md:flex-row items-center gap-6">
+
+                  <div className="flex-shrink-0">
+                    <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white flex items-center justify-center text-xl font-bold shadow-sm shadow-blue-200">
+                      {c.nome.charAt(0).toUpperCase()}
+                    </div>
+                  </div>
+
+                  <div className="flex-1 text-center md:text-left min-w-[200px]">
+                    <h3 className="text-lg font-bold text-gray-900 group-hover:text-blue-700 transition-colors">
+                      {c.nome}
+                    </h3>
+
+                    <div className="flex flex-wrap items-center justify-center md:justify-start gap-x-4 gap-y-2 mt-2">
+                      {c.cidade && (
+                        <span className="text-xs font-medium text-gray-500 flex items-center gap-1 bg-gray-100 px-2 py-1 rounded-md">
+                          <MapPin className="w-3 h-3 text-gray-400" />
+                          {c.cidade}/{c.uf}
+                        </span>
+                      )}
+                      {c.documento && (
+                        <span className="text-xs font-medium text-gray-500 flex items-center gap-1 bg-gray-100 px-2 py-1 rounded-md font-mono">
+                          <Wallet className="w-3 h-3 text-gray-400" />
+                          {c.documento}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col items-center md:items-end w-full md:w-auto border-t md:border-t-0 md:border-l border-blue-50 pt-4 md:pt-0 md:pl-6 mt-4 md:mt-0">
+                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Média Mensal</span>
+                    <div className="flex items-center gap-1.5 bg-yellow-50 px-4 py-1.5 rounded-full border border-yellow-200 shadow-sm shadow-yellow-100">
+                      <Zap className="w-4 h-4 text-yellow-500 fill-yellow-500" />
+                      <span className="text-base font-bold text-yellow-800">
+                        {c.media_consumo?.toLocaleString('pt-BR')} kWh
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-1 md:ml-4 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        window.location.href = `/consumidores/${c.consumidor_id}/editar`;
+                      }}
+                      className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                      title="Editar"
+                    >
+                      <Edit className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={(e) => solicitarExclusao(c.consumidor_id, e)}
+                      className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                      title="Excluir"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                    <div className="p-2 text-gray-300 group-hover:text-blue-600 group-hover:translate-x-1 transition-all">
+                      <ArrowRight className="w-5 h-5" />
+                    </div>
+                  </div>
+
+                </div>
+              </Link>
+            ))}
+          </div>
+
+          {/* 🟢 4. BOTÕES DE PAGINAÇÃO NUMERADA */}
+          {totalPaginas > 1 && (
+            <div className="flex items-center justify-between mt-6 bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
+              <span className="text-sm text-gray-500 font-medium">
+                Mostrando <span className="font-bold text-gray-900">{indexPrimeiroItem + 1}</span> a <span className="font-bold text-gray-900">{Math.min(indexUltimoItem, filtrados.length)}</span> de <span className="font-bold text-gray-900">{filtrados.length}</span>
+              </span>
+              
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setPaginaAtual(p => Math.max(1, p - 1))}
+                  disabled={paginaAtual === 1}
+                  className="p-2 rounded-xl border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-50 transition-all"
+                >
+                  <ChevronLeft className="w-5 h-5" />
+                </button>
                 
-                {/* AVATAR: Mais vibrante com gradiente */}
-                <div className="flex-shrink-0">
-                  <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white flex items-center justify-center text-xl font-bold shadow-sm shadow-blue-200">
-                    {c.nome.charAt(0).toUpperCase()}
-                  </div>
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: totalPaginas }, (_, i) => i + 1).map((num) => (
+                    <button
+                      key={num}
+                      onClick={() => setPaginaAtual(num)}
+                      className={`w-10 h-10 rounded-xl font-bold text-sm transition-all ${
+                        paginaAtual === num
+                          ? 'bg-blue-600 text-white shadow-md shadow-blue-200'
+                          : 'text-gray-600 hover:bg-blue-50 border border-transparent hover:border-blue-100'
+                      }`}
+                    >
+                      {num}
+                    </button>
+                  ))}
                 </div>
 
-                {/* INFO PRINCIPAL */}
-                <div className="flex-1 text-center md:text-left min-w-[200px]">
-                  <h3 className="text-lg font-bold text-gray-900 group-hover:text-blue-700 transition-colors">
-                    {c.nome}
-                  </h3>
-                  
-                  <div className="flex flex-wrap items-center justify-center md:justify-start gap-x-4 gap-y-2 mt-2">
-                    {c.cidade && (
-                      <span className="text-xs font-medium text-gray-500 flex items-center gap-1 bg-gray-100 px-2 py-1 rounded-md">
-                        <MapPin className="w-3 h-3 text-gray-400" />
-                        {c.cidade}/{c.uf}
-                      </span>
-                    )}
-                    {c.cpf_cnpj && (
-                      <span className="text-xs font-medium text-gray-500 flex items-center gap-1 bg-gray-100 px-2 py-1 rounded-md font-mono">
-                        <Wallet className="w-3 h-3 text-gray-400" />
-                        {c.cpf_cnpj}
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                {/* CONSUMO: Badge mais "ensolarado" */}
-                <div className="flex flex-col items-center md:items-end w-full md:w-auto border-t md:border-t-0 md:border-l border-blue-50 pt-4 md:pt-0 md:pl-6 mt-4 md:mt-0">
-                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Média Mensal</span>
-                  {/* Cores mais vivas aqui */}
-                  <div className="flex items-center gap-1.5 bg-yellow-50 px-4 py-1.5 rounded-full border border-yellow-200 shadow-sm shadow-yellow-100">
-                    <Zap className="w-4 h-4 text-yellow-500 fill-yellow-500" />
-                    <span className="text-base font-bold text-yellow-800">
-                      {c.media_consumo?.toLocaleString('pt-BR')} kWh
-                    </span>
-                  </div>
-                </div>
-
-                {/* BOTÕES DE AÇÃO */}
-                <div className="flex items-center gap-1 md:ml-4 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
-                  <button 
-                    onClick={(e) => {
-                      e.preventDefault();
-                      window.location.href = `/consumidores/${c.consumidor_id}/editar`;
-                    }}
-                    // Botões com cores no hover
-                    className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
-                    title="Editar"
-                  >
-                    <Edit className="w-4 h-4" />
-                  </button>
-                  <button 
-                    onClick={(e) => solicitarExclusao(c.consumidor_id, e)}
-                    className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                    title="Excluir"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                  <div className="p-2 text-gray-300 group-hover:text-blue-600 group-hover:translate-x-1 transition-all">
-                    <ArrowRight className="w-5 h-5" />
-                  </div>
-                </div>
-
+                <button
+                  onClick={() => setPaginaAtual(p => Math.min(totalPaginas, p + 1))}
+                  disabled={paginaAtual === totalPaginas}
+                  className="p-2 rounded-xl border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-50 transition-all"
+                >
+                  <ChevronRight className="w-5 h-5" />
+                </button>
               </div>
-            </Link>
-          ))}
-        </div>
+            </div>
+          )}
+        </>
       )}
 
       <ModalConfirmacao

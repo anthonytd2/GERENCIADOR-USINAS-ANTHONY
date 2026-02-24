@@ -2,9 +2,9 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { api } from '../../lib/api';
-import { 
-  ArrowLeft, Save, User, Phone, Mail, MapPin, 
-  FileText, Building, DollarSign, Percent 
+import {
+  ArrowLeft, Save, User, Phone, Mail, MapPin,
+  FileText, Building, DollarSign, Percent
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -14,7 +14,46 @@ export default function FormularioConsumidor() {
   const { register, handleSubmit, setValue, watch, formState: { errors } } = useForm();
   const [loading, setLoading] = useState(false);
 
-  // Estado para controlar qual campo aparece (Desconto ou Valor Fixo)
+  // --- MÁSCARAS DE DIGITAÇÃO ---
+  const aplicarMascaraDocumento = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let valor = e.target.value.replace(/\D/g, '');
+    if (valor.length <= 11) {
+      valor = valor.replace(/(\d{3})(\d)/, '$1.$2')
+        .replace(/(\d{3})(\d)/, '$1.$2')
+        .replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+    } else {
+      valor = valor.replace(/^(\d{2})(\d)/, '$1.$2')
+        .replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3')
+        .replace(/\.(\d{3})(\d)/, '.$1/$2')
+        .replace(/(\d{4})(\d)/, '$1-$2');
+    }
+    setValue('documento', valor.substring(0, 18), { shouldDirty: true, shouldValidate: true });
+  };
+
+  const aplicarMascaraTelefone = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let valor = e.target.value.replace(/\D/g, '');
+    valor = valor.replace(/^(\d{2})(\d)/g, '($1) $2');
+    valor = valor.replace(/(\d)(\d{4})$/, '$1-$2');
+    setValue('telefone', valor.substring(0, 15), { shouldDirty: true, shouldValidate: true });
+  };
+
+  const aplicarMascaraRG = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let valor = e.target.value.toUpperCase().replace(/[^0-9X]/g, '');
+    valor = valor
+      .replace(/(\d{2})(\d)/, '$1.$2')
+      .replace(/(\d{3})(\d)/, '$1.$2')
+      .replace(/(\d{3})([0-9X])$/, '$1-$2');
+
+    setValue('rg', valor.substring(0, 12), { shouldDirty: true, shouldValidate: true });
+  };
+
+  const aplicarMascaraCEP = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let valor = e.target.value.replace(/\D/g, '');
+    valor = valor.replace(/^(\d{5})(\d)/, '$1-$2');
+    setValue('cep', valor.substring(0, 9), { shouldDirty: true, shouldValidate: true });
+  };
+
+
   const [tipoCobranca, setTipoCobranca] = useState<'desconto' | 'fixo'>('desconto');
 
   useEffect(() => {
@@ -25,9 +64,9 @@ export default function FormularioConsumidor() {
         .then(data => {
           if (data) {
             setValue('nome', data.nome);
-            setValue('documento', data.documento || data.cpf_cnpj); 
-            setValue('email', data.email);       
-            setValue('telefone', data.telefone); 
+            setValue('documento', data.documento || data.cpf_cnpj);
+            setValue('email', data.email);
+            setValue('telefone', data.telefone);
             setValue('cep', data.cep);
             setValue('endereco', data.endereco);
             setValue('bairro', data.bairro);
@@ -37,7 +76,7 @@ export default function FormularioConsumidor() {
             setValue('valor_kw', data.valor_kw);
             setValue('percentual_desconto', data.percentual_desconto);
             setValue('observacao', data.observacao);
-
+            setValue('rg', data.rg);
             // Lógica para definir o tipo de cobrança visual
             if (Number(data.valor_kw) > 0 && Number(data.percentual_desconto) === 0) {
               setTipoCobranca('fixo');
@@ -73,6 +112,9 @@ export default function FormularioConsumidor() {
 
       const payload = {
         ...data,
+        documento: data.documento ? data.documento.replace(/\D/g, '') : null,
+        rg: data.rg ? data.rg.replace(/[^0-9X]/g, '') : null,
+        cep: data.cep ? data.cep.replace(/\D/g, '') : null, // 🟢 Salva só os números do CEP
         media_consumo: Number(data.media_consumo) || 0,
         valor_kw: valorFinalKw,
         percentual_desconto: valorFinalDesconto,
@@ -100,7 +142,7 @@ export default function FormularioConsumidor() {
 
   return (
     <div className="max-w-3xl mx-auto animate-fade-in-down pb-20">
-      
+
       {/* CABEÇALHO */}
       <div className="mb-8">
         <Link to="/consumidores" className="inline-flex items-center gap-2 text-gray-500 hover:text-gray-900 mb-4 font-medium transition-colors">
@@ -127,45 +169,68 @@ export default function FormularioConsumidor() {
             <User className="w-5 h-5 text-blue-500" />
             Dados Pessoais
           </h3>
-          
+
           <div className="space-y-5">
+            {/* CAMPO DE NOME - CORRIGIDO: Agora aceita letras e registra em 'nome' */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5 ml-1">Nome Completo (Titular)</label>
               <div className="relative">
                 <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                 <input
                   {...register('nome', { required: true })}
+                  placeholder="Digite o nome completo"
                   className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all placeholder:text-gray-300"
-                  placeholder="Nome do cliente"
                 />
               </div>
               {errors.nome && <span className="text-red-500 text-xs ml-1 mt-1 font-medium">Este campo é obrigatório</span>}
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              {/* CAMPO DE CPF / CNPJ - CORRIGIDO: A máscara de números agora está aqui */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5 ml-1">CPF / CNPJ</label>
                 <div className="relative">
                   <FileText className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                   <input
-                    {...register('documento')}
+                    {...register('documento', { onChange: aplicarMascaraDocumento })}
                     placeholder="000.000.000-00"
+                    maxLength={18}
                     className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all placeholder:text-gray-300"
                   />
                 </div>
               </div>
+
+              {/* NOVO CAMPO: RG */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5 ml-1">RG (Identidade)</label>
+                <div className="relative">
+                  <FileText className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <input
+                    {...register('rg', { onChange: aplicarMascaraRG })} // 🟢 Adicionado o onChange
+                    placeholder="00.000.000-0"
+                    maxLength={12} // 🟢 Limite para o formato com pontos e traço
+                    className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                  />
+                </div>
+              </div>
+
+              {/* Telefone (Mantido) */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5 ml-1">Telefone / WhatsApp</label>
                 <div className="relative">
                   <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                   <input
-                    {...register('telefone')}
+                    type="tel"
+                    {...register('telefone', { onChange: aplicarMascaraTelefone })}
                     placeholder="(00) 00000-0000"
+                    maxLength={15}
                     className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all placeholder:text-gray-300"
                   />
                 </div>
               </div>
             </div>
+
+
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5 ml-1">E-mail</label>
@@ -193,45 +258,74 @@ export default function FormularioConsumidor() {
             <div className="grid grid-cols-2 gap-5">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5 ml-1">CEP</label>
-                <input 
-                  {...register('cep')} 
+                <input
+                  {...register('cep', { onChange: aplicarMascaraCEP })}
                   placeholder="00000-000"
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all placeholder:text-gray-300" 
+                  maxLength={9}
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all placeholder:text-gray-300"
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5 ml-1">Bairro</label>
-                <input 
-                  {...register('bairro')} 
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all" 
+                <input
+                  {...register('bairro')}
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
                 />
               </div>
             </div>
-            
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5 ml-1">Logradouro</label>
-              <input 
-                {...register('endereco')} 
+              <input
+                {...register('endereco')}
                 placeholder="Rua, Número, Complemento"
-                className="w-full px-4 py-3 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all placeholder:text-gray-300" 
+                className="w-full px-4 py-3 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all placeholder:text-gray-300"
               />
             </div>
 
             <div className="grid grid-cols-3 gap-5">
               <div className="col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-1.5 ml-1">Cidade</label>
-                <input 
-                  {...register('cidade')} 
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all" 
+                <input
+                  {...register('cidade')}
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5 ml-1">UF</label>
-                <input 
-                  {...register('uf')} 
-                  maxLength={2} 
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all uppercase text-center font-bold" 
-                />
+                <select
+                  {...register('uf')}
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-center font-bold bg-white cursor-pointer appearance-none"
+                >
+                  <option value="" disabled>--</option>
+                  <option value="AC">AC</option>
+                  <option value="AL">AL</option>
+                  <option value="AP">AP</option>
+                  <option value="AM">AM</option>
+                  <option value="BA">BA</option>
+                  <option value="CE">CE</option>
+                  <option value="DF">DF</option>
+                  <option value="ES">ES</option>
+                  <option value="GO">GO</option>
+                  <option value="MA">MA</option>
+                  <option value="MT">MT</option>
+                  <option value="MS">MS</option>
+                  <option value="MG">MG</option>
+                  <option value="PA">PA</option>
+                  <option value="PB">PB</option>
+                  <option value="PR">PR</option>
+                  <option value="PE">PE</option>
+                  <option value="PI">PI</option>
+                  <option value="RJ">RJ</option>
+                  <option value="RN">RN</option>
+                  <option value="RS">RS</option>
+                  <option value="RO">RO</option>
+                  <option value="RR">RR</option>
+                  <option value="SC">SC</option>
+                  <option value="SP">SP</option>
+                  <option value="SE">SE</option>
+                  <option value="TO">TO</option>
+                </select>
               </div>
             </div>
           </div>
@@ -269,11 +363,10 @@ export default function FormularioConsumidor() {
                     setTipoCobranca('desconto');
                     setValue('valor_kw', '');
                   }}
-                  className={`relative p-4 rounded-xl border-2 text-left transition-all ${
-                    tipoCobranca === 'desconto' 
-                      ? 'border-blue-500 bg-blue-50 ring-1 ring-blue-500' 
-                      : 'border-gray-200 hover:border-blue-200 hover:bg-gray-50'
-                  }`}
+                  className={`relative p-4 rounded-xl border-2 text-left transition-all ${tipoCobranca === 'desconto'
+                    ? 'border-blue-500 bg-blue-50 ring-1 ring-blue-500'
+                    : 'border-gray-200 hover:border-blue-200 hover:bg-gray-50'
+                    }`}
                 >
                   <div className="flex items-center gap-3 mb-2">
                     <div className={`p-2 rounded-full ${tipoCobranca === 'desconto' ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-500'}`}>
@@ -290,11 +383,10 @@ export default function FormularioConsumidor() {
                     setTipoCobranca('fixo');
                     setValue('percentual_desconto', '');
                   }}
-                  className={`relative p-4 rounded-xl border-2 text-left transition-all ${
-                    tipoCobranca === 'fixo' 
-                      ? 'border-green-500 bg-green-50 ring-1 ring-green-500' 
-                      : 'border-gray-200 hover:border-green-200 hover:bg-gray-50'
-                  }`}
+                  className={`relative p-4 rounded-xl border-2 text-left transition-all ${tipoCobranca === 'fixo'
+                    ? 'border-green-500 bg-green-50 ring-1 ring-green-500'
+                    : 'border-gray-200 hover:border-green-200 hover:bg-gray-50'
+                    }`}
                 >
                   <div className="flex items-center gap-3 mb-2">
                     <div className={`p-2 rounded-full ${tipoCobranca === 'fixo' ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-500'}`}>
@@ -346,9 +438,9 @@ export default function FormularioConsumidor() {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5 ml-1">Observações Internas</label>
-              <textarea 
-                {...register('observacao')} 
-                rows={3} 
+              <textarea
+                {...register('observacao')}
+                rows={3}
                 className="w-full px-4 py-3 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all placeholder:text-gray-300 resize-none"
                 placeholder="Detalhes adicionais sobre o cliente..."
               ></textarea>

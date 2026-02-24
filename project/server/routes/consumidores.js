@@ -1,14 +1,16 @@
 import express from 'express';
 import { supabase } from '../db.js';
+import { consumidorSchema } from '../validators/schemas.js';
 
 const router = express.Router();
 
-// 1. LISTAR TODOS
+// 1. LISTAR TODOS (Apenas os não deletados)
 router.get('/', async (req, res) => {
   try {
     const { data, error } = await supabase
       .from('consumidores')
       .select('*')
+      .is('deleted_at', null) // 🟢 Filtro do Soft Delete
       .order('nome');
 
     if (error) throw error;
@@ -23,12 +25,12 @@ router.get('/', async (req, res) => {
 router.get('/:id', async (req, res) => {
   try {
     const id = Number(req.params.id);
-    
+
     const { data, error } = await supabase
       .from('consumidores')
       .select('*')
-      // CORREÇÃO: Usando 'consumidor_id' conforme seu SQL
-      .eq('consumidor_id', id) 
+      .eq('consumidor_id', id)
+      .is('deleted_at', null)
       .single();
 
     if (error) {
@@ -37,7 +39,7 @@ router.get('/:id', async (req, res) => {
       }
       throw error;
     }
-    
+
     res.json(data);
   } catch (error) {
     console.error('Erro ao buscar consumidor:', error);
@@ -45,20 +47,33 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// 3. CRIAR
 router.post('/', async (req, res) => {
   try {
+    const dadosLimpos = consumidorSchema.parse(req.body);
+
     const { data, error } = await supabase
       .from('consumidores')
-      .insert([req.body])
+      .insert([dadosLimpos])
       .select()
       .single();
 
     if (error) throw error;
     res.status(201).json(data);
-  } catch (error) {
-    console.error('Erro ao criar consumidor:', error);
-    res.status(500).json({ error: error.message });
+} catch (error) {
+    console.error("Erro na operação:", error);
+    
+    // 1. Erro de Validação do Zod (Faltou campo, formato errado)
+    if (error.issues) {
+      return res.status(400).json({ error: 'Dados inválidos.', detalhes: error.issues });
+    }
+    
+    // 2. Erro de Duplicidade do Banco de Dados (CPF/CNPJ já existe)
+    if (error.code === '23505') {
+      return res.status(400).json({ error: 'Este CPF/CNPJ ou e-mail já está cadastrado no sistema.' });
+    }
+    
+    // 3. Erro genérico
+    res.status(500).json({ error: 'Erro interno no servidor.', detalhes: error.message });
   }
 });
 
@@ -66,11 +81,12 @@ router.post('/', async (req, res) => {
 router.put('/:id', async (req, res) => {
   try {
     const id = Number(req.params.id);
-    
+
+    const dadosLimpos = consumidorSchema.partial().parse(req.body);
+
     const { data, error } = await supabase
       .from('consumidores')
-      .update(req.body)
-      // CORREÇÃO: Usando 'consumidor_id'
+      .update(dadosLimpos)
       .eq('consumidor_id', id)
       .select()
       .single();
@@ -78,48 +94,55 @@ router.put('/:id', async (req, res) => {
     if (error) throw error;
     res.json(data);
   } catch (error) {
-    console.error('Erro ao atualizar consumidor:', error);
-    res.status(500).json({ error: error.message });
+    console.error("Erro na operação:", error);
+
+    // 1. Erro de Validação do Zod (Faltou campo, formato errado)
+    if (error.issues) {
+      return res.status(400).json({ error: 'Dados inválidos.', detalhes: error.issues });
+    }
+
+    // 2. Erro de Duplicidade do Banco de Dados (CPF/CNPJ já existe)
+    if (error.code === '23505') {
+      return res.status(400).json({ error: 'Este CPF/CNPJ ou e-mail já está cadastrado no sistema.' });
+    }
+
+    // 3. Erro genérico
+    res.status(500).json({ error: 'Erro interno no servidor.', detalhes: error.message });
   }
 });
 
-// 5. DELETAR
+// 5. DELETAR (🟢 SOFT DELETE)
 router.delete('/:id', async (req, res) => {
   try {
     const id = Number(req.params.id);
 
-    // Verificação de Segurança (Vínculos)
-    // A chave estrangeira na tabela de vinculos costuma ser 'consumidor_id'
+    // Verificação de Segurança (Vínculos Ativos)
     const { data: vinculos, error: errCheck } = await supabase
       .from('vinculos')
-      .select('vinculo_id') // Supondo que vinculo tenha vinculo_id ou id
-      .eq('consumidor_id', id);
+      .select('id')
+      .eq('consumidor_id', id)
+      .is('deleted_at', null); // Só verifica vínculos não deletados
 
     if (errCheck && errCheck.code !== 'PGRST116') throw errCheck;
 
     if (vinculos && vinculos.length > 0) {
-      return res.status(400).json({ 
-        error: 'Não é possível excluir: Cliente possui contratos ativos.' 
+      return res.status(400).json({
+        error: 'Não é possível excluir: Cliente possui contratos ativos.'
       });
     }
 
     const { error } = await supabase
       .from('consumidores')
-      .delete()
-      // CORREÇÃO: Usando 'consumidor_id'
+      .update({ deleted_at: new Date().toISOString() }) // Ao invés de .delete()
       .eq('consumidor_id', id);
 
     if (error) throw error;
-    res.json({ message: 'Consumidor excluído com sucesso' });
+    res.json({ message: 'Consumidor movido para lixeira' });
   } catch (error) {
     console.error('Erro ao deletar consumidor:', error);
     res.status(500).json({ error: error.message });
   }
 });
-
-// =========================================
-// ROTAS DE FILIAIS (UNIDADES CONSUMIDORAS)
-// =========================================
 
 // 6. LISTAR TODAS AS UCs DO CLIENTE
 router.get('/:id/unidades', async (req, res) => {
@@ -129,9 +152,8 @@ router.get('/:id/unidades', async (req, res) => {
     const { data, error } = await supabase
       .from('unidades_consumidoras')
       .select('*')
-      // CORREÇÃO: A chave estrangeira aqui deve ser 'consumidor_id'
-      .eq('consumidor_id', id) 
-      .order('id', { ascending: true }); // Assumindo que UCs tem 'id' normal
+      .eq('consumidor_id', id)
+      .order('id', { ascending: true });
 
     if (error) throw error;
     res.json(data);
@@ -169,7 +191,7 @@ router.put('/unidades/:ucId', async (req, res) => {
     const { data, error } = await supabase
       .from('unidades_consumidoras')
       .update(req.body)
-      .eq('id', ucId) // Assumindo que UC usa 'id'
+      .eq('id', ucId)
       .select()
       .single();
 
@@ -189,7 +211,7 @@ router.delete('/unidades/:ucId', async (req, res) => {
     const { error } = await supabase
       .from('unidades_consumidoras')
       .delete()
-      .eq('id', ucId); // Assumindo que UC usa 'id'
+      .eq('id', ucId);
 
     if (error) throw error;
     res.json({ message: 'Unidade removida' });

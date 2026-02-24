@@ -1,6 +1,10 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { Toaster } from 'react-hot-toast'; // <--- IMPORTANTE
+import { Toaster } from 'react-hot-toast';
 import Layout from './components/Layout';
+import ProtectedRoute from './components/ProtectedRoute'; // O "Guarda" que criamos
+import Login from './pages/Login';
+
+// Importação das Páginas
 import Dashboard from './pages/Dashboard';
 import AuditoriaPage from './pages/vinculos/AuditoriaPage';
 import ListaUsinas from './pages/usinas/ListaUsinas';
@@ -24,44 +28,53 @@ import ListaProtocolos from './pages/protocolos/ListaProtocolos';
 function App() {
   return (
     <BrowserRouter>
-    <Toaster position="top-right" toastOptions={{ duration: 4000 }} />
+      {/* Notificações globais do sistema */}
+      <Toaster position="top-right" toastOptions={{ duration: 4000 }} />
+      
       <Routes>
-        <Route element={<Layout />}>
-          <Route path="/" element={<Dashboard />} />
-          
-          {/* --- ROTAS DE USINAS --- */}
-          <Route path="/usinas" element={<ListaUsinas />} />
-          <Route path="/usinas/novo" element={<FormularioUsina />} />
-          <Route path="/usinas/:id/editar" element={<FormularioUsina />} />
-          <Route path="/usinas/:id" element={<DetalheUsina />} />
-          
-          {/* --- ROTAS DE CONSUMIDORES --- */}
-          <Route path="/consumidores" element={<ListaConsumidores />} />
-          <Route path="/consumidores/novo" element={<FormularioConsumidor />} />
-          <Route path="/consumidores/:id/editar" element={<FormularioConsumidor />} />
-          <Route path="/consumidores/:id" element={<DetalheConsumidor />} />
+        {/* 1. ROTA PÚBLICA: Acessível por qualquer pessoa */}
+        <Route path="/login" element={<Login />} />
 
-          {/* --- ROTAS DE VÍNCULOS --- */}
-          <Route path="/vinculos" element={<ListaVinculos />} />
-          <Route path="/vinculos/novo" element={<FormularioVinculo />} />
-          <Route path="/vinculos/:id/editar" element={<FormularioVinculo />} />
-          <Route path="/vinculos/:id" element={<DetalheVinculo />} />
-          <Route path="/vinculos/:id/financeiro" element={<FinanceiroVinculo />} />
-          <Route path="/vinculos/:id/auditoria" element={<AuditoriaPage />} />
-          {/* --- ROTAS DE PROPOSTAS (CORRIGIDO) --- */}
-          {/* Lista */}
-          <Route path="/propostas" element={<ListaPropostas />} />
-          
-          {/* Nova Simulação */}
-          <Route path="/propostas/novo" element={<NovoSimulador />} />
-          
-          <Route path="/propostas/:id" element={<NovoSimulador />} />
-          <Route path="/financeiro" element={<FechamentoMensal />} />
-          <Route path="/relatorios" element={<RelatorioRentabilidade />} />
-          <Route path="/recibos" element={<GerenciadorRecibos />} />
-          <Route path="financeiro/minutas" element={<EmitirMinuta />} />
-          <Route path="/protocolos" element={<ListaProtocolos />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
+        {/* 2. ROTAS PROTEGIDAS: Só entra se o crachá (Token) for válido */}
+        <Route element={<ProtectedRoute />}>
+          <Route element={<Layout />}>
+            <Route path="/" element={<Dashboard />} />
+
+            {/* --- MÓDULO DE USINAS --- */}
+            <Route path="/usinas" element={<ListaUsinas />} />
+            <Route path="/usinas/novo" element={<FormularioUsina />} />
+            <Route path="/usinas/:id/editar" element={<FormularioUsina />} />
+            <Route path="/usinas/:id" element={<DetalheUsina />} />
+
+            {/* --- MÓDULO DE CONSUMIDORES --- */}
+            <Route path="/consumidores" element={<ListaConsumidores />} />
+            <Route path="/consumidores/novo" element={<FormularioConsumidor />} />
+            <Route path="/consumidores/:id/editar" element={<FormularioConsumidor />} />
+            <Route path="/consumidores/:id" element={<DetalheConsumidor />} />
+
+            {/* --- MÓDULO DE VÍNCULOS --- */}
+            <Route path="/vinculos" element={<ListaVinculos />} />
+            <Route path="/vinculos/novo" element={<FormularioVinculo />} />
+            <Route path="/vinculos/:id/editar" element={<FormularioVinculo />} />
+            <Route path="/vinculos/:id" element={<DetalheVinculo />} />
+            <Route path="/vinculos/:id/financeiro" element={<FinanceiroVinculo />} />
+            <Route path="/vinculos/:id/auditoria" element={<AuditoriaPage />} />
+
+            {/* --- MÓDULO DE PROPOSTAS & SIMULADORES --- */}
+            <Route path="/propostas" element={<ListaPropostas />} />
+            <Route path="/propostas/novo" element={<NovoSimulador />} />
+            <Route path="/propostas/:id" element={<NovoSimulador />} />
+
+            {/* --- MÓDULO FINANCEIRO & RELATÓRIOS --- */}
+            <Route path="/financeiro" element={<FechamentoMensal />} />
+            <Route path="/financeiro/minutas" element={<EmitirMinuta />} />
+            <Route path="/relatorios" element={<RelatorioRentabilidade />} />
+            <Route path="/recibos" element={<GerenciadorRecibos />} />
+            <Route path="/protocolos" element={<ListaProtocolos />} />
+
+            {/* Redirecionamento de segurança para rotas inexistentes */}
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Route>
         </Route>
       </Routes>
     </BrowserRouter>

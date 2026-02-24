@@ -15,7 +15,7 @@ import entidadesRoutes from './routes/entidades.js';
 import relatoriosRoutes from './routes/relatorios.js';
 import protocolosRoutes from './routes/protocolos.js';
 import dashboardBalancoRoutes from './routes/dashboard_balanco.js';
-
+import { verificarToken } from './middlewares/auth.js';
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -24,19 +24,20 @@ app.use(cors());
 app.use(express.json());
 
 // Registro das Rotas na API
-app.use('/api/usinas', usinasRoutes);
-app.use('/api/vinculos', vinculosRoutes);
-app.use('/api/consumidores', consumidoresRoutes);
-app.use('/api/financeiro', financeiroRoutes);
-app.use('/api/fechamentos', fechamentosRoutes);
-app.use('/api/status', statusRoutes);
-app.use('/api/concessionarias', concessionariasRoutes);
-app.use('/api/cpf_cnpjs', documentosRoutes); 
-app.use('/api/dashboard', dashboardRoutes);
-app.use('/api/propostas', propostasRoutes);
-app.use('/api/entidades', entidadesRoutes);
-app.use('/api/relatorios', relatoriosRoutes);
-app.use('/api/dashboard-balanco', dashboardBalancoRoutes);
+app.use('/api/usinas', verificarToken, usinasRoutes);
+app.use('/api/vinculos', verificarToken, vinculosRoutes);
+app.use('/api/consumidores', verificarToken, consumidoresRoutes);
+app.use('/api/financeiro', verificarToken, financeiroRoutes);
+app.use('/api/fechamentos', verificarToken, fechamentosRoutes);
+app.use('/api/status', verificarToken, statusRoutes);
+app.use('/api/concessionarias', verificarToken, concessionariasRoutes);
+app.use('/api/cpf_cnpjs', verificarToken, documentosRoutes); 
+app.use('/api/dashboard', verificarToken, dashboardRoutes);
+app.use('/api/propostas', verificarToken, propostasRoutes);
+app.use('/api/entidades', verificarToken, entidadesRoutes);
+app.use('/api/relatorios', verificarToken, relatoriosRoutes);
+app.use('/api/dashboard-balanco', verificarToken, dashboardBalancoRoutes);
+app.use('/api/protocolos', verificarToken, protocolosRoutes);
 
 // Rota de Teste (Raiz)
 app.get('/', (req, res) => {
@@ -49,7 +50,6 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: 'Erro interno do servidor', detail: err.message });
 });
 
-app.use('/api/protocolos', protocolosRoutes);
 
 app.listen(port, () => {
   console.log(`⚡ Servidor rodando na porta ${port}`);

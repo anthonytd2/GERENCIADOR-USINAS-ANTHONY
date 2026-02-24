@@ -2,27 +2,62 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { api } from '../../lib/api';
-import { 
-  ArrowLeft, Save, Zap, FileText, User, Mail, Phone, MapPin, 
-  Sun, DollarSign, Calendar, FileDigit, BarChart3, Fingerprint, Activity 
+import {
+  ArrowLeft, Save, Zap, FileText, User, Mail, Phone, MapPin,
+  Sun, DollarSign, Calendar, FileDigit, BarChart3, Fingerprint, Activity
 } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { UsinaFormInput } from '../../types';
 
+// Removi a dependência do tipo externo para evitar erros se ele não estiver atualizado
+// Se quiser usar o UsinaFormInput, lembre-se de adicionar cep, bairro, cidade e uf nele.
 export default function FormularioUsina() {
   const { id } = useParams();
   const navigate = useNavigate();
-  
-  // 'trigger' serve para disparar a validação manual quando clicar nos botões
-  const { register, handleSubmit, setValue, watch, trigger, formState: { errors } } = useForm<UsinaFormInput>();
+
+  const { register, handleSubmit, setValue, watch, trigger, formState: { errors } } = useForm<any>();
   const [loading, setLoading] = useState(false);
-  
-  // Estado visual para os botões
+
+  // --- MÁSCARAS DE DIGITAÇÃO ---
+  const aplicarMascaraDocumento = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let valor = e.target.value.replace(/\D/g, '');
+    if (valor.length <= 11) {
+      valor = valor.replace(/(\d{3})(\d)/, '$1.$2')
+        .replace(/(\d{3})(\d)/, '$1.$2')
+        .replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+    } else {
+      valor = valor.replace(/^(\d{2})(\d)/, '$1.$2')
+        .replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3')
+        .replace(/\.(\d{3})(\d)/, '.$1/$2')
+        .replace(/(\d{4})(\d)/, '$1-$2');
+    }
+    setValue('documento', valor.substring(0, 18), { shouldDirty: true, shouldValidate: true });
+  };
+
+  const aplicarMascaraTelefone = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let valor = e.target.value.replace(/\D/g, '');
+    valor = valor.replace(/^(\d{2})(\d)/g, '($1) $2');
+    valor = valor.replace(/(\d)(\d{4})$/, '$1-$2');
+    setValue('telefone', valor.substring(0, 15), { shouldDirty: true, shouldValidate: true });
+  };
+
+  const aplicarMascaraRG = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let valor = e.target.value.toUpperCase().replace(/[^0-9X]/g, '');
+    valor = valor.replace(/(\d{2})(\d)/, '$1.$2')
+      .replace(/(\d{3})(\d)/, '$1.$2')
+      .replace(/(\d{3})([0-9X]{1,2})$/, '$1-$2');
+    setValue('rg', valor.substring(0, 12), { shouldDirty: true, shouldValidate: true });
+  };
+
+  // 🟢 NOVA MÁSCARA DE CEP
+  const aplicarMascaraCEP = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let valor = e.target.value.replace(/\D/g, '');
+    valor = valor.replace(/^(\d{5})(\d)/, '$1-$2');
+    setValue('cep', valor.substring(0, 9), { shouldDirty: true, shouldValidate: true });
+  };
+
   const [tipoPagamentoVisual, setTipoPagamentoVisual] = useState<string>('');
-  
   const tipoPagamentoForm = watch('tipo_pagamento');
 
-  // Sincroniza visual com o formulário
   useEffect(() => {
     if (tipoPagamentoForm) {
       setTipoPagamentoVisual(tipoPagamentoForm);
@@ -35,29 +70,32 @@ export default function FormularioUsina() {
       api.usinas.get(Number(id))
         .then((data: any) => {
           if (data) {
-            // --- DADOS TÉCNICOS ---
-            setValue('nome', data.nome || data.nome_proprietario); 
-            setValue('numero_uc', data.numero_uc || data.uc_usina); 
+            setValue('nome', data.nome || data.nome_proprietario);
+            setValue('numero_uc', data.numero_uc || data.uc_usina);
             setValue('tipo', data.tipo);
             setValue('potencia', data.potencia);
             setValue('geracao_estimada', data.geracao_estimada);
             setValue('valor_kw_bruto', data.valor_kw_bruto);
 
-            // --- CONTRATO ---
             setValue('inicio_contrato', data.inicio_contrato ? data.inicio_contrato.split('T')[0] : '');
             setValue('vencimento_contrato', data.vencimento_contrato ? data.vencimento_contrato.split('T')[0] : '');
-            
-            // SE VIER NULL DO BANCO (PORQUE VOCÊ LIMPOU), ELE FICA VAZIO E OBRIGA A ESCOLHER
+
             const tipo = data.tipo_pagamento ? data.tipo_pagamento.toUpperCase() : '';
             setValue('tipo_pagamento', tipo);
             setTipoPagamentoVisual(tipo);
 
-            // --- PROPRIETÁRIO ---
-            setValue('cpf_cnpj', data.cpf_cnpj);
+            setValue('documento', data.documento || data.cpf_cnpj);
             setValue('rg', data.rg);
             setValue('telefone', data.telefone);
             setValue('email', data.email);
-            setValue('endereco', data.endereco_proprietario || data.endereco);
+            
+            // 🟢 CARREGA OS NOVOS CAMPOS DE ENDEREÇO
+            setValue('cep', data.cep);
+            setValue('endereco', data.endereco_proprietario || data.endereco); // Usando a coluna antiga como Rua/Logradouro
+            setValue('bairro', data.bairro);
+            setValue('cidade', data.cidade);
+            setValue('uf', data.uf);
+            
             setValue('observacao', data.observacao);
           }
         })
@@ -69,14 +107,13 @@ export default function FormularioUsina() {
     }
   }, [id, setValue]);
 
-  // Função para mudar o valor e avisar o formulário que mudou
   const selecionarTipo = (valor: 'CONSUMO' | 'INJETADO') => {
     setTipoPagamentoVisual(valor);
     setValue('tipo_pagamento', valor, { shouldValidate: true, shouldDirty: true });
-    trigger('tipo_pagamento'); // Remove o erro vermelho na hora
+    trigger('tipo_pagamento');
   };
 
-  const onSubmit = async (data: UsinaFormInput) => {
+  const onSubmit = async (data: any) => {
     setLoading(true);
     const toastId = toast.loading('Salvando dados da usina...');
 
@@ -85,9 +122,16 @@ export default function FormularioUsina() {
         nome: data.nome,
         numero_uc: data.numero_uc,
         tipo: data.tipo,
-        endereco_proprietario: data.endereco, 
-        cpf_cnpj: data.cpf_cnpj,
-        rg: data.rg,
+        
+        // 🟢 ENVIA OS NOVOS CAMPOS DE ENDEREÇO
+        endereco_proprietario: data.endereco, // Mantendo o nome da coluna no banco
+        cep: data.cep ? data.cep.replace(/\D/g, '') : null, // Salva só os números
+        bairro: data.bairro,
+        cidade: data.cidade,
+        uf: data.uf,
+
+        documento: data.documento ? data.documento.replace(/\D/g, '') : null,
+        rg: data.rg ? data.rg.replace(/[^0-9X]/g, '') : null,
         email: data.email,
         telefone: data.telefone,
         observacao: data.observacao,
@@ -96,8 +140,6 @@ export default function FormularioUsina() {
         valor_kw_bruto: Number(data.valor_kw_bruto) || 0,
         inicio_contrato: data.inicio_contrato || null,
         vencimento_contrato: data.vencimento_contrato || null,
-        
-        // Garante envio maiúsculo ou null se vazio (mas a validação barra antes)
         tipo_pagamento: data.tipo_pagamento ? data.tipo_pagamento.toUpperCase() : null
       };
 
@@ -121,8 +163,6 @@ export default function FormularioUsina() {
 
   return (
     <div className="max-w-4xl mx-auto pb-20 animate-fade-in-down">
-
-      {/* HEADER */}
       <div className="mb-8">
         <Link to="/usinas" className="inline-flex items-center gap-2 text-gray-500 hover:text-gray-900 mb-4 font-medium transition-colors">
           <ArrowLeft className="w-5 h-5" /> Voltar à lista
@@ -141,11 +181,9 @@ export default function FormularioUsina() {
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
-
-        {/* --- 1. DADOS TÉCNICOS --- */}
         <div className="bg-white p-8 rounded-2xl shadow-md shadow-yellow-50/50 border border-yellow-100">
           <h3 className="text-lg font-bold text-gray-900 mb-6 flex items-center gap-2 pb-4 border-b border-gray-100">
-            <Zap className="w-5 h-5 text-yellow-500 fill-yellow-500" /> 
+            <Zap className="w-5 h-5 text-yellow-500 fill-yellow-500" />
             Informações Técnicas
           </h3>
 
@@ -179,9 +217,9 @@ export default function FormularioUsina() {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5 ml-1">Tipo da Instalação</label>
                 <div className="relative">
-                  <select 
-                    {...register('tipo')} 
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all appearance-none bg-white"
+                  <select
+                    {...register('tipo')}
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all appearance-none bg-white cursor-pointer"
                   >
                     <option value="Solo">Solo</option>
                     <option value="Telhado">Telhado</option>
@@ -197,10 +235,10 @@ export default function FormularioUsina() {
                 <label className="block text-sm font-bold text-gray-700 mb-1.5 ml-1">Potência (kWp) *</label>
                 <div className="relative">
                   <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-sm font-bold">kWp</span>
-                  <input 
-                    type="number" 
-                    step="0.01" 
-                    {...register('potencia', { required: true })} 
+                  <input
+                    type="number"
+                    step="0.01"
+                    {...register('potencia', { required: true })}
                     className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-yellow-400 focus:border-yellow-400 transition-all font-bold text-gray-800"
                     placeholder="0.00"
                   />
@@ -211,12 +249,12 @@ export default function FormularioUsina() {
                 <label className="block text-sm font-bold text-gray-700 mb-1.5 ml-1">Geração (kWh/mês) *</label>
                 <div className="relative">
                   <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-sm font-bold">kWh</span>
-                  <input 
-                    type="number" 
-                    step="0.01" 
-                    {...register('geracao_estimada', { required: true })} 
+                  <input
+                    type="number"
+                    step="0.01"
+                    {...register('geracao_estimada', { required: true })}
                     className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-yellow-400 focus:border-yellow-400 transition-all font-bold text-gray-800"
-                    placeholder="0.00" 
+                    placeholder="0.00"
                   />
                 </div>
               </div>
@@ -225,10 +263,10 @@ export default function FormularioUsina() {
                 <label className="block text-sm font-bold text-green-700 mb-1.5 ml-1">Valor do kW Bruto (R$) *</label>
                 <div className="relative">
                   <span className="absolute left-4 top-1/2 -translate-y-1/2 text-green-600 font-bold">R$</span>
-                  <input 
-                    type="number" 
-                    step="0.0001" 
-                    {...register('valor_kw_bruto', { required: true })} 
+                  <input
+                    type="number"
+                    step="0.0001"
+                    {...register('valor_kw_bruto', { required: true })}
                     className="w-full pl-10 pr-4 py-3 border border-green-200 bg-white rounded-xl outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all font-bold text-green-800 shadow-sm"
                     placeholder="0.0000"
                   />
@@ -238,26 +276,24 @@ export default function FormularioUsina() {
           </div>
         </div>
 
-        {/* --- 2. DADOS CONTRATUAIS --- */}
         <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-200">
           <h3 className="text-lg font-bold text-gray-900 mb-6 flex items-center gap-2 pb-4 border-b border-gray-100">
-            <FileText className="w-5 h-5 text-blue-500" /> 
+            <FileText className="w-5 h-5 text-blue-500" />
             Dados Contratuais
           </h3>
 
           <div className="space-y-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-3 ml-1">Modalidade do Contrato *</label>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <button
                   type="button"
                   onClick={() => selecionarTipo('CONSUMO')}
-                  className={`relative p-4 rounded-xl border-2 text-left transition-all flex items-center gap-3 ${
-                    tipoPagamentoVisual === 'CONSUMO' 
-                      ? 'border-blue-500 bg-blue-50 ring-1 ring-blue-500' 
-                      : 'border-gray-200 hover:border-blue-200 hover:bg-gray-50'
-                  }`}
+                  className={`relative p-4 rounded-xl border-2 text-left transition-all flex items-center gap-3 ${tipoPagamentoVisual === 'CONSUMO'
+                    ? 'border-blue-500 bg-blue-50 ring-1 ring-blue-500'
+                    : 'border-gray-200 hover:border-blue-200 hover:bg-gray-50'
+                    }`}
                 >
                   <div className={`p-2 rounded-full ${tipoPagamentoVisual === 'CONSUMO' ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-500'}`}>
                     <Activity className="w-5 h-5" />
@@ -271,11 +307,10 @@ export default function FormularioUsina() {
                 <button
                   type="button"
                   onClick={() => selecionarTipo('INJETADO')}
-                  className={`relative p-4 rounded-xl border-2 text-left transition-all flex items-center gap-3 ${
-                    tipoPagamentoVisual === 'INJETADO' 
-                      ? 'border-green-500 bg-green-50 ring-1 ring-green-500' 
-                      : 'border-gray-200 hover:border-green-200 hover:bg-gray-50'
-                  }`}
+                  className={`relative p-4 rounded-xl border-2 text-left transition-all flex items-center gap-3 ${tipoPagamentoVisual === 'INJETADO'
+                    ? 'border-green-500 bg-green-50 ring-1 ring-green-500'
+                    : 'border-gray-200 hover:border-green-200 hover:bg-gray-50'
+                    }`}
                 >
                   <div className={`p-2 rounded-full ${tipoPagamentoVisual === 'INJETADO' ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-500'}`}>
                     <BarChart3 className="w-5 h-5" />
@@ -287,13 +322,11 @@ export default function FormularioUsina() {
                 </button>
               </div>
 
-              {/* INPUT ESCONDIDO OBRIGATÓRIO */}
-              <input 
-                type="hidden" 
-                {...register('tipo_pagamento', { required: 'Selecione uma modalidade de contrato' })} 
+              <input
+                type="hidden"
+                {...register('tipo_pagamento', { required: 'Selecione uma modalidade de contrato' })}
               />
-              
-              {/* MENSAGEM DE ERRO BEM VISÍVEL */}
+
               {errors.tipo_pagamento && (
                 <div className="mt-3 p-3 bg-red-50 text-red-700 rounded-lg border border-red-100 flex items-center gap-2 animate-pulse">
                   <span className="text-xl">⚠️</span>
@@ -307,10 +340,10 @@ export default function FormularioUsina() {
                 <label className="block text-sm font-medium text-gray-700 mb-1.5 ml-1">Início do Contrato</label>
                 <div className="relative">
                   <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                  <input 
-                    type="date" 
-                    {...register('inicio_contrato')} 
-                    className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-gray-600" 
+                  <input
+                    type="date"
+                    {...register('inicio_contrato')}
+                    className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-gray-600"
                   />
                 </div>
               </div>
@@ -318,10 +351,10 @@ export default function FormularioUsina() {
                 <label className="block text-sm font-medium text-gray-700 mb-1.5 ml-1">Vencimento</label>
                 <div className="relative">
                   <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                  <input 
-                    type="date" 
-                    {...register('vencimento_contrato')} 
-                    className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-gray-600" 
+                  <input
+                    type="date"
+                    {...register('vencimento_contrato')}
+                    className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-gray-600"
                   />
                 </div>
               </div>
@@ -329,27 +362,36 @@ export default function FormularioUsina() {
           </div>
         </div>
 
-        {/* --- 3. DADOS DO PROPRIETÁRIO --- */}
         <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-200">
           <h3 className="text-lg font-bold text-gray-900 mb-6 flex items-center gap-2 pb-4 border-b border-gray-100">
-            <User className="w-5 h-5 text-gray-500" /> 
-            Dados do Proprietário
+            <User className="w-5 h-5 text-gray-500" />
+            Dados do Proprietário & Localização
           </h3>
-          
+
           <div className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5 ml-1">CPF / CNPJ</label>
                 <div className="relative">
                   <FileText className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                  <input {...register('cpf_cnpj')} className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 transition-all placeholder:text-gray-300" />
+                  <input
+                    {...register('documento', { onChange: aplicarMascaraDocumento })}
+                    maxLength={18}
+                    className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 transition-all placeholder:text-gray-300"
+                    placeholder="000.000.000-00"
+                  />
                 </div>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5 ml-1">RG</label>
                 <div className="relative">
                   <Fingerprint className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                  <input {...register('rg')} className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 transition-all placeholder:text-gray-300" />
+                  <input
+                    {...register('rg', { onChange: aplicarMascaraRG })}
+                    maxLength={12}
+                    className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 transition-all placeholder:text-gray-300"
+                    placeholder="00.000.000-0"
+                  />
                 </div>
               </div>
               <div>
@@ -363,23 +405,79 @@ export default function FormularioUsina() {
                 <label className="block text-sm font-medium text-gray-700 mb-1.5 ml-1">Telefone</label>
                 <div className="relative">
                   <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                  <input type="tel" {...register('telefone')} className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 transition-all placeholder:text-gray-300" />
-                </div>
-              </div>
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-1.5 ml-1">Endereço Completo</label>
-                <div className="relative">
-                  <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                  <input {...register('endereco')} className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 transition-all placeholder:text-gray-300" />
+                  <input
+                    type="tel"
+                    {...register('telefone', { onChange: aplicarMascaraTelefone })}
+                    maxLength={15}
+                    className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 transition-all placeholder:text-gray-300"
+                    placeholder="(00) 00000-0000"
+                  />
                 </div>
               </div>
             </div>
-            
+
+            {/* 🟢 BLOCO DE ENDEREÇO ATUALIZADO */}
+            <div className="pt-4 border-t border-gray-100 space-y-5">
+              <div className="grid grid-cols-2 gap-5">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5 ml-1">CEP</label>
+                  <input
+                    {...register('cep', { onChange: aplicarMascaraCEP })}
+                    placeholder="00000-000"
+                    maxLength={9}
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all placeholder:text-gray-300"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5 ml-1">Bairro</label>
+                  <input
+                    {...register('bairro')}
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5 ml-1">Logradouro e Número</label>
+                <input
+                  {...register('endereco')}
+                  placeholder="Rua, Avenida, Número..."
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all placeholder:text-gray-300"
+                />
+              </div>
+
+              <div className="grid grid-cols-3 gap-5">
+                <div className="col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5 ml-1">Cidade</label>
+                  <input
+                    {...register('cidade')}
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5 ml-1">UF</label>
+                  <select
+                    {...register('uf')}
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-center font-bold bg-white cursor-pointer appearance-none"
+                  >
+                    <option value="" disabled>--</option>
+                    <option value="AC">AC</option><option value="AL">AL</option><option value="AP">AP</option><option value="AM">AM</option>
+                    <option value="BA">BA</option><option value="CE">CE</option><option value="DF">DF</option><option value="ES">ES</option>
+                    <option value="GO">GO</option><option value="MA">MA</option><option value="MT">MT</option><option value="MS">MS</option>
+                    <option value="MG">MG</option><option value="PA">PA</option><option value="PB">PB</option><option value="PR">PR</option>
+                    <option value="PE">PE</option><option value="PI">PI</option><option value="RJ">RJ</option><option value="RN">RN</option>
+                    <option value="RS">RS</option><option value="RO">RO</option><option value="RR">RR</option><option value="SC">SC</option>
+                    <option value="SP">SP</option><option value="SE">SE</option><option value="TO">TO</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
             <div className="pt-4 border-t border-gray-100">
               <label className="block text-sm font-bold text-gray-700 mb-2 ml-1">Observações Gerais</label>
-              <textarea 
-                {...register('observacao')} 
-                rows={3} 
+              <textarea
+                {...register('observacao')}
+                rows={3}
                 className="w-full px-4 py-3 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 transition-all placeholder:text-gray-300 resize-none"
                 placeholder="Detalhes técnicos adicionais ou anotações..."
               ></textarea>

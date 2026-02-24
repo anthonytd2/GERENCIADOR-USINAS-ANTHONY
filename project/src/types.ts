@@ -1,14 +1,9 @@
-// src/types.ts
-
-// ==========================================
-// 0. USINAS (ADICIONADO AGORA)
-// ==========================================
 export interface Usina {
-  id: number;              // Padronizado
-  nome: string;            // Padronizado
-  uc_usina?: string;       // Padronizado
+  id: number;
+  nome: string;
+  uc_usina?: string;
   
-  // Campos Legados (Para não quebrar código antigo enquanto migra)
+  // Campos Legados
   usina_id?: number;
   nome_proprietario?: string;
   numero_uc?: string; 
@@ -22,10 +17,10 @@ export interface Usina {
   // Contrato
   inicio_contrato?: string;
   vencimento_contrato?: string;
-  tipo_pagamento?: string; // 'INJETADO' | 'CONSUMO'
+  tipo_pagamento?: string; 
   
-  // Proprietário
-  cpf_cnpj?: string;
+  // Proprietário (AQUI MUDOU)
+  documento?: string; // Era cpf_cnpj
   rg?: string;
   endereco?: string;
   telefone?: string;
@@ -48,7 +43,8 @@ export interface UsinaFormInput {
   vencimento_contrato: string;
   tipo_pagamento: string;
   
-  cpf_cnpj: string;
+  // (AQUI MUDOU)
+  documento: string; // Era cpf_cnpj
   rg: string;
   endereco: string;
   telefone: string;

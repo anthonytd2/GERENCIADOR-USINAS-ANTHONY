@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { supabaseClient } from './supabaseClient'; // 🟢 Importante para pegar a sessão
 
 // --- CONFIGURAÇÃO DA BASE URL ---
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
@@ -12,7 +13,29 @@ const axiosInstance = axios.create({
   },
 });
 
-// --- OBJETO API COMPLETO ---
+/**
+ * 🛡️ INTERCEPTOR DE SEGURANÇA
+ * Este código roda automaticamente ANTES de qualquer chamada para o seu backend.
+ * Ele verifica se você está logado e injeta o Token no cabeçalho.
+ */
+axiosInstance.interceptors.request.use(async (config) => {
+  try {
+    // 1. Busca a sessão salva pelo Supabase no seu navegador
+    const { data: { session } } = await supabaseClient.auth.getSession();
+
+    // 2. Se existir um token, adicionamos o "crachá" no formato Bearer
+    if (session?.access_token) {
+      config.headers.Authorization = `Bearer ${session.access_token}`;
+    }
+  } catch (error) {
+    console.error('Erro ao injetar token no Axios:', error);
+  }
+  return config;
+}, (error) => {
+  return Promise.reject(error);
+});
+
+// --- OBJETO API COMPLETO (Mantido igual, apenas usa o axiosInstance já configurado) ---
 export const api = {
   // Configuração genérica
   client: axiosInstance,
@@ -27,8 +50,7 @@ export const api = {
   },
 
   consumidores: {
-    list: () => axiosInstance.get('/consumidores').then((res: any) => res.data),
-    get: (id: number) => axiosInstance.get(`/consumidores/${id}`).then((res: any) => res.data),
+    list: (page = 1, limit = 10) => axiosInstance.get(`/consumidores?page=${page}&limit=${limit}`).then((res: any) => res.data), get: (id: number) => axiosInstance.get(`/consumidores/${id}`).then((res: any) => res.data),
     create: (data: any) => axiosInstance.post('/consumidores', data).then((res: any) => res.data),
     update: (id: number, data: any) => axiosInstance.put(`/consumidores/${id}`, data).then((res: any) => res.data),
     delete: (id: number) => axiosInstance.delete(`/consumidores/${id}`).then((res: any) => res.data),
@@ -109,9 +131,7 @@ export const api = {
   },
 
   dashboardBalanco: {
-    // Busca resumo do mês
     get: (mes?: string) => axiosInstance.get(`/dashboard-balanco${mes ? `?mes=${mes}` : ''}`).then((res) => res.data),
-    // Busca histórico do ano
     getHistorico: (ano: number) => axiosInstance.get(`/dashboard-balanco/historico?ano=${ano}`).then((res) => res.data),
   },
 
@@ -126,14 +146,12 @@ export const api = {
     delete: (id: number) => axiosInstance.delete(`/fechamentos/${id}`).then((res: any) => res.data),
   },
 
-  // --- CORREÇÃO AQUI (Renomeado para documentos) ---
   documentos: {
     list: (tipo: string, id: number) => axiosInstance.get(`/cpf_cnpjs/${tipo}/${id}`).then((res: any) => res.data),
     create: (data: any) => axiosInstance.post('/cpf_cnpjs', data).then((res: any) => res.data),
     delete: (id: number) => axiosInstance.delete(`/cpf_cnpjs/${id}`).then((res: any) => res.data),
   },
 
-  // Mantive 'cpf_cnpjs' como alias para compatibilidade com código antigo
   cpf_cnpjs: {
     list: (tipo: string, id: number) => axiosInstance.get(`/cpf_cnpjs/${tipo}/${id}`).then((res: any) => res.data),
     create: (data: any) => axiosInstance.post('/cpf_cnpjs', data).then((res: any) => res.data),
@@ -147,7 +165,6 @@ export const api = {
     delete: (id: number) => axiosInstance.delete(`/fechamentos/${id}`).then((res: any) => res.data),
   },
 
-  // Métodos genéricos auxiliares
   get: (url: string) => axiosInstance.get(url).then((res: any) => res.data),
   post: (url: string, data: any) => axiosInstance.post(url, data).then((res: any) => res.data),
   put: (url: string, data: any) => axiosInstance.put(url, data).then((res: any) => res.data),

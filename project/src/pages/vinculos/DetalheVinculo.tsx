@@ -9,9 +9,9 @@ import toast from 'react-hot-toast';
 import ModalEditarVinculo from '../../components/ModalEditarVinculo';
 import { gerarContratoComodatoConsumidor, gerarContratoGestaoConsumidor } from '../../utils/gerarContratoWord';
 import ModalConfigurarRateio from '../../components/ModalConfigurarRateio';
-import GerenciadorDocumentos from "../../components/GerenciadorDocumentos"; // Importado
+import GerenciadorDocumentos from "../../components/GerenciadorDocumentos";
 
-// Interface ajustada para o NOVO padrão do banco
+// 🟢 1. INTERFACE ATUALIZADA: Adicionado media_consumo no consumidor
 interface VinculoDetalhado {
   id: number;
   percentual: number;
@@ -26,6 +26,7 @@ interface VinculoDetalhado {
     cpf_cnpj: string;
     cidade: string;
     uf: string;
+    media_consumo?: number; // Adicionado aqui
   };
   usinas: {
     id: number;
@@ -72,11 +73,7 @@ export default function DetalheVinculo() {
     const toastId = toast.loading('Encerrando contrato...');
     try {
       const dataFim = new Date().toISOString().split('T')[0];
-
-      // --- CORREÇÃO DO ERRO ---
-      // Enviamos apenas a string dataFim. O api.ts já monta o objeto JSON.
       await api.vinculos.encerrar(Number(id), dataFim);
-
       toast.success('Vínculo encerrado com sucesso!', { id: toastId });
       loadData();
     } catch (error) {
@@ -121,7 +118,6 @@ export default function DetalheVinculo() {
             <p className="text-gray-500 mt-1">Gestão de vínculo entre Usina e Consumidor</p>
           </div>
 
-          {/* BOTÃO ALTERADO PARA LINK DE EDIÇÃO COMPLETA */}
           <Link
             to={`/vinculos/${vinculo.id}/editar`}
             className="flex items-center gap-2 px-4 py-2 bg-gray-50-card border border-gray-200 text-gray-500 rounded-lg hover:bg-gray-50 hover:text-blue-600 transition-all shadow-sm "
@@ -172,65 +168,92 @@ export default function DetalheVinculo() {
 
       {/* 3. CARDS DE INFORMAÇÃO */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* CARD USINA */}
-        <div className="bg-gray-50-card p-6 rounded-lg shadow-sm border border-gray-200 hover:border-yellow-200 transition-colors group">
-          <div className="flex items-center gap-3 mb-6 border-b border-gray-200 pb-4">
-            <div className="p-2 bg-yellow-100 rounded-lg text-yellow-700">
-              <Zap className="w-5 h-5" />
+
+        {/* --- CARD USINA GERADORA (FONTE) --- */}
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 relative overflow-hidden group hover:border-yellow-300 transition-all">
+          <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+            <Zap size={100} className="text-yellow-500" />
+          </div>
+
+          <div className="flex items-center gap-3 mb-6 border-b border-gray-100 pb-4 relative z-10">
+            <div className="p-2.5 bg-yellow-50 rounded-xl text-yellow-600 border border-yellow-100">
+              <Zap className="w-5 h-5 fill-yellow-500" />
             </div>
             <div>
-              <h3 className="font-bold text-gray-900">Usina Geradora</h3>
-              <p className="text-xs text-gray-500 font-bold uppercase">Fonte</p>
+              <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Fonte</p>
+              <h3 className="font-bold text-gray-900 text-lg">Usina Geradora</h3>
             </div>
           </div>
 
-          <div className="space-y-4">
+          <div className="space-y-5 relative z-10">
             <div>
-              <p className="text-xs text-gray-500 uppercase font-bold mb-1">Proprietário</p>
+              <p className="text-xs text-gray-500 font-bold uppercase mb-1">Nome da Usina</p>
               <Link to={`/usinas/${vinculo.usinas?.id}`} className="font-bold text-lg text-gray-900 hover:text-blue-600 flex items-center gap-2 transition-colors">
-                {vinculo.usinas?.nome} <ExternalLink className="w-3 h-3 text-gray-500" />
+                {vinculo.usinas?.nome} <ExternalLink className="w-3 h-3 text-gray-400" />
               </Link>
             </div>
+
             <div className="grid grid-cols-2 gap-4">
-              <div className="p-3 bg-gray-50 rounded-xl">
-                <p className="text-xs text-gray-500 uppercase font-bold">Potência</p>
-                <p className="font-bold text-gray-900">{vinculo.usinas?.potencia} kWp</p>
+              <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
+                <p className="text-xs text-gray-500 font-bold uppercase mb-1 flex items-center gap-1">
+                  <Activity className="w-3 h-3" /> Potência
+                </p>
+                <p className="font-bold text-gray-900 text-lg">{vinculo.usinas?.potencia} <span className="text-sm font-medium text-gray-500">kWp</span></p>
               </div>
-              <div className="p-3 bg-gray-50 rounded-xl">
-                <p className="text-xs text-gray-500 uppercase font-bold">Tipo</p>
-                <p className="font-bold text-gray-900">{vinculo.usinas?.tipo}</p>
+              <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
+                <p className="text-xs text-gray-500 font-bold uppercase mb-1 flex items-center gap-1">
+                  <Settings className="w-3 h-3" /> Tipo
+                </p>
+                <p className="font-bold text-gray-900 text-lg">{vinculo.usinas?.tipo}</p>
               </div>
             </div>
           </div>
         </div>
 
-        {/* CARD CONSUMIDOR */}
-        <div className="bg-gray-50-card p-6 rounded-lg shadow-sm border border-blue-100 hover:border-blue-200 transition-colors">
-          <div className="flex items-center gap-3 mb-6 border-b border-gray-200 pb-4">
-            <div className="p-2 bg-blue-100 rounded-lg text-blue-700">
-              <User className="w-5 h-5" />
+        {/* --- CARD CONSUMIDOR (BENEFICIÁRIO) --- */}
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 relative overflow-hidden group hover:border-blue-300 transition-all">
+          <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+            <User size={100} className="text-blue-500" />
+          </div>
+
+          <div className="flex items-center gap-3 mb-6 border-b border-gray-100 pb-4 relative z-10">
+            <div className="p-2.5 bg-blue-50 rounded-xl text-blue-600 border border-blue-100">
+              <User className="w-5 h-5 fill-blue-500" />
             </div>
             <div>
-              <h3 className="font-bold text-gray-900">Consumidor</h3>
-              <p className="text-xs text-gray-500 font-bold uppercase">Beneficiário</p>
+              <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Beneficiário</p>
+              <h3 className="font-bold text-gray-900 text-lg">Consumidor</h3>
             </div>
           </div>
 
-          <div className="space-y-4">
+          <div className="space-y-5 relative z-10">
             <div>
-              <p className="text-xs text-gray-500 uppercase font-bold mb-1">Cliente</p>
+              <p className="text-xs text-gray-500 font-bold uppercase mb-1">Cliente</p>
               <Link to={`/consumidores/${vinculo.consumidores?.id}`} className="font-bold text-lg text-gray-900 hover:text-blue-600 flex items-center gap-2 transition-colors">
-                {vinculo.consumidores?.nome} <ExternalLink className="w-3 h-3 text-gray-500" />
+                {vinculo.consumidores?.nome} <ExternalLink className="w-3 h-3 text-gray-400" />
               </Link>
             </div>
+
             <div className="grid grid-cols-2 gap-4">
-              <div className="p-3 bg-gray-50 rounded-xl">
-                <p className="text-xs text-gray-500 uppercase font-bold">CPF/CNPJ</p>
-                <p className=" text-gray-900 text-sm truncate">{vinculo.consumidores?.cpf_cnpj || '-'}</p>
+              {/* 🟢 TROCA FEITA AQUI: Média de Consumo no lugar do CPF */}
+              <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
+                <p className="text-xs text-gray-500 font-bold uppercase mb-1 flex items-center gap-1">
+                  <Activity className="w-3 h-3" /> Média de Consumo
+                </p>
+                <p className="font-bold text-gray-900 text-lg">
+                  {vinculo.consumidores?.media_consumo ? (
+                    <>{vinculo.consumidores.media_consumo} <span className="text-sm font-medium text-gray-500">kWh</span></>
+                  ) : (
+                    <span className="text-gray-400 font-medium text-sm italic">Não informada</span>
+                  )}
+                </p>
               </div>
-              <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-100">
-                <p className="text-xs text-emerald-700 uppercase font-bold">Percentual</p>
-                <p className="font-bold text-xl text-emerald-700">{vinculo.percentual}%</p>
+
+              <div className="p-4 bg-emerald-50 rounded-xl border border-emerald-200">
+                <p className="text-xs text-emerald-700 font-bold uppercase mb-1 flex items-center gap-1">
+                  <CheckCircle className="w-3 h-3" /> Percentual
+                </p>
+                <p className="font-bold text-emerald-700 text-2xl">{vinculo.percentual}<span className="text-lg">%</span></p>
               </div>
             </div>
           </div>
@@ -238,15 +261,17 @@ export default function DetalheVinculo() {
       </div>
 
       {/* 4. BLOCO DE OBSERVAÇÕES */}
-      {vinculo.observacao && (
-        <div className="bg-amber-50 p-6 rounded-lg border border-amber-100">
-          <div className="flex items-center gap-2 mb-2">
-            <FileText className="w-4 h-4 text-amber-600" />
-            <h3 className="font-bold text-amber-800 text-sm uppercase">Observações</h3>
+      {
+        vinculo.observacao && (
+          <div className="bg-amber-50 p-6 rounded-lg border border-amber-100">
+            <div className="flex items-center gap-2 mb-2">
+              <FileText className="w-4 h-4 text-amber-600" />
+              <h3 className="font-bold text-amber-800 text-sm uppercase">Observações</h3>
+            </div>
+            <p className="text-amber-900 text-sm leading-relaxed">{vinculo.observacao}</p>
           </div>
-          <p className="text-amber-900 text-sm leading-relaxed">{vinculo.observacao}</p>
-        </div>
-      )}
+        )
+      }
 
       {/* 5. UNIDADES CONSUMIDORAS (GRID) */}
       <div className="bg-gray-50-card p-6 rounded-lg shadow-sm border border-gray-200">
@@ -348,28 +373,32 @@ export default function DetalheVinculo() {
       </div>
 
       {/* --- MODAIS --- */}
-      {vinculo && (
-        <ModalEditarVinculo
-          isOpen={modalEdicaoAberto}
-          onClose={() => setModalEdicaoAberto(false)}
-          onSuccess={loadData}
-          vinculo={{
-            id: vinculo.id,
-            status_id: vinculo.status_id,
-            observacao: vinculo.observacao
-          }}
-        />
-      )}
+      {
+        vinculo && (
+          <ModalEditarVinculo
+            isOpen={modalEdicaoAberto}
+            onClose={() => setModalEdicaoAberto(false)}
+            onSuccess={loadData}
+            vinculo={{
+              id: vinculo.id,
+              status_id: vinculo.status_id,
+              observacao: vinculo.observacao
+            }}
+          />
+        )
+      }
 
-      {vinculo && (
-        <ModalConfigurarRateio
-          isOpen={modalRateioAberto}
-          onClose={() => setModalRateioAberto(false)}
-          vinculoId={vinculo.id}
-          consumidorId={vinculo.consumidores.id}
-          onSuccess={loadData}
-        />
-      )}
-    </div>
+      {
+        vinculo && (
+          <ModalConfigurarRateio
+            isOpen={modalRateioAberto}
+            onClose={() => setModalRateioAberto(false)}
+            vinculoId={vinculo.id}
+            consumidorId={vinculo.consumidores.id}
+            onSuccess={loadData}
+          />
+        )
+      }
+    </div >
   );
 }

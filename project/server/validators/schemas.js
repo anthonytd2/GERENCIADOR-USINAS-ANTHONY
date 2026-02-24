@@ -1,39 +1,89 @@
 import { z } from 'zod';
 
-// Função auxiliar
+// Função auxiliar para números
 const cleanNumber = (val) => {
   if (typeof val === 'number') return val;
-  if (!val) return 0;
+  if (!val || String(val).trim() === '') return undefined;
   const num = Number(String(val).replace(',', '.'));
-  return isNaN(num) ? 0 : num;
+  return isNaN(num) ? undefined : num;
 };
 
-// Função auxiliar para Strings Opcionais
-const optionalString = z.string().nullish().transform(val => val || null); // Transforma vazio em NULL
+// Função auxiliar para Strings Opcionais (Vazio vira NULL no banco)
+const optionalString = z.string().nullish().transform(val => val || null);
 
+// Validação de CPF (11) ou CNPJ (14)
+const documentoRegex = /^(?:\d{11}|\d{14})$/;
+
+// ==========================================
+// SCHEMA DE USINAS
+// ==========================================
 export const usinaSchema = z.object({
-  // Obrigatório
-  nome_proprietario: z.string().min(1, "Nome é obrigatório"),
-  
-  // Opcionais (Agora "Consumo" ou "Injetado" passam aqui tranquilamente)
+  nome: z.string().min(1, "Nome é obrigatório"),
   tipo: optionalString,
-  tipo_pagamento: optionalString, 
+  tipo_pagamento: optionalString,
   inicio_contrato: optionalString,
   vencimento_contrato: optionalString,
   observacao: optionalString,
-  tipo_remuneracao: optionalString, // Isso evita o erro de constraint "check" enviando NULL
 
-  // Campos Novos
-  cpf_cnpj: optionalString,
+  // Documento: Remove pontos/traços e valida tamanho
+  documento: z.string()
+    .nullish()
+    .refine(val => !val || documentoRegex.test(val.replace(/\D/g, '')), {
+      message: "Documento deve ter 11 (CPF) ou 14 (CNPJ) dígitos"
+    })
+    .transform(val => val ? val.replace(/\D/g, '') : null),
+
   rg: optionalString,
   endereco_proprietario: optionalString,
+
+  // 🟢 ADICIONE ESTAS 4 LINHAS AQUI:
+  cep: optionalString,
+  bairro: optionalString,
+  cidade: optionalString,
+  uf: optionalString,
+
   telefone: optionalString,
   email: optionalString,
-  numero_uc: optionalString,
 
-  // Numéricos
-  potencia: z.preprocess(cleanNumber, z.number().nonnegative()),
+  // UC: Apenas remove caracteres não numéricos
+  numero_uc: z.string()
+    .nullish()
+    .transform(val => val ? val.replace(/\D/g, '') : null),
+
+  // Numéricos (Potência é obrigatória para não quebrar cálculos)
+  potencia: z.preprocess(cleanNumber, z.number({ required_error: "Potência é obrigatória" }).nonnegative()),
   valor_kw_bruto: z.preprocess(cleanNumber, z.number().nonnegative()),
   geracao_estimada: z.preprocess(cleanNumber, z.number().nonnegative()),
   valor_kwh_custo: z.preprocess(cleanNumber, z.number().optional()),
+});
+
+
+// ==========================================
+// SCHEMA DE CONSUMIDORES
+// ==========================================
+export const consumidorSchema = z.object({
+  nome: z.string().min(1, "Nome é obrigatório"),
+
+  // Documento: Usa a mesma regra das usinas (CPF/CNPJ limpos)
+  documento: z.string()
+    .nullish()
+    .refine(val => !val || documentoRegex.test(val.replace(/\D/g, '')), {
+      message: "Documento deve ter 11 (CPF) ou 14 (CNPJ) dígitos"
+    })
+    .transform(val => val ? val.replace(/\D/g, '') : null),
+
+  rg: optionalString,
+  email: optionalString,
+  telefone: optionalString,
+  cep: optionalString,
+  endereco: optionalString,
+  bairro: optionalString,
+  cidade: optionalString,
+  uf: optionalString,
+  observacao: optionalString,
+
+  // Numéricos (Opcionais pois dependem do tipo de contrato do cliente)
+  media_consumo: z.preprocess(cleanNumber, z.number().nonnegative().optional()),
+  percentual_desconto: z.preprocess(cleanNumber, z.number().nonnegative().optional()),
+  valor_kw: z.preprocess(cleanNumber, z.number().nonnegative().optional()),
 });

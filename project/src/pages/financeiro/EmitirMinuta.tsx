@@ -4,6 +4,30 @@ import toast from 'react-hot-toast';
 import { FileText, User, Building, Search, FileDown, RefreshCw, Calculator, Save, Plus } from 'lucide-react';
 import { gerarMinutaPDF } from '../../utils/gerarMinutaPDF';
 
+// --- FUNÇÃO DE MÁSCARA (Coloque após os imports) ---
+const formatarDocumento = (valor: string) => {
+  // Tira tudo que não é número
+  const apenasNumeros = valor.replace(/\D/g, '');
+  
+  // Se for até 11 dígitos, formata como CPF
+  if (apenasNumeros.length <= 11) {
+    return apenasNumeros
+      .replace(/(\d{3})(\d)/, '$1.$2')
+      .replace(/(\d{3})(\d)/, '$1.$2')
+      .replace(/(\d{3})(\d{1,2})/, '$1-$2')
+      .replace(/(-\d{2})\d+?$/, '$1');
+  } 
+  // Se for maior que 11, formata como CNPJ
+  else {
+    return apenasNumeros
+      .replace(/(\d{2})(\d)/, '$1.$2')
+      .replace(/(\d{3})(\d)/, '$1.$2')
+      .replace(/(\d{3})(\d)/, '$1/$2')
+      .replace(/(\d{4})(\d)/, '$1-$2')
+      .replace(/(-\d{2})\d+?$/, '$1');
+  }
+};
+
 export default function EmitirMinuta() {
   const [loading, setLoading] = useState(false);
   
@@ -60,7 +84,7 @@ export default function EmitirMinuta() {
     }
   };
 
-  // --- LÓGICA DE SELEÇÃO CORRIGIDA ---
+  // --- LÓGICA DE SELEÇÃO CORRIGIDA (PASSO 2) ---
   const selecionarConsumidor = (idSelecionado: string) => {
     const selecionado = listaConsumidores.find(c => 
         String(c.id) === idSelecionado || String(c.consumidor_id) === idSelecionado
@@ -70,8 +94,8 @@ export default function EmitirMinuta() {
       setForm(prev => ({
         ...prev,
         consumidor_nome: selecionado.nome || selecionado.razao_social || '',
-        // CORREÇÃO: Agora ele busca a palavra 'documento' primeiro
-        consumidor_doc: selecionado.documento || selecionado.cpf_cnpj || selecionado.cpf || selecionado.cnpj || '',
+        // AQUI: Apliquei a máscara no dado que vem do banco
+        consumidor_doc: formatarDocumento(String(selecionado.documento || selecionado.cpf_cnpj || selecionado.cpf || selecionado.cnpj || '')),
         consumidor_endereco: selecionado.endereco || selecionado.logradouro || '',
         consumidor_inscricao: selecionado.inscricao_estadual || selecionado.ie || 'Isento'
       }));
@@ -88,21 +112,22 @@ export default function EmitirMinuta() {
       setForm(prev => ({
         ...prev,
         gerador_nome: selecionada.nome || selecionada.proprietario || selecionada.nome_proprietario || '',
-        // CORREÇÃO: Adicionado o 'documento' aqui também, por segurança
-        gerador_doc: selecionada.documento || selecionada.cpf_cnpj || ''
+        // AQUI: Apliquei a máscara no dado que vem do banco
+        gerador_doc: formatarDocumento(String(selecionada.documento || selecionada.cpf_cnpj || '')),
       }));
       toast.success("Dados da usina preenchidos!");
     }
   };
 
-  // --- SALVAR NOVO ---
+  // --- SALVAR NOVO (PASSO 4) ---
   const salvarNovoConsumidor = async () => {
     if(!form.consumidor_nome) return toast.error("Preencha o nome do Consumidor");
     try {
         const toastId = toast.loading("Salvando Consumidor...");
         await api.consumidores.create({
             nome: form.consumidor_nome.toUpperCase(),
-            documento: form.consumidor_doc, // Usando 'documento' para casar com o banco
+            // AQUI: Tirei a máscara antes de mandar pro banco
+            documento: form.consumidor_doc.replace(/\D/g, ''), 
             endereco: form.consumidor_endereco.toUpperCase(),
             inscricao_estadual: form.consumidor_inscricao
         });
@@ -120,7 +145,8 @@ export default function EmitirMinuta() {
         const toastId = toast.loading("Salvando Usina...");
         await api.usinas.create({
             nome: form.gerador_nome.toUpperCase(),
-            cpf_cnpj: form.gerador_doc, // Pode precisar ajustar para 'documento' se a API exigir
+            // AQUI: Tirei a máscara antes de mandar pro banco
+            cpf_cnpj: form.gerador_doc.replace(/\D/g, ''), 
             nome_proprietario: form.gerador_nome.toUpperCase(),
             tipo: 'SOLAR',
             potencia: 0
@@ -133,12 +159,23 @@ export default function EmitirMinuta() {
     }
   };
 
+  // --- (PASSO 3) FORMATAÇÃO AO DIGITAR ---
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    // Transforma em maiúsculo automaticamente os campos de texto, exceto valores
     const name = e.target.name;
-    const value = (name === 'valor_recebido' || name === 'valor_pago' || name === 'data_emissao') 
-      ? e.target.value 
-      : e.target.value.toUpperCase();
+    let value = e.target.value;
+
+    // Se o campo for de documento, aplica a máscara
+    if (name === 'consumidor_doc' || name === 'gerador_doc') {
+      value = formatarDocumento(value);
+    } 
+    // Se for valor ou data, não altera caixa alta
+    else if (name === 'valor_recebido' || name === 'valor_pago' || name === 'data_emissao') {
+      value = e.target.value;
+    } 
+    // O resto fica em maiúsculo
+    else {
+      value = e.target.value.toUpperCase();
+    }
 
     setForm({ ...form, [name]: value });
   };

@@ -8,6 +8,32 @@ import Skeleton from '../../components/Skeleton';
 import toast from 'react-hot-toast';
 import ModalConfirmacao from '../../components/ModalConfirmacao';
 
+// --- FUNÇÃO DE MÁSCARA ---
+const formatarDocumento = (valor?: string) => {
+  if (!valor) return '';
+  
+  // Tira tudo que não é número
+  const apenasNumeros = valor.replace(/\D/g, '');
+  
+  // Se for até 11 dígitos, formata como CPF
+  if (apenasNumeros.length <= 11) {
+    return apenasNumeros
+      .replace(/(\d{3})(\d)/, '$1.$2')
+      .replace(/(\d{3})(\d)/, '$1.$2')
+      .replace(/(\d{3})(\d{1,2})/, '$1-$2')
+      .replace(/(-\d{2})\d+?$/, '$1');
+  } 
+  // Se for maior que 11, formata como CNPJ
+  else {
+    return apenasNumeros
+      .replace(/(\d{2})(\d)/, '$1.$2')
+      .replace(/(\d{3})(\d)/, '$1.$2')
+      .replace(/(\d{3})(\d)/, '$1/$2')
+      .replace(/(\d{4})(\d)/, '$1-$2')
+      .replace(/(-\d{2})\d+?$/, '$1');
+  }
+};
+
 interface Consumidor {
   consumidor_id: number;
   nome: string;
@@ -178,7 +204,8 @@ export default function ListaConsumidores() {
                       {c.documento && (
                         <span className="text-xs font-medium text-gray-500 flex items-center gap-1 bg-gray-100 px-2 py-1 rounded-md font-mono">
                           <Wallet className="w-3 h-3 text-gray-400" />
-                          {c.documento}
+                          {/* 🟢 AQUI: O DOCUMENTO FOI FORMATADO PARA EXIBIÇÃO */}
+                          {formatarDocumento(c.documento)}
                         </span>
                       )}
                     </div>

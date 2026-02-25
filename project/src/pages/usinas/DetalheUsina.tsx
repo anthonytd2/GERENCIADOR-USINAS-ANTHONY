@@ -12,6 +12,32 @@ import Skeleton from '../../components/Skeleton';
 import toast from 'react-hot-toast';
 import ModalConfirmacao from '../../components/ModalConfirmacao';
 
+// --- FUNÇÃO DE MÁSCARA ---
+const formatarDocumento = (valor?: string) => {
+  if (!valor) return '';
+  
+  // Tira tudo que não é número
+  const apenasNumeros = valor.replace(/\D/g, '');
+  
+  // Se for até 11 dígitos, formata como CPF
+  if (apenasNumeros.length <= 11) {
+    return apenasNumeros
+      .replace(/(\d{3})(\d)/, '$1.$2')
+      .replace(/(\d{3})(\d)/, '$1.$2')
+      .replace(/(\d{3})(\d{1,2})/, '$1-$2')
+      .replace(/(-\d{2})\d+?$/, '$1');
+  } 
+  // Se for maior que 11, formata como CNPJ
+  else {
+    return apenasNumeros
+      .replace(/(\d{2})(\d)/, '$1.$2')
+      .replace(/(\d{3})(\d)/, '$1.$2')
+      .replace(/(\d{3})(\d)/, '$1/$2')
+      .replace(/(\d{4})(\d)/, '$1-$2')
+      .replace(/(-\d{2})\d+?$/, '$1');
+  }
+};
+
 export default function DetalheUsina() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -124,7 +150,6 @@ export default function DetalheUsina() {
               </h1>
               <span className="text-gray-500 text-sm flex items-center gap-1 mt-1">
                 <MapPin className="w-4 h-4 text-gray-400" />
-                {/* Usa o logradouro base aqui no header */}
                 {logradouro || 'Endereço não informado'}...
               </span>
             </div>
@@ -262,9 +287,13 @@ export default function DetalheUsina() {
               <div>
                 <p className="text-xs text-gray-500 mb-1">CPF / CNPJ</p>
                 <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium text-gray-700">{usina.documento || usina.cpf_cnpj || '-'}</span>
+                  <span className="text-sm font-medium text-gray-700">{formatarDocumento(usina.documento || usina.cpf_cnpj) || '-'}</span>
                   {(usina.documento || usina.cpf_cnpj) && (
-                    <button onClick={() => copiarTexto(usina.documento || usina.cpf_cnpj)} className="text-blue-400 hover:text-blue-600" title="Copiar">
+                    <button 
+                      onClick={() => copiarTexto(formatarDocumento(usina.documento || usina.cpf_cnpj) as string)} 
+                      className="text-blue-400 hover:text-blue-600" 
+                      title="Copiar"
+                    >
                       <Copy className="w-3 h-3" />
                     </button>
                   )}
@@ -315,36 +344,31 @@ export default function DetalheUsina() {
               </div>
             </div>
 
-            {/* 🟢 ENDEREÇO DETALHADO (NOVO PADRÃO VERTICAL) */}
+            {/* ENDEREÇO DETALHADO */}
             <div className="pt-4 border-t border-gray-100">
               <p className="text-xs text-gray-500 font-bold mb-2 flex items-center gap-1 uppercase">
                 <MapPin className="w-3 h-3" /> LOCALIZAÇÃO DA USINA
               </p>
               
               <div className="bg-gray-50 p-3 rounded-xl border border-gray-200 text-sm font-medium text-gray-800 leading-relaxed">
-                {/* Linha 1: Rua */}
                 {(usina.endereco || usina.endereco_proprietario) && (
                   <p>Endereço: {usina.endereco || usina.endereco_proprietario}</p>
                 )}
                 
-                {/* Linha 2: Bairro */}
                 {usina.bairro && (
                   <p>Bairro {usina.bairro.toUpperCase()}</p>
                 )}
                 
-                {/* Linha 3: Cidade e UF */}
                 {(usina.cidade || usina.uf) && (
                   <p className="uppercase">
                     {usina.cidade || ''} {usina.cidade && usina.uf ? '-' : ''} {usina.uf || ''}
                   </p>
                 )}
                 
-                {/* Linha 4: CEP */}
                 {usina.cep && (
                   <p>CEP: {usina.cep.replace(/^(\d{5})(\d)/, '$1-$2')}</p>
                 )}
 
-                {/* Mensagem caso não tenha nada cadastrado */}
                 {!usina.endereco && !usina.endereco_proprietario && !usina.bairro && !usina.cidade && !usina.cep && (
                   <p className="text-gray-400 font-normal italic">Endereço não informado.</p>
                 )}

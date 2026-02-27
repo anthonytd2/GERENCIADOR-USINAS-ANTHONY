@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { supabaseClient } from './supabaseClient'; // 🟢 Importante para pegar a sessão
+import toast from 'react-hot-toast'; // 🟢 NOVO: Importamos o toast para dar o aviso amigável
 
 // --- CONFIGURAÇÃO DA BASE URL ---
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
@@ -14,16 +15,12 @@ const axiosInstance = axios.create({
 });
 
 /**
- * 🛡️ INTERCEPTOR DE SEGURANÇA
- * Este código roda automaticamente ANTES de qualquer chamada para o seu backend.
- * Ele verifica se você está logado e injeta o Token no cabeçalho.
+ * 🛡️ INTERCEPTOR DE REQUISIÇÃO
+ * Roda ANTES de ir para o backend. Injeta o Token no cabeçalho.
  */
 axiosInstance.interceptors.request.use(async (config) => {
   try {
-    // 1. Busca a sessão salva pelo Supabase no seu navegador
     const { data: { session } } = await supabaseClient.auth.getSession();
-
-    // 2. Se existir um token, adicionamos o "crachá" no formato Bearer
     if (session?.access_token) {
       config.headers.Authorization = `Bearer ${session.access_token}`;
     }
@@ -35,7 +32,39 @@ axiosInstance.interceptors.request.use(async (config) => {
   return Promise.reject(error);
 });
 
-// --- OBJETO API COMPLETO (Mantido igual, apenas usa o axiosInstance já configurado) ---
+/**
+ * 🛡️ INTERCEPTOR DE RESPOSTA (O Cão de Guarda da Sessão)
+ * 🟢 NOVO: Roda DEPOIS que o backend responde. Se for 401, expulsa para o login de forma elegante.
+ */
+axiosInstance.interceptors.response.use(
+  (response) => {
+    // Se a requisição deu certo (200, 201), apenas repassa a resposta adiante
+    return response;
+  },
+  async (error) => {
+    // Verifica se o servidor recusou por token inválido/expirado (401)
+    if (error.response && error.response.status === 401) {
+      console.warn("🚨 Sessão expirada. Deslogando usuário de forma segura...");
+      
+      // 1. Limpa a sessão oficialmente no Supabase
+      await supabaseClient.auth.signOut();
+      
+      // 2. Dá o feedback visual para o Anthony/Usuário
+      toast.error('Sessão expirada por segurança. Por favor, faça login novamente.', {
+        duration: 5000,
+        position: 'top-center',
+      });
+      
+      // 3. Redireciona para o login (usa o window.location para forçar a limpeza do React)
+      window.location.href = '/login';
+    }
+
+    // Para outros erros (400, 500), repassa para o componente tratar
+    return Promise.reject(error);
+  }
+);
+
+// --- OBJETO API COMPLETO ---
 export const api = {
   // Configuração genérica
   client: axiosInstance,
@@ -50,7 +79,8 @@ export const api = {
   },
 
   consumidores: {
-    list: (page = 1, limit = 10) => axiosInstance.get(`/consumidores?page=${page}&limit=${limit}`).then((res: any) => res.data), get: (id: number) => axiosInstance.get(`/consumidores/${id}`).then((res: any) => res.data),
+    list: (page = 1, limit = 10) => axiosInstance.get(`/consumidores?page=${page}&limit=${limit}`).then((res: any) => res.data), 
+    get: (id: number) => axiosInstance.get(`/consumidores/${id}`).then((res: any) => res.data),
     create: (data: any) => axiosInstance.post('/consumidores', data).then((res: any) => res.data),
     update: (id: number, data: any) => axiosInstance.put(`/consumidores/${id}`, data).then((res: any) => res.data),
     delete: (id: number) => axiosInstance.delete(`/consumidores/${id}`).then((res: any) => res.data),

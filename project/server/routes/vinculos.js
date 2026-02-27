@@ -18,7 +18,7 @@ const vinculoSchema = z.object({
 // ROTAS PRINCIPAIS (CRUD VÍNCULOS)
 // ==========================================
 
-// 1. LISTAR TODOS
+// 1. LISTAR TODOS (Mantém supabase global)
 router.get('/', async (req, res) => {
   try {
     const { data, error } = await supabase
@@ -40,7 +40,7 @@ router.get('/', async (req, res) => {
   }
 });
 
-// 2. BUSCAR UM (DETALHES)
+// 2. BUSCAR UM (DETALHES) (Mantém supabase global)
 router.get('/:id', async (req, res) => {
   try {
     const { id } = req.params;
@@ -87,7 +87,7 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// 3. CRIAR VÍNCULO
+// 3. CRIAR VÍNCULO (🟢 MUDOU PARA req.supabase)
 router.post('/', async (req, res) => {
   try {
     let dataInicio = req.body.data_inicio;
@@ -103,7 +103,7 @@ router.post('/', async (req, res) => {
       observacao: req.body.observacao || req.body.observacoes
     };
 
-    const { data: usinaOcupada } = await supabase
+    const { data: usinaOcupada } = await req.supabase
       .from('vinculos')
       .select('id')
       .eq('usina_id', payload.usina_id)
@@ -113,7 +113,7 @@ router.post('/', async (req, res) => {
 
     if (usinaOcupada) return res.status(400).json({ error: 'Usina já possui contrato ativo.' });
 
-    const { data: consumidorOcupado } = await supabase
+    const { data: consumidorOcupado } = await req.supabase
       .from('vinculos')
       .select('id')
       .eq('consumidor_id', payload.consumidor_id)
@@ -123,7 +123,7 @@ router.post('/', async (req, res) => {
 
     if (consumidorOcupado) return res.status(400).json({ error: 'Consumidor já possui contrato ativo.' });
 
-    const { data: novoVinculo, error } = await supabase
+    const { data: novoVinculo, error } = await req.supabase
       .from('vinculos')
       .insert([payload])
       .select()
@@ -138,7 +138,7 @@ router.post('/', async (req, res) => {
         unidade_consumidora_id: ucId,
         percentual_rateio: 0
       }));
-      await supabase.from('unidades_vinculadas').insert(ucsParaInserir);
+      await req.supabase.from('unidades_vinculadas').insert(ucsParaInserir);
     }
 
     res.status(201).json(novoVinculo);
@@ -148,7 +148,7 @@ router.post('/', async (req, res) => {
   }
 });
 
-// 4. ATUALIZAR
+// 4. ATUALIZAR (🟢 MUDOU PARA req.supabase)
 router.put('/:id', async (req, res) => {
   try {
     const { id } = req.params;
@@ -159,7 +159,7 @@ router.put('/:id', async (req, res) => {
       data_fim: req.body.data_fim || null 
     };
 
-    const { data, error } = await supabase
+    const { data, error } = await req.supabase
       .from('vinculos')
       .update(dados)
       .eq('id', id)
@@ -173,13 +173,13 @@ router.put('/:id', async (req, res) => {
   }
 });
 
-// 5. ENCERRAR
+// 5. ENCERRAR (🟢 MUDOU PARA req.supabase)
 router.put('/:id/encerrar', async (req, res) => {
   try {
     const { id } = req.params;
     const { data_fim } = req.body;
 
-    const { data, error } = await supabase
+    const { data, error } = await req.supabase
       .from('vinculos')
       .update({ data_fim, status_id: 2 })
       .eq('id', id)
@@ -192,15 +192,12 @@ router.put('/:id/encerrar', async (req, res) => {
   }
 });
 
-// 6. DELETAR (🟢 SOFT DELETE)
+// 6. DELETAR / SOFT DELETE (🟢 MUDOU PARA req.supabase)
 router.delete('/:id', async (req, res) => {
   try {
     const { id } = req.params;
     
-    // Não precisa mais deletar as filhas (auditorias), pois elas estão amarradas
-    // a um vínculo que agora só está "invisível" (Soft Delete).
-    
-    const { error } = await supabase
+    const { error } = await req.supabase
       .from('vinculos')
       .update({ deleted_at: new Date().toISOString() }) // Ao invés de .delete()
       .eq('id', id);
@@ -216,7 +213,7 @@ router.delete('/:id', async (req, res) => {
 // ROTAS DE AUDITORIA 
 // ==========================================
 
-// 1. LISTAR AUDITORIAS DO VÍNCULO
+// 1. LISTAR AUDITORIAS DO VÍNCULO (Mantém supabase global)
 router.get('/:id/auditorias', async (req, res) => {
   try {
     const { data, error } = await supabase
@@ -245,7 +242,7 @@ router.get('/:id/auditorias', async (req, res) => {
   }
 });
 
-// 2. CRIAR NOVA AUDITORIA
+// 2. CRIAR NOVA AUDITORIA (🟢 MUDOU PARA req.supabase)
 router.post('/:id/auditorias', async (req, res) => {
   try {
     const vinculo_id = req.params.id;
@@ -269,7 +266,7 @@ router.post('/:id/auditorias', async (req, res) => {
         saldo_final: saldoFinalTotal
     };
 
-    const { data: auditoria, error: errAuditoria } = await supabase
+    const { data: auditoria, error: errAuditoria } = await req.supabase
       .from('auditorias_vinculos')
       .insert([dadosParaSalvar])
       .select()
@@ -289,7 +286,7 @@ router.post('/:id/auditorias', async (req, res) => {
         data_leitura: item.data_leitura || (dadosCabecalho.mes_referencia + '-01')
       }));
 
-      const { error: errFaturas } = await supabase
+      const { error: errFaturas } = await req.supabase
         .from('auditorias_faturas')
         .insert(itensParaSalvar);
 
@@ -305,7 +302,7 @@ router.post('/:id/auditorias', async (req, res) => {
   }
 });
 
-// 3. ATUALIZAR AUDITORIA
+// 3. ATUALIZAR AUDITORIA (🟢 MUDOU PARA req.supabase)
 router.put('/auditorias/:auditoriaId', async (req, res) => {
   try {
     const { faturas, ...dadosCabecalho } = req.body;
@@ -327,7 +324,7 @@ router.put('/auditorias/:auditoriaId', async (req, res) => {
         saldo_final: saldoFinalTotal
     };
 
-    const { error: errPai } = await supabase
+    const { error: errPai } = await req.supabase
       .from('auditorias_vinculos')
       .update(dadosParaAtualizar)
       .eq('id', req.params.auditoriaId);
@@ -335,7 +332,7 @@ router.put('/auditorias/:auditoriaId', async (req, res) => {
     if (errPai) throw errPai;
 
     if (faturas) {
-      await supabase.from('auditorias_faturas').delete().eq('auditoria_id', req.params.auditoriaId);
+      await req.supabase.from('auditorias_faturas').delete().eq('auditoria_id', req.params.auditoriaId);
 
       const itensParaSalvar = faturas.map(item => ({
         auditoria_id: req.params.auditoriaId,
@@ -348,7 +345,7 @@ router.put('/auditorias/:auditoriaId', async (req, res) => {
         data_leitura: item.data_leitura
       }));
 
-      await supabase.from('auditorias_faturas').insert(itensParaSalvar);
+      await req.supabase.from('auditorias_faturas').insert(itensParaSalvar);
     }
 
     res.json({ message: 'Atualizado com sucesso' });
@@ -357,10 +354,10 @@ router.put('/auditorias/:auditoriaId', async (req, res) => {
   }
 });
 
-// 4. DELETAR AUDITORIA
+// 4. DELETAR AUDITORIA (🟢 MUDOU PARA req.supabase)
 router.delete('/auditorias/:auditoriaId', async (req, res) => {
   try {
-    const { error } = await supabase
+    const { error } = await req.supabase
       .from('auditorias_vinculos')
       .delete()
       .eq('id', req.params.auditoriaId);
@@ -376,11 +373,12 @@ router.delete('/auditorias/:auditoriaId', async (req, res) => {
 // ROTAS DE RATEIO
 // ==========================================
 
+// (🟢 MUDOU PARA req.supabase)
 router.post('/:id/unidades', async (req, res) => {
   try {
     const vinculo_id = req.params.id;
     const { unidade_consumidora_id, percentual_rateio } = req.body;
-    const { data, error } = await supabase
+    const { data, error } = await req.supabase
       .from('unidades_vinculadas')
       .insert([{ vinculo_id, unidade_consumidora_id, percentual_rateio }])
       .select().single();
@@ -389,10 +387,11 @@ router.post('/:id/unidades', async (req, res) => {
   } catch (error) { res.status(500).json({ error: error.message }); }
 });
 
+// (🟢 MUDOU PARA req.supabase)
 router.put('/unidades_vinculadas/:linkId', async (req, res) => {
   try {
     const { percentual_rateio } = req.body;
-    const { error } = await supabase
+    const { error } = await req.supabase
       .from('unidades_vinculadas')
       .update({ percentual_rateio })
       .eq('id', req.params.linkId);
@@ -401,9 +400,10 @@ router.put('/unidades_vinculadas/:linkId', async (req, res) => {
   } catch (error) { res.status(500).json({ error: error.message }); }
 });
 
+// (🟢 MUDOU PARA req.supabase)
 router.delete('/unidades_vinculadas/:linkId', async (req, res) => {
   try {
-    const { error } = await supabase.from('unidades_vinculadas').delete().eq('id', req.params.linkId);
+    const { error } = await req.supabase.from('unidades_vinculadas').delete().eq('id', req.params.linkId);
     if (error) throw error;
     res.json({ message: 'Removido' });
   } catch (error) { res.status(500).json({ error: error.message }); }

@@ -6,6 +6,16 @@ import GerenciadorDocumentos from "../../components/GerenciadorDocumentos";
 import ModalConfirmacao from '../../components/ModalConfirmacao';
 import { formatarDocumento } from '../../components/formatters';
 
+// 🟢 MÁSCARA EXCLUSIVA PARA RG (Para exibir na tela bonitinho)
+const formatarRG = (valor?: string) => {
+  if (!valor) return '-';
+  if (/[a-zA-Z]/.test(valor)) return valor; // Se tiver letra, não mexe
+  const apenasNumeros = valor.replace(/\D/g, '');
+  if (apenasNumeros.length === 9) return apenasNumeros.replace(/(\d{2})(\d{3})(\d{3})(\d{1})/, '$1.$2.$3-$4');
+  if (apenasNumeros.length === 8) return apenasNumeros.replace(/(\d{1})(\d{3})(\d{3})(\d{1})/, '$1.$2.$3-$4');
+  return valor; 
+};
+
 export default function DetalheConsumidor() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -27,7 +37,6 @@ export default function DetalheConsumidor() {
     cep: '',
     media_consumo: ''
   });
-
 
   useEffect(() => {
     carregarDados();
@@ -114,23 +123,43 @@ export default function DetalheConsumidor() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
 
-        {/* CARTÃO 1: DADOS PESSOAIS (Agora inclui Nome e Documento) */}
+        {/* CARTÃO 1: DADOS PESSOAIS */}
         <div className="bg-gray-50-card p-6 rounded-lg shadow-sm border border-gray-200">
           <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2 border-b pb-2">
             <User className="w-5 h-5 text-blue-600" /> Dados Pessoais
           </h3>
           <div className="space-y-4 text-gray-700">
 
-            {/* Nome e Documento */}
+            {/* Nome */}
             <div>
               <p className="text-xs text-gray-500 font-bold uppercase mb-1">Nome Completo</p>
               <p className="font-bold text-lg text-gray-900">{consumidor.nome}</p>
             </div>
-            <div>
-              <p className="text-xs text-gray-500 font-bold uppercase mb-1">CPF / CNPJ</p>
-              <p className="font-mono bg-gray-50 inline-block px-2 py-1 rounded text-gray-900 border border-gray-200">
-                {formatarDocumento(consumidor.documento || consumidor.cpf_cnpj)}
-              </p>
+
+            {/* Grid Documentos: CPF, RG e Inscrição Estadual */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
+              <div>
+                <p className="text-xs text-gray-500 font-bold uppercase mb-1">CPF / CNPJ</p>
+                <p className="font-mono bg-gray-50 inline-block px-2 py-1 rounded text-gray-900 border border-gray-200">
+                  {formatarDocumento(consumidor.documento || consumidor.cpf_cnpj)}
+                </p>
+              </div>
+              
+              {/* 🟢 RG */}
+              <div>
+                <p className="text-xs text-gray-500 font-bold uppercase mb-1">RG</p>
+                <p className="font-mono bg-gray-50 inline-block px-2 py-1 rounded text-gray-900 border border-gray-200">
+                  {formatarRG(consumidor.rg)}
+                </p>
+              </div>
+
+              {/* 🟢 INSCRIÇÃO ESTADUAL */}
+              <div>
+                <p className="text-xs text-gray-500 font-bold uppercase mb-1">Insc. Estadual</p>
+                <p className="font-mono bg-gray-50 inline-block px-2 py-1 rounded text-gray-900 border border-gray-200">
+                  {consumidor.inscricao_estadual || '-'}
+                </p>
+              </div>
             </div>
 
             {/* Contatos */}

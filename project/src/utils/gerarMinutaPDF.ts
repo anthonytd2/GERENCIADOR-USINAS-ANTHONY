@@ -44,7 +44,6 @@ export const gerarMinutaPDF = (form: any, resultado: any) => {
   doc.setFontSize(10);
   doc.setTextColor("#94a3b8"); // Cinza claro
   doc.setFont("helvetica", "normal");
-  // Texto corrigido
   doc.text("Documento auxiliar para emissão de Nota Fiscal de Serviço", margemEsq, y);
 
   // Box de Data no Topo Direita
@@ -63,10 +62,11 @@ export const gerarMinutaPDF = (form: any, resultado: any) => {
   // --- 2. BLOCOS LADO A LADO: TOMADOR E PRESTADOR ---
   y = 55;
   const larguraBox = (larguraUtil - 5) / 2; // 5 é o espaçamento entre as caixas
+  const alturaBox = 65; // 🟢 Aumentado um pouquinho para alinhar perfeitamente
 
   // CAIXA 1: TOMADOR (QUEM PAGA)
   doc.setFillColor(corCinzaClaro);
-  doc.roundedRect(margemEsq, y, larguraBox, 45, 3, 3, 'F');
+  doc.roundedRect(margemEsq, y, larguraBox, alturaBox, 3, 3, 'F');
   
   doc.setFontSize(8);
   doc.setFont("helvetica", "bold");
@@ -81,15 +81,18 @@ export const gerarMinutaPDF = (form: any, resultado: any) => {
   doc.setFontSize(9);
   doc.setTextColor(corCinzaEscuro);
   doc.setFont("helvetica", "normal");
-  doc.text(`CNPJ/CPF: ${form.consumidor_doc || '-'}`, margemEsq + 5, y + 25);
-  doc.text(`IE: ${form.consumidor_inscricao || '-'}`, margemEsq + 5, y + 31);
+  
+  doc.text(`CNPJ/CPF: ${form.consumidor_doc || '-'}`, margemEsq + 5, y + 26);
+  doc.text(`IE: ${form.consumidor_inscricao || '-'}`, margemEsq + 5, y + 32);
+  doc.text(`E-mail: ${form.consumidor_email || '-'}`, margemEsq + 5, y + 38);
+  
   const endCliente = doc.splitTextToSize(`Endereço: ${form.consumidor_endereco || '-'}`, larguraBox - 10);
-  doc.text(endCliente, margemEsq + 5, y + 37);
+  doc.text(endCliente, margemEsq + 5, y + 44);
 
   // CAIXA 2: PRESTADOR (USINA)
   const margemEsqCaixa2 = margemEsq + larguraBox + 5;
   doc.setFillColor(corCinzaClaro);
-  doc.roundedRect(margemEsqCaixa2, y, larguraBox, 45, 3, 3, 'F');
+  doc.roundedRect(margemEsqCaixa2, y, larguraBox, alturaBox, 3, 3, 'F');
   
   doc.setFontSize(8);
   doc.setFont("helvetica", "bold");
@@ -104,10 +107,17 @@ export const gerarMinutaPDF = (form: any, resultado: any) => {
   doc.setFontSize(9);
   doc.setTextColor(corCinzaEscuro);
   doc.setFont("helvetica", "normal");
-  doc.text(`CNPJ/CPF: ${form.gerador_doc || '-'}`, margemEsqCaixa2 + 5, y + 25);
+  
+  // 🟢 DADOS DA USINA AGORA ESTÃO PERFEITAMENTE ALINHADOS COM OS DO TOMADOR
+  doc.text(`CNPJ/CPF: ${form.gerador_doc || '-'}`, margemEsqCaixa2 + 5, y + 26);
+  doc.text(`IE: ${form.gerador_inscricao || '-'}`, margemEsqCaixa2 + 5, y + 32);
+  doc.text(`E-mail: ${form.gerador_email || '-'}`, margemEsqCaixa2 + 5, y + 38);
+  
+  const endUsina = doc.splitTextToSize(`Endereço: ${form.gerador_endereco || '-'}`, larguraBox - 10);
+  doc.text(endUsina, margemEsqCaixa2 + 5, y + 44);
 
   // --- 3. TABELA DE DEMONSTRATIVO FINANCEIRO ---
-  y += 60;
+  y += 80; // 🟢 Ajustado para a tabela não colar nas caixas novas
   
   // Título da Seção
   doc.setFontSize(12);
@@ -170,10 +180,9 @@ export const gerarMinutaPDF = (form: any, resultado: any) => {
   doc.setFontSize(9);
   doc.setFont("helvetica", "normal");
   doc.setTextColor(corCinzaMedio);
-  doc.text(`Margem de Lucro Bruto Operacional: ${resultado.margem.toFixed(2)}%`, margemDir, y, { align: "right" });
 
   // --- 4. ASSINATURAS (OPCIONAL, MAS DEIXA PROFISSIONAL) ---
-  y += 60;
+  y += 45;
   
   // Linha de assinatura
   doc.setDrawColor(corCinzaMedio);
@@ -189,7 +198,7 @@ export const gerarMinutaPDF = (form: any, resultado: any) => {
   doc.setFontSize(7);
   doc.setFont("helvetica", "normal");
   doc.setTextColor(corCinzaMedio);
-  doc.text(`Gerado em ${new Date().toLocaleString('pt-BR')} via Sistema de Locação Solar.`, 105, 290, { align: "center" });
+  doc.text(`Gerado em ${new Date().toLocaleString('pt-BR')} via Sistema de Gestão Solar.`, 105, 290, { align: "center" });
   
   // Linha colorida na base da página
   doc.setFillColor(corAzul);

@@ -42,11 +42,15 @@ export default function EmitirMinuta() {
     consumidor_nome: '',
     consumidor_doc: '',
     consumidor_endereco: '',
+    consumidor_email: '',
     consumidor_inscricao: '',
     valor_recebido: '',
     
     gerador_nome: '',
     gerador_doc: '',
+    gerador_inscricao: '', // 🟢 ESTADO NOVO ADICIONADO AQUI
+    gerador_endereco: '',
+    gerador_email: '',
     valor_pago: '',
     
     data_emissao: new Date().toISOString().slice(0, 10),
@@ -84,7 +88,7 @@ export default function EmitirMinuta() {
     }
   };
 
-  // --- LÓGICA DE SELEÇÃO CORRIGIDA (PASSO 2) ---
+  // --- LÓGICA DE SELEÇÃO CORRIGIDA ---
   const selecionarConsumidor = (idSelecionado: string) => {
     const selecionado = listaConsumidores.find(c => 
         String(c.id) === idSelecionado || String(c.consumidor_id) === idSelecionado
@@ -94,9 +98,9 @@ export default function EmitirMinuta() {
       setForm(prev => ({
         ...prev,
         consumidor_nome: selecionado.nome || selecionado.razao_social || '',
-        // AQUI: Apliquei a máscara no dado que vem do banco
         consumidor_doc: formatarDocumento(String(selecionado.documento || selecionado.cpf_cnpj || selecionado.cpf || selecionado.cnpj || '')),
         consumidor_endereco: selecionado.endereco || selecionado.logradouro || '',
+        consumidor_email: selecionado.email || '',
         consumidor_inscricao: selecionado.inscricao_estadual || selecionado.ie || 'Isento'
       }));
       toast.success("Dados do consumidor preenchidos!");
@@ -112,23 +116,25 @@ export default function EmitirMinuta() {
       setForm(prev => ({
         ...prev,
         gerador_nome: selecionada.nome || selecionada.proprietario || selecionada.nome_proprietario || '',
-        // AQUI: Apliquei a máscara no dado que vem do banco
         gerador_doc: formatarDocumento(String(selecionada.documento || selecionada.cpf_cnpj || '')),
+        gerador_inscricao: selecionada.inscricao_estadual || 'Isento', // 🟢 PUXA DO BANCO
+        gerador_endereco: selecionada.endereco_proprietario || selecionada.endereco || '',
+        gerador_email: selecionada.email || '',
       }));
       toast.success("Dados da usina preenchidos!");
     }
   };
 
-  // --- SALVAR NOVO (PASSO 4) ---
+  // --- SALVAR NOVO ---
   const salvarNovoConsumidor = async () => {
     if(!form.consumidor_nome) return toast.error("Preencha o nome do Consumidor");
     try {
         const toastId = toast.loading("Salvando Consumidor...");
         await api.consumidores.create({
             nome: form.consumidor_nome.toUpperCase(),
-            // AQUI: Tirei a máscara antes de mandar pro banco
             documento: form.consumidor_doc.replace(/\D/g, ''), 
             endereco: form.consumidor_endereco.toUpperCase(),
+            email: form.consumidor_email.toLowerCase(),
             inscricao_estadual: form.consumidor_inscricao
         });
         await carregarDados();
@@ -145,8 +151,10 @@ export default function EmitirMinuta() {
         const toastId = toast.loading("Salvando Usina...");
         await api.usinas.create({
             nome: form.gerador_nome.toUpperCase(),
-            // AQUI: Tirei a máscara antes de mandar pro banco
             cpf_cnpj: form.gerador_doc.replace(/\D/g, ''), 
+            inscricao_estadual: form.gerador_inscricao, // 🟢 SALVA NO BANCO
+            endereco_proprietario: form.gerador_endereco.toUpperCase(),
+            email: form.gerador_email.toLowerCase(),
             nome_proprietario: form.gerador_nome.toUpperCase(),
             tipo: 'SOLAR',
             potencia: 0
@@ -159,20 +167,17 @@ export default function EmitirMinuta() {
     }
   };
 
-  // --- (PASSO 3) FORMATAÇÃO AO DIGITAR ---
+  // --- FORMATAÇÃO AO DIGITAR ---
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const name = e.target.name;
     let value = e.target.value;
 
-    // Se o campo for de documento, aplica a máscara
     if (name === 'consumidor_doc' || name === 'gerador_doc') {
       value = formatarDocumento(value);
     } 
-    // Se for valor ou data, não altera caixa alta
-    else if (name === 'valor_recebido' || name === 'valor_pago' || name === 'data_emissao') {
+    else if (name === 'valor_recebido' || name === 'valor_pago' || name === 'data_emissao' || name === 'consumidor_email' || name === 'gerador_email') {
       value = e.target.value;
     } 
-    // O resto fica em maiúsculo
     else {
       value = e.target.value.toUpperCase();
     }
@@ -185,7 +190,6 @@ export default function EmitirMinuta() {
     gerarMinutaPDF(form, resultado);
   };
 
-  // Estilo padrão dos inputs (Premium)
   const inputClass = "w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all font-semibold text-slate-700 placeholder:text-slate-400 outline-none";
 
   return (
@@ -193,7 +197,6 @@ export default function EmitirMinuta() {
       
       {/* HEADER */}
       <div className="bg-slate-900 p-8 rounded-2xl shadow-lg text-white flex flex-col md:flex-row justify-between items-start md:items-center gap-4 relative overflow-hidden">
-        {/* Efeito visual de fundo */}
         <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 translate-x-1/2 -translate-y-1/2"></div>
         
         <div className="relative z-10">
@@ -228,7 +231,6 @@ export default function EmitirMinuta() {
                 </div>
             </div>
 
-            {/* ABAS CONSUMIDOR */}
             <div className="flex bg-slate-100/80 p-1.5 rounded-xl shadow-inner mb-6">
                 <button type="button" onClick={() => setModoConsumidor('buscar')} 
                     className={`flex-1 text-sm font-bold py-2.5 rounded-lg transition-all flex items-center justify-center gap-2 ${modoConsumidor === 'buscar' ? 'bg-white shadow-sm text-blue-600' : 'text-slate-500 hover:text-slate-700'}`}>
@@ -259,7 +261,6 @@ export default function EmitirMinuta() {
                 </div>
             )}
 
-            {/* CAMPOS CONSUMIDOR */}
             <div className="space-y-4 flex-1">
                 <div>
                   <label className="text-xs font-bold text-slate-400 uppercase mb-1 block">Nome / Razão Social</label>
@@ -281,6 +282,11 @@ export default function EmitirMinuta() {
                   <label className="text-xs font-bold text-slate-400 uppercase mb-1 block">Endereço Completo</label>
                   <input type="text" name="consumidor_endereco" placeholder="RUA, NÚMERO, BAIRRO, CIDADE" className={inputClass} value={form.consumidor_endereco} onChange={handleChange} />
                 </div>
+
+                <div>
+                  <label className="text-xs font-bold text-slate-400 uppercase mb-1 block">E-mail</label>
+                  <input type="email" name="consumidor_email" placeholder="email@exemplo.com.br" className={inputClass} value={form.consumidor_email} onChange={handleChange} />
+                </div>
                 
                 {modoConsumidor === 'novo' && (
                     <button type="button" onClick={salvarNovoConsumidor} className="w-full py-3.5 mt-2 bg-slate-900 text-white rounded-xl font-bold text-sm hover:bg-slate-800 flex items-center justify-center gap-2 transition-all">
@@ -289,7 +295,6 @@ export default function EmitirMinuta() {
                 )}
             </div>
 
-            {/* CAIXA DE VALOR (CONSUMIDOR) */}
             <div className="mt-8 pt-6 border-t border-slate-100">
                 <label className="block text-xs font-bold text-emerald-600 uppercase mb-2 tracking-wide">Valor Recebido do Cliente</label>
                 <div className="relative">
@@ -314,7 +319,6 @@ export default function EmitirMinuta() {
                 </div>
             </div>
 
-            {/* ABAS USINA */}
             <div className="flex bg-slate-100/80 p-1.5 rounded-xl shadow-inner mb-6">
                 <button type="button" onClick={() => setModoUsina('buscar')} 
                     className={`flex-1 text-sm font-bold py-2.5 rounded-lg transition-all flex items-center justify-center gap-2 ${modoUsina === 'buscar' ? 'bg-white shadow-sm text-amber-600' : 'text-slate-500 hover:text-slate-700'}`}>
@@ -345,16 +349,32 @@ export default function EmitirMinuta() {
                 </div>
             )}
 
-            {/* CAMPOS USINA */}
             <div className="space-y-4 flex-1">
                 <div>
                   <label className="text-xs font-bold text-slate-400 uppercase mb-1 block">Nome do Proprietário da Usina</label>
                   <input type="text" name="gerador_nome" placeholder="EX: FAZENDA SOL NASCENTE" required className={inputClass} value={form.gerador_nome} onChange={handleChange} />
                 </div>
                 
+                {/* 🟢 CAIXA LADO A LADO PARA O PRESTADOR TAMBÉM */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-xs font-bold text-slate-400 uppercase mb-1 block">CPF / CNPJ</label>
+                    <input type="text" name="gerador_doc" placeholder="000.000.000-00" className={inputClass} value={form.gerador_doc} onChange={handleChange} />
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold text-slate-400 uppercase mb-1 block">Insc. Estadual</label>
+                    <input type="text" name="gerador_inscricao" placeholder="ISENTO" className={inputClass} value={form.gerador_inscricao} onChange={handleChange} />
+                  </div>
+                </div>
+
                 <div>
-                  <label className="text-xs font-bold text-slate-400 uppercase mb-1 block">CPF / CNPJ</label>
-                  <input type="text" name="gerador_doc" placeholder="000.000.000-00" className={inputClass} value={form.gerador_doc} onChange={handleChange} />
+                  <label className="text-xs font-bold text-slate-400 uppercase mb-1 block">Endereço Completo</label>
+                  <input type="text" name="gerador_endereco" placeholder="RUA, NÚMERO, BAIRRO, CIDADE" className={inputClass} value={form.gerador_endereco} onChange={handleChange} />
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-slate-400 uppercase mb-1 block">E-mail</label>
+                  <input type="email" name="gerador_email" placeholder="email@exemplo.com.br" className={inputClass} value={form.gerador_email} onChange={handleChange} />
                 </div>
                 
                 {modoUsina === 'novo' && (
@@ -364,7 +384,6 @@ export default function EmitirMinuta() {
                 )}
             </div>
 
-            {/* CAIXA DE VALOR (USINA) */}
             <div className="mt-8 pt-6 border-t border-slate-100">
                 <label className="block text-xs font-bold text-amber-600 uppercase mb-2 tracking-wide">Valor Pago (Repasse/Custo)</label>
                 <div className="relative">

@@ -12,13 +12,35 @@ import Skeleton from '../../components/Skeleton';
 import toast from 'react-hot-toast';
 import ModalConfirmacao from '../../components/ModalConfirmacao';
 
+// --- MÁSCARA EXCLUSIVA PARA RG ---
+const formatarRG = (valor?: string) => {
+  if (!valor) return '';
+
+  // Se o usuário digitou letras (ex: MG-1234), devolve como está para não quebrar
+  if (/[a-zA-Z]/.test(valor)) return valor;
+
+  const apenasNumeros = valor.replace(/\D/g, '');
+
+  // Padrão SP (9 dígitos): 12.345.678-9
+  if (apenasNumeros.length === 9) {
+    return apenasNumeros.replace(/(\d{2})(\d{3})(\d{3})(\d{1})/, '$1.$2.$3-$4');
+  }
+  // Padrão Antigo/Outros (8 dígitos): 1.234.567-8
+  if (apenasNumeros.length === 8) {
+    return apenasNumeros.replace(/(\d{1})(\d{3})(\d{3})(\d{1})/, '$1.$2.$3-$4');
+  }
+
+  // Se for um tamanho maluco, mostra como está
+  return valor;
+};
+
 // --- FUNÇÃO DE MÁSCARA ---
 const formatarDocumento = (valor?: string) => {
   if (!valor) return '';
-  
+
   // Tira tudo que não é número
   const apenasNumeros = valor.replace(/\D/g, '');
-  
+
   // Se for até 11 dígitos, formata como CPF
   if (apenasNumeros.length <= 11) {
     return apenasNumeros
@@ -26,7 +48,7 @@ const formatarDocumento = (valor?: string) => {
       .replace(/(\d{3})(\d)/, '$1.$2')
       .replace(/(\d{3})(\d{1,2})/, '$1-$2')
       .replace(/(-\d{2})\d+?$/, '$1');
-  } 
+  }
   // Se for maior que 11, formata como CNPJ
   else {
     return apenasNumeros
@@ -283,15 +305,16 @@ export default function DetalheUsina() {
               <p className="text-lg font-bold text-gray-900 leading-tight">{usina.nome}</p>
             </div>
 
+            {/* Grid Documentos */}
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <p className="text-xs text-gray-500 mb-1">CPF / CNPJ</p>
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-medium text-gray-700">{formatarDocumento(usina.documento || usina.cpf_cnpj) || '-'}</span>
                   {(usina.documento || usina.cpf_cnpj) && (
-                    <button 
-                      onClick={() => copiarTexto(formatarDocumento(usina.documento || usina.cpf_cnpj) as string)} 
-                      className="text-blue-400 hover:text-blue-600" 
+                    <button
+                      onClick={() => copiarTexto(formatarDocumento(usina.documento || usina.cpf_cnpj) as string)}
+                      className="text-blue-400 hover:text-blue-600"
                       title="Copiar"
                     >
                       <Copy className="w-3 h-3" />
@@ -301,12 +324,18 @@ export default function DetalheUsina() {
               </div>
               <div>
                 <p className="text-xs text-gray-500 mb-1">RG</p>
-                <span className="text-sm font-medium text-gray-700">{usina.rg || '-'}</span>
+                <span className="text-sm font-medium text-gray-700">{formatarRG(usina.rg) || '-'}</span>
+              </div>
+              
+              {/* 🟢 INSCRIÇÃO ESTADUAL AQUI */}
+              <div className="col-span-2">
+                 <p className="text-xs text-gray-500 mb-1">INSCRIÇÃO ESTADUAL</p>
+                 <span className="text-sm font-medium text-gray-700">{usina.inscricao_estadual || '-'}</span>
               </div>
             </div>
 
             {/* CONTATOS */}
-            <div className="grid grid-cols-1 gap-3 pt-2">
+            <div className="grid grid-cols-1 gap-3 pt-2 border-t border-gray-100">
               {/* Telefone */}
               <div>
                 <p className="text-xs text-gray-500 mb-1">TELEFONE / WHATSAPP</p>
@@ -349,22 +378,22 @@ export default function DetalheUsina() {
               <p className="text-xs text-gray-500 font-bold mb-2 flex items-center gap-1 uppercase">
                 <MapPin className="w-3 h-3" /> LOCALIZAÇÃO DA USINA
               </p>
-              
+
               <div className="bg-gray-50 p-3 rounded-xl border border-gray-200 text-sm font-medium text-gray-800 leading-relaxed">
                 {(usina.endereco || usina.endereco_proprietario) && (
                   <p>Endereço: {usina.endereco || usina.endereco_proprietario}</p>
                 )}
-                
+
                 {usina.bairro && (
                   <p>Bairro {usina.bairro.toUpperCase()}</p>
                 )}
-                
+
                 {(usina.cidade || usina.uf) && (
                   <p className="uppercase">
                     {usina.cidade || ''} {usina.cidade && usina.uf ? '-' : ''} {usina.uf || ''}
                   </p>
                 )}
-                
+
                 {usina.cep && (
                   <p>CEP: {usina.cep.replace(/^(\d{5})(\d)/, '$1-$2')}</p>
                 )}

@@ -34,9 +34,10 @@ export const usinaSchema = z.object({
     .transform(val => val ? val.replace(/\D/g, '') : null),
 
   rg: optionalString,
+  inscricao_estadual: optionalString, // 🟢 ADICIONADO AQUI
   endereco_proprietario: optionalString,
 
-  // 🟢 ADICIONE ESTAS 4 LINHAS AQUI:
+  // Endereço
   cep: optionalString,
   bairro: optionalString,
   cidade: optionalString,
@@ -73,6 +74,7 @@ export const consumidorSchema = z.object({
     .transform(val => val ? val.replace(/\D/g, '') : null),
 
   rg: optionalString,
+  inscricao_estadual: optionalString, // 🟢 ADICIONADO AQUI
   email: optionalString,
   telefone: optionalString,
   cep: optionalString,

@@ -77,6 +77,8 @@ export default function FormularioConsumidor() {
             setValue('percentual_desconto', data.percentual_desconto);
             setValue('observacao', data.observacao);
             setValue('rg', data.rg);
+            setValue('inscricao_estadual', data.inscricao_estadual); // 🟢 Puxa IE do banco
+
             // Lógica para definir o tipo de cobrança visual
             if (Number(data.valor_kw) > 0 && Number(data.percentual_desconto) === 0) {
               setTipoCobranca('fixo');
@@ -114,7 +116,8 @@ export default function FormularioConsumidor() {
         ...data,
         documento: data.documento ? data.documento.replace(/\D/g, '') : null,
         rg: data.rg ? data.rg.replace(/[^0-9X]/g, '') : null,
-        cep: data.cep ? data.cep.replace(/\D/g, '') : null, // 🟢 Salva só os números do CEP
+        inscricao_estadual: data.inscricao_estadual, // 🟢 Envia IE pro banco
+        cep: data.cep ? data.cep.replace(/\D/g, '') : null, 
         media_consumo: Number(data.media_consumo) || 0,
         valor_kw: valorFinalKw,
         percentual_desconto: valorFinalDesconto,
@@ -171,7 +174,6 @@ export default function FormularioConsumidor() {
           </h3>
 
           <div className="space-y-5">
-            {/* CAMPO DE NOME - CORRIGIDO: Agora aceita letras e registra em 'nome' */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5 ml-1">Nome Completo (Titular)</label>
               <div className="relative">
@@ -186,7 +188,6 @@ export default function FormularioConsumidor() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              {/* CAMPO DE CPF / CNPJ - CORRIGIDO: A máscara de números agora está aqui */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5 ml-1">CPF / CNPJ</label>
                 <div className="relative">
@@ -200,21 +201,32 @@ export default function FormularioConsumidor() {
                 </div>
               </div>
 
-              {/* NOVO CAMPO: RG */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5 ml-1">RG (Identidade)</label>
                 <div className="relative">
                   <FileText className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                   <input
-                    {...register('rg', { onChange: aplicarMascaraRG })} // 🟢 Adicionado o onChange
+                    {...register('rg', { onChange: aplicarMascaraRG })} 
                     placeholder="00.000.000-0"
-                    maxLength={12} // 🟢 Limite para o formato com pontos e traço
+                    maxLength={12} 
                     className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 transition-all"
                   />
                 </div>
               </div>
 
-              {/* Telefone (Mantido) */}
+              {/* 🟢 NOVO CAMPO: INSCRIÇÃO ESTADUAL */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5 ml-1">Inscrição Estadual</label>
+                <div className="relative">
+                  <FileText className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <input
+                    {...register('inscricao_estadual')}
+                    className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 transition-all placeholder:text-gray-300"
+                    placeholder="Ex: ISENTO ou 123456789"
+                  />
+                </div>
+              </div>
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5 ml-1">Telefone / WhatsApp</label>
                 <div className="relative">
@@ -229,8 +241,6 @@ export default function FormularioConsumidor() {
                 </div>
               </div>
             </div>
-
-
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5 ml-1">E-mail</label>

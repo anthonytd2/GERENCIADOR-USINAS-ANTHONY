@@ -8,8 +8,6 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
-// Removi a dependência do tipo externo para evitar erros se ele não estiver atualizado
-// Se quiser usar o UsinaFormInput, lembre-se de adicionar cep, bairro, cidade e uf nele.
 export default function FormularioUsina() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -86,12 +84,13 @@ export default function FormularioUsina() {
 
             setValue('documento', data.documento || data.cpf_cnpj);
             setValue('rg', data.rg);
+            setValue('inscricao_estadual', data.inscricao_estadual); // 🟢 Puxa IE do banco
             setValue('telefone', data.telefone);
             setValue('email', data.email);
             
             // 🟢 CARREGA OS NOVOS CAMPOS DE ENDEREÇO
             setValue('cep', data.cep);
-            setValue('endereco', data.endereco_proprietario || data.endereco); // Usando a coluna antiga como Rua/Logradouro
+            setValue('endereco', data.endereco_proprietario || data.endereco); 
             setValue('bairro', data.bairro);
             setValue('cidade', data.cidade);
             setValue('uf', data.uf);
@@ -124,14 +123,15 @@ export default function FormularioUsina() {
         tipo: data.tipo,
         
         // 🟢 ENVIA OS NOVOS CAMPOS DE ENDEREÇO
-        endereco_proprietario: data.endereco, // Mantendo o nome da coluna no banco
-        cep: data.cep ? data.cep.replace(/\D/g, '') : null, // Salva só os números
+        endereco_proprietario: data.endereco, 
+        cep: data.cep ? data.cep.replace(/\D/g, '') : null,
         bairro: data.bairro,
         cidade: data.cidade,
         uf: data.uf,
 
         documento: data.documento ? data.documento.replace(/\D/g, '') : null,
         rg: data.rg ? data.rg.replace(/[^0-9X]/g, '') : null,
+        inscricao_estadual: data.inscricao_estadual, // 🟢 Envia IE pro banco
         email: data.email,
         telefone: data.telefone,
         observacao: data.observacao,
@@ -382,6 +382,7 @@ export default function FormularioUsina() {
                   />
                 </div>
               </div>
+              
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5 ml-1">RG</label>
                 <div className="relative">
@@ -394,13 +395,20 @@ export default function FormularioUsina() {
                   />
                 </div>
               </div>
+
+              {/* 🟢 NOVO CAMPO: INSCRIÇÃO ESTADUAL */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5 ml-1">Email</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5 ml-1">Inscrição Estadual</label>
                 <div className="relative">
-                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                  <input type="email" {...register('email')} className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 transition-all placeholder:text-gray-300" />
+                  <FileText className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <input
+                    {...register('inscricao_estadual')}
+                    className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 transition-all placeholder:text-gray-300"
+                    placeholder="Ex: ISENTO ou 123456789"
+                  />
                 </div>
               </div>
+              
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5 ml-1">Telefone</label>
                 <div className="relative">
@@ -414,9 +422,17 @@ export default function FormularioUsina() {
                   />
                 </div>
               </div>
+
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-1.5 ml-1">Email</label>
+                <div className="relative">
+                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <input type="email" {...register('email')} className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 transition-all placeholder:text-gray-300" placeholder="contato@exemplo.com.br" />
+                </div>
+              </div>
             </div>
 
-            {/* 🟢 BLOCO DE ENDEREÇO ATUALIZADO */}
+            {/* BLOCO DE ENDEREÇO ATUALIZADO */}
             <div className="pt-4 border-t border-gray-100 space-y-5">
               <div className="grid grid-cols-2 gap-5">
                 <div>

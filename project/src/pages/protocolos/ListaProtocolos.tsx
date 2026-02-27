@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom'; // 🟢 NOVO: Importamos o createPortal
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import { api } from '../../lib/api';
 import { 
@@ -233,7 +234,7 @@ export default function ListaProtocolos() {
                                   onClick={() => handleEditar(card)}
                                   style={{ ...provided.draggableProps.style }}
                                   className={`
-                                    p-5 rounded-xl shadow-sm cursor-pointer group relative transition-all duration-200 border border-slate-100 bg-gray-50-card
+                                    p-5 rounded-xl shadow-sm cursor-pointer group relative transition-all duration-200 border border-slate-100 bg-white
                                     hover:shadow-sm hover:border-indigo-300 hover:-translate-y-1
                                     ${prazo.style} 
                                     ${snapshot.isDragging ? 'shadow-2xl scale-105 rotate-1 z-50 ring-2 ring-indigo-400' : ''}
@@ -296,10 +297,10 @@ export default function ListaProtocolos() {
         </div>
       </DragDropContext>
 
-      {/* --- MODAL --- */}
-      {modalOpen && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[9999] p-4 animate-in fade-in">
-          <div className="bg-gray-50-card rounded-lg shadow-2xl w-full max-w-lg overflow-hidden transform transition-all scale-100">
+      {/* --- MODAL (🟢 CORRIGIDO COM PORTAL E BG-WHITE) --- */}
+      {modalOpen && createPortal(
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-[9999] p-4 animate-fade-in">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden transform transition-all scale-100 border border-slate-100">
             {/* Cabeçalho */}
             <div className="bg-slate-50 px-6 py-4 border-b border-slate-100 flex justify-between items-center">
               <h3 className="text-xl font-bold text-slate-800 flex items-center gap-2">
@@ -401,7 +402,8 @@ export default function ListaProtocolos() {
 
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

@@ -10,7 +10,7 @@ router.get('/historico', async (req, res) => {
   try {
     const ano = req.query.ano || new Date().getFullYear();
 
-    // 1. BUSCA TODOS OS VÍNCULOS
+    // 1. BUSCA TODOS OS VÍNCULOS (🟢 CORREÇÃO: Ignorar deletados)
     const { data: todosVinculos } = await supabase
       .from('vinculos')
       .select(`
@@ -19,7 +19,8 @@ router.get('/historico', async (req, res) => {
         data_fim,
         usinas(id, geracao_estimada),
         consumidores(consumidor_id, media_consumo)
-      `);
+      `)
+      .is('deleted_at', null);
 
     // 2. BUSCA TODAS AS FATURAS DO ANO (Realizado)
     const { data: faturasAno } = await supabase
@@ -86,9 +87,11 @@ router.get('/', async (req, res) => {
     const inicioMes = new Date(anoRef, parseInt(mesRef) - 1, 1);
     const fimMes = new Date(anoRef, parseInt(mesRef), 0);
 
+    // 🟢 CORREÇÃO: Ignorar deletados
     const { data: vinculos } = await supabase
       .from('vinculos')
-      .select('status_id, data_inicio, data_fim, usinas(geracao_estimada), consumidores(media_consumo)');
+      .select('status_id, data_inicio, data_fim, usinas(geracao_estimada), consumidores(media_consumo)')
+      .is('deleted_at', null);
 
     let capTotal = 0;
     let consTotal = 0;

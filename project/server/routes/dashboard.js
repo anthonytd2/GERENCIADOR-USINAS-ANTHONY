@@ -8,14 +8,14 @@ router.get('/resumo', async (req, res) => {
     const { mes } = req.query;
     if (!mes) return res.status(400).json({ error: 'Mês é obrigatório' });
 
-    // 1. Contadores
-    const { count: totalUsinas } = await supabase.from('usinas').select('*', { count: 'exact', head: true });
-    const { count: totalConsumidores } = await supabase.from('consumidores').select('*', { count: 'exact', head: true });
-    const { count: totalVinculos } = await supabase.from('vinculos').select('*', { count: 'exact', head: true });
+    // 1. Contadores (🟢 CORREÇÃO: Ignorar deletados)
+    const { count: totalUsinas } = await supabase.from('usinas').select('*', { count: 'exact', head: true }).is('deleted_at', null);
+    const { count: totalConsumidores } = await supabase.from('consumidores').select('*', { count: 'exact', head: true }).is('deleted_at', null);
+    const { count: totalVinculos } = await supabase.from('vinculos').select('*', { count: 'exact', head: true }).is('deleted_at', null);
 
     // 2. Filtro Anti-Lixo (Vínculos Ativos)
-    // CORREÇÃO: A tabela vinculos agora usa 'id' como chave primária
-    const { data: listaVinculosAtivos } = await supabase.from('vinculos').select('id'); 
+    // CORREÇÃO: A tabela vinculos agora usa 'id' como chave primária e ignora deletados
+    const { data: listaVinculosAtivos } = await supabase.from('vinculos').select('id').is('deleted_at', null); 
     
     // 3. Financeiro
     const dataInicio = `${mes}-01`;
@@ -64,8 +64,8 @@ router.get('/historico', async (req, res) => {
     const inicio = `${ano}-01-01`;
     const fim = `${ano}-12-31`;
 
-    // CORREÇÃO: Buscando 'id' na tabela vinculos
-    const { data: listaVinculosAtivos } = await supabase.from('vinculos').select('id');
+    // CORREÇÃO: Buscando 'id' na tabela vinculos e ignorando deletados
+    const { data: listaVinculosAtivos } = await supabase.from('vinculos').select('id').is('deleted_at', null);
 
     const { data: dados, error } = await supabase
       .from('fechamentos')

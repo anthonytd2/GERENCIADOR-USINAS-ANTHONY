@@ -87,7 +87,7 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// 3. CRIAR VÍNCULO (🟢 MUDOU PARA req.supabase)
+// 3. CRIAR VÍNCULO (🟢 CORRIGIDO E À PROVA DE BALAS)
 router.post('/', async (req, res) => {
   try {
     let dataInicio = req.body.data_inicio;
@@ -103,33 +103,41 @@ router.post('/', async (req, res) => {
       observacao: req.body.observacao || req.body.observacoes
     };
 
-    const { data: usinaOcupada } = await req.supabase
+    // 🟢 VERIFICAÇÃO 1: Usina já locada?
+    const { data: usinaOcupada, error: errUsina } = await req.supabase
       .from('vinculos')
       .select('id')
       .eq('usina_id', payload.usina_id)
       .neq('status_id', 2)
-      .is('deleted_at', null)
-      .maybeSingle();
+      .is('deleted_at', null);
 
-    if (usinaOcupada) return res.status(400).json({ error: 'Usina já possui contrato ativo.' });
+    if (errUsina) throw errUsina;
+    // Como tirámos o single/limit, ele devolve sempre Array. Verificamos o length.
+    if (usinaOcupada && usinaOcupada.length > 0) {
+      return res.status(400).json({ error: 'Atenção: Esta Usina já possui um contrato ativo no sistema.' });
+    }
 
-    const { data: consumidorOcupado } = await req.supabase
+    // 🟢 VERIFICAÇÃO 2: Consumidor já locado?
+    const { data: consumidorOcupado, error: errConsumidor } = await req.supabase
       .from('vinculos')
       .select('id')
       .eq('consumidor_id', payload.consumidor_id)
       .neq('status_id', 2)
-      .is('deleted_at', null)
-      .maybeSingle();
+      .is('deleted_at', null);
 
-    if (consumidorOcupado) return res.status(400).json({ error: 'Consumidor já possui contrato ativo.' });
+    if (errConsumidor) throw errConsumidor;
+    if (consumidorOcupado && consumidorOcupado.length > 0) {
+      return res.status(400).json({ error: 'Atenção: Este Consumidor já possui um contrato ativo no sistema.' });
+    }
 
-    const { data: novoVinculo, error } = await req.supabase
+    // 🟢 INSERÇÃO SE TUDO ESTIVER LIVRE
+    const { data: novoVinculo, error: errInsert } = await req.supabase
       .from('vinculos')
       .insert([payload])
       .select()
       .single();
 
-    if (error) throw error;
+    if (errInsert) throw errInsert;
 
     const unidadesSelecionadas = req.body.unidades_selecionadas || [];
     if (unidadesSelecionadas.length > 0 && novoVinculo) {
@@ -144,6 +152,15 @@ router.post('/', async (req, res) => {
     res.status(201).json(novoVinculo);
   } catch (error) {
     console.error('Erro criar vínculo:', error);
+    
+    // Tratamento de falha final caso passe pela barreira
+    if (error.code === '23505') {
+        if (error.message?.includes('usina')) {
+            return res.status(400).json({ error: 'Atenção: O banco de dados detetou que esta Usina já está locada.' });
+        }
+        return res.status(400).json({ error: 'Bloqueio de Segurança: Este vínculo já existe no sistema.' });
+    }
+
     res.status(500).json({ error: 'Erro interno ao criar vínculo.' });
   }
 });

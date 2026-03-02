@@ -34,7 +34,7 @@ export const usinaSchema = z.object({
     .transform(val => val ? val.replace(/\D/g, '') : null),
 
   rg: optionalString,
-  inscricao_estadual: optionalString, // 🟢 ADICIONADO AQUI
+  inscricao_estadual: optionalString, 
   endereco_proprietario: optionalString,
 
   // Endereço
@@ -74,7 +74,7 @@ export const consumidorSchema = z.object({
     .transform(val => val ? val.replace(/\D/g, '') : null),
 
   rg: optionalString,
-  inscricao_estadual: optionalString, // 🟢 ADICIONADO AQUI
+  inscricao_estadual: optionalString, 
   email: optionalString,
   telefone: optionalString,
   cep: optionalString,
@@ -83,6 +83,10 @@ export const consumidorSchema = z.object({
   cidade: optionalString,
   uf: optionalString,
   observacao: optionalString,
+
+  // 🟢 ADICIONADO AQUI: Credenciais da Copel
+  login_copel: optionalString,
+  senha_copel: optionalString,
 
   // Numéricos (Opcionais pois dependem do tipo de contrato do cliente)
   media_consumo: z.preprocess(cleanNumber, z.number().nonnegative().optional()),

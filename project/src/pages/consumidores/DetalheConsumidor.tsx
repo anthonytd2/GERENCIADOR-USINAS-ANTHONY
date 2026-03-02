@@ -1,15 +1,16 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
+import { createPortal } from 'react-dom'; // 🟢 NOVO: Importamos o createPortal
 import { api } from '../../lib/api';
-import { ArrowLeft, Edit, Trash2, User, Zap, Plus, Building2, Phone, Mail, MapPin } from 'lucide-react';
+import { ArrowLeft, Edit, Trash2, User, Zap, Plus, Building2, Phone, Mail, MapPin, Lock, Eye, EyeOff } from 'lucide-react';
 import GerenciadorDocumentos from "../../components/GerenciadorDocumentos";
 import ModalConfirmacao from '../../components/ModalConfirmacao';
 import { formatarDocumento } from '../../components/formatters';
 
-// 🟢 MÁSCARA EXCLUSIVA PARA RG (Para exibir na tela bonitinho)
+// 🟢 MÁSCARA EXCLUSIVA PARA RG
 const formatarRG = (valor?: string) => {
   if (!valor) return '-';
-  if (/[a-zA-Z]/.test(valor)) return valor; // Se tiver letra, não mexe
+  if (/[a-zA-Z]/.test(valor)) return valor; 
   const apenasNumeros = valor.replace(/\D/g, '');
   if (apenasNumeros.length === 9) return apenasNumeros.replace(/(\d{2})(\d{3})(\d{3})(\d{1})/, '$1.$2.$3-$4');
   if (apenasNumeros.length === 8) return apenasNumeros.replace(/(\d{1})(\d{3})(\d{3})(\d{1})/, '$1.$2.$3-$4');
@@ -23,8 +24,12 @@ export default function DetalheConsumidor() {
   const [unidades, setUnidades] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Controle do Modal de Exclusão
+  // Controle de visualização de senha
+  const [showSenha, setShowSenha] = useState(false);
+
+  // Controle dos Modais de Exclusão
   const [modalExcluirOpen, setModalExcluirOpen] = useState(false);
+  const [ucParaExcluir, setUcParaExcluir] = useState<number | null>(null); // 🟢 NOVO: Controle de exclusão da UC
 
   // Estado para o Modal de Nova UC
   const [showModalUC, setShowModalUC] = useState(false);
@@ -58,6 +63,7 @@ export default function DetalheConsumidor() {
     }
   }
 
+  // --- EXCLUSÃO DO CONSUMIDOR ---
   const handleDelete = async () => {
     try {
       await api.consumidores.delete(Number(id));
@@ -69,16 +75,20 @@ export default function DetalheConsumidor() {
     }
   };
 
-  const handleDeleteUC = async (ucId: number) => {
-    if (!confirm('Excluir esta Unidade Consumidora?')) return;
+  // --- EXCLUSÃO DA UC (🟢 Atualizado para usar o modal bonitão) ---
+  const confirmarExclusaoUC = async () => {
+    if (!ucParaExcluir) return;
     try {
-      await api.consumidores.deleteUnidade(ucId);
+      await api.consumidores.deleteUnidade(ucParaExcluir);
       carregarDados();
     } catch (error) {
       alert('Erro ao excluir unidade');
+    } finally {
+      setUcParaExcluir(null);
     }
   };
 
+  // --- CRIAÇÃO DA UC ---
   const handleSaveUC = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!id) return;
@@ -98,7 +108,7 @@ export default function DetalheConsumidor() {
   return (
     <div className="animate-fade-in-down pb-20">
 
-      {/* Cabeçalho Simplificado */}
+      {/* Cabeçalho */}
       <div className="mb-8">
         <Link to="/consumidores" className="inline-flex items-center gap-2 text-gray-500 hover:text-gray-900 mb-4 transition-colors">
           <ArrowLeft className="w-5 h-5" /> Voltar
@@ -108,7 +118,7 @@ export default function DetalheConsumidor() {
             <h1 className="text-3xl font-bold text-gray-900">Detalhes do Cliente</h1>
           </div>
           <div className="flex gap-2">
-            <Link to={`/consumidores/${id}/editar`} className="px-4 py-2 bg-gray-50-card border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 flex items-center gap-2 transition-colors shadow-sm">
+            <Link to={`/consumidores/${id}/editar`} className="px-4 py-2 bg-gray-50 border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-100 flex items-center gap-2 transition-colors shadow-sm">
               <Edit className="w-4 h-4" /> Editar
             </Link>
             <button
@@ -121,48 +131,38 @@ export default function DetalheConsumidor() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
 
         {/* CARTÃO 1: DADOS PESSOAIS */}
-        <div className="bg-gray-50-card p-6 rounded-lg shadow-sm border border-gray-200">
-          <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2 border-b pb-2">
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
+          <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2 border-b border-gray-100 pb-2">
             <User className="w-5 h-5 text-blue-600" /> Dados Pessoais
           </h3>
           <div className="space-y-4 text-gray-700">
-
-            {/* Nome */}
             <div>
               <p className="text-xs text-gray-500 font-bold uppercase mb-1">Nome Completo</p>
               <p className="font-bold text-lg text-gray-900">{consumidor.nome}</p>
             </div>
-
-            {/* Grid Documentos: CPF, RG e Inscrição Estadual */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
               <div>
                 <p className="text-xs text-gray-500 font-bold uppercase mb-1">CPF / CNPJ</p>
                 <p className="font-mono bg-gray-50 inline-block px-2 py-1 rounded text-gray-900 border border-gray-200">
                   {formatarDocumento(consumidor.documento || consumidor.cpf_cnpj)}
                 </p>
               </div>
-              
-              {/* 🟢 RG */}
               <div>
                 <p className="text-xs text-gray-500 font-bold uppercase mb-1">RG</p>
                 <p className="font-mono bg-gray-50 inline-block px-2 py-1 rounded text-gray-900 border border-gray-200">
                   {formatarRG(consumidor.rg)}
                 </p>
               </div>
-
-              {/* 🟢 INSCRIÇÃO ESTADUAL */}
-              <div>
+              <div className="col-span-1 sm:col-span-2">
                 <p className="text-xs text-gray-500 font-bold uppercase mb-1">Insc. Estadual</p>
                 <p className="font-mono bg-gray-50 inline-block px-2 py-1 rounded text-gray-900 border border-gray-200">
                   {consumidor.inscricao_estadual || '-'}
                 </p>
               </div>
             </div>
-
-            {/* Contatos */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-gray-50">
               <div>
                 <p className="text-xs text-gray-500 font-bold uppercase mb-1 flex items-center gap-1"><Mail size={12} /> E-mail</p>
@@ -173,47 +173,40 @@ export default function DetalheConsumidor() {
                 <p className="text-sm">{consumidor.telefone || '-'}</p>
               </div>
             </div>
-
-            {/* Endereço */}
             <div className="pt-2 border-t border-gray-50">
               <p className="text-xs text-gray-500 font-bold uppercase mb-1 flex items-center gap-1"><MapPin size={12} /> Endereço</p>
-              <p className="text-sm">
-                {consumidor.endereco}, {consumidor.bairro}
-              </p>
-              <p className="text-sm">
-                {consumidor.cidade}/{consumidor.uf} - {consumidor.cep}
-              </p>
+              <p className="text-sm">{consumidor.endereco}, {consumidor.bairro}</p>
+              <p className="text-sm">{consumidor.cidade}/{consumidor.uf} - {consumidor.cep}</p>
             </div>
           </div>
         </div>
 
         {/* CARTÃO 2: DADOS COMERCIAIS */}
-        <div className="bg-gray-50-card p-6 rounded-lg shadow-sm border border-gray-200">
-          <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2 border-b pb-2">
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
+          <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2 border-b border-gray-100 pb-2">
             <Zap className="w-5 h-5 text-yellow-500" /> Dados Comerciais
           </h3>
           <div className="grid grid-cols-2 gap-6">
-            <div className="p-4 bg-gray-50 rounded-xl border border-gray-200">
+            <div className="p-4 bg-gray-50 rounded-xl border border-gray-200 col-span-2">
               <p className="text-xs text-gray-500 font-bold uppercase mb-1">Média Consumo</p>
-              <p className="text-xl font-black text-gray-900">{consumidor.media_consumo?.toLocaleString('pt-BR')} <span className="text-sm  text-gray-500">kWh</span></p>
+              <p className="text-xl font-black text-gray-900">{consumidor.media_consumo?.toLocaleString('pt-BR')} <span className="text-sm text-gray-500">kWh</span></p>
             </div>
-
-            {/* Exibe Valor Fixo OU Desconto dependendo do que estiver preenchido */}
-            {Number(consumidor.valor_kw) > 0 ? (
-              <div className="p-4 bg-green-50 rounded-xl border border-green-100">
-                <p className="text-xs text-green-700 font-bold uppercase mb-1">Valor Fixo</p>
-                <p className="text-xl font-black text-green-800">
-                  {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 4 }).format(Number(consumidor.valor_kw))}
-                  <span className="text-sm  ml-1">/kWh</span>
-                </p>
-              </div>
-            ) : (
-              <div className="p-4 bg-blue-50 rounded-xl border border-blue-100">
-                <p className="text-xs text-blue-700 font-bold uppercase mb-1">Desconto</p>
-                <p className="text-xl font-black text-blue-800">{consumidor.percentual_desconto}%</p>
-              </div>
-            )}
-
+            <div className="col-span-2">
+              {Number(consumidor.valor_kw) > 0 ? (
+                <div className="p-4 bg-green-50 rounded-xl border border-green-100 w-full">
+                  <p className="text-xs text-green-700 font-bold uppercase mb-1">Valor Fixo</p>
+                  <p className="text-xl font-black text-green-800">
+                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 4 }).format(Number(consumidor.valor_kw))}
+                    <span className="text-sm ml-1">/kWh</span>
+                  </p>
+                </div>
+              ) : (
+                <div className="p-4 bg-blue-50 rounded-xl border border-blue-100 w-full">
+                  <p className="text-xs text-blue-700 font-bold uppercase mb-1">Desconto</p>
+                  <p className="text-xl font-black text-blue-800">{consumidor.percentual_desconto}%</p>
+                </div>
+              )}
+            </div>
             <div className="col-span-2">
               <p className="text-xs text-gray-500 font-bold uppercase mb-1">Observações</p>
               <p className="text-sm text-gray-500 bg-gray-50 p-3 rounded-lg border border-gray-200 italic">
@@ -222,21 +215,54 @@ export default function DetalheConsumidor() {
             </div>
           </div>
         </div>
+
+        {/* CARTÃO 3: ACESSO COPEL */}
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
+          <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2 border-b border-gray-100 pb-2">
+            <Lock className="w-5 h-5 text-slate-600" /> Acesso Copel
+          </h3>
+          <div className="space-y-6 text-gray-700 mt-2">
+            <div>
+              <p className="text-xs text-gray-500 font-bold uppercase mb-1">Login do Portal</p>
+              <div className="font-mono bg-slate-50 inline-block px-4 py-2 rounded-lg text-gray-900 border border-gray-200 font-bold w-full overflow-hidden text-ellipsis">
+                {consumidor.login_copel || <span className="text-gray-400 italic">Não informado</span>}
+              </div>
+            </div>
+            <div>
+              <p className="text-xs text-gray-500 font-bold uppercase mb-1">Senha de Acesso</p>
+              <div className="flex items-center gap-3">
+                <div className="font-mono bg-slate-50 px-4 py-2 rounded-lg text-gray-900 border border-gray-200 font-bold flex-1 overflow-hidden text-ellipsis">
+                  {consumidor.senha_copel ? (showSenha ? consumidor.senha_copel : '••••••••••••') : <span className="text-gray-400 italic">Não informada</span>}
+                </div>
+                {consumidor.senha_copel && (
+                  <button 
+                    onClick={() => setShowSenha(!showSenha)} 
+                    className="p-2 bg-slate-100 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors border border-slate-200"
+                    title={showSenha ? "Ocultar senha" : "Mostrar senha"}
+                  >
+                    {showSenha ? <EyeOff size={20} /> : <Eye size={20} />}
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
       </div>
 
       {/* --- LISTA DE FILIAIS / UCs --- */}
-      <div className="bg-gray-50-card p-6 rounded-lg shadow-sm border border-gray-200 mb-8">
+      <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 mb-8">
         <div className="flex justify-between items-center mb-6">
           <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
             <Building2 className="w-5 h-5 text-purple-600" /> Unidades Consumidoras (UCs)
           </h3>
-          <button onClick={() => setShowModalUC(true)} className="px-3 py-1.5 bg-purple-600 text-white text-sm font-bold rounded-lg hover:bg-purple-700 flex items-center gap-1 transition-colors shadow-sm shadow-purple-200">
+          <button onClick={() => setShowModalUC(true)} className="px-4 py-2 bg-purple-600 text-white text-sm font-bold rounded-xl hover:bg-purple-700 flex items-center gap-2 transition-colors shadow-sm shadow-purple-200">
             <Plus className="w-4 h-4" /> Nova UC
           </button>
         </div>
 
         {unidades.length === 0 ? (
-          <div className="text-center py-8 bg-gray-50 rounded-xl border border-dashed border-gray-200">
+          <div className="text-center py-8 bg-gray-50 rounded-xl border border-dashed border-gray-300">
             <Building2 className="w-8 h-8 text-gray-300 mx-auto mb-2" />
             <p className="text-gray-500 ">Nenhuma unidade cadastrada.</p>
           </div>
@@ -255,12 +281,16 @@ export default function DetalheConsumidor() {
               <tbody className="divide-y divide-gray-100">
                 {unidades.map((uc) => (
                   <tr key={uc.id} className="hover:bg-purple-50/30 transition-colors group">
-                    <td className="px-4 py-3 font-bold text-gray-900">{uc.codigo_uc}</td>
-                    <td className="px-4 py-3 text-gray-500">{uc.endereco} - {uc.bairro}</td>
-                    <td className="px-4 py-3 text-gray-500">{uc.cidade}/{uc.uf}</td>
-                    <td className="px-4 py-3 text-right  text-gray-900">{uc.media_consumo} kWh</td>
-                    <td className="px-4 py-3 text-right">
-                      <button onClick={() => handleDeleteUC(uc.id)} className="text-gray-500 hover:text-red-600 p-2 hover:bg-gray-50-card rounded-lg transition-all shadow-sm opacity-0 group-hover:opacity-100">
+                    <td className="px-4 py-4 font-bold text-gray-900">{uc.codigo_uc}</td>
+                    <td className="px-4 py-4 text-gray-500">{uc.endereco} - {uc.bairro}</td>
+                    <td className="px-4 py-4 text-gray-500">{uc.cidade}/{uc.uf}</td>
+                    <td className="px-4 py-4 text-right text-gray-900 font-medium">{uc.media_consumo} kWh</td>
+                    <td className="px-4 py-4 text-right">
+                      <button 
+                        onClick={() => setUcParaExcluir(uc.id)} // 🟢 Agora abre o Modal bonitão
+                        className="text-gray-400 hover:text-red-600 p-2 hover:bg-red-50 rounded-lg transition-all"
+                        title="Excluir UC"
+                      >
                         <Trash2 className="w-4 h-4" />
                       </button>
                     </td>
@@ -277,49 +307,52 @@ export default function DetalheConsumidor() {
         <GerenciadorDocumentos tipoEntidade="consumidor" entidadeId={Number(id)} />
       </div>
 
-      {/* --- MODAL NOVA UC --- */}
-      {showModalUC && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in">
-          <div className="bg-gray-50-card rounded-lg shadow-2xl w-full max-w-md p-6 transform transition-all scale-100">
-            <h3 className="text-xl font-bold mb-4 text-gray-900">Adicionar Nova UC</h3>
+      {/* --- MODAL NOVA UC (🟢 CORRIGIDO COM PORTAL E BG-WHITE) --- */}
+      {showModalUC && createPortal(
+        <div className="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 transform transition-all scale-100 border border-slate-100">
+            <h3 className="text-xl font-bold mb-6 text-slate-900 flex items-center gap-2">
+               <Building2 className="text-purple-600" /> Adicionar Nova UC
+            </h3>
             <form onSubmit={handleSaveUC} className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Número da UC (Copel)</label>
-                <input required type="text" className="w-full p-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none font-bold text-gray-900"
+                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Número da UC (Copel)</label>
+                <input required type="text" className="w-full p-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none font-bold text-slate-900 transition-all"
                   value={formUC.codigo_uc} onChange={e => setFormUC({ ...formUC, codigo_uc: e.target.value })} />
               </div>
               <div>
-                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Média de Consumo (kWh)</label>
-                <input type="number" className="w-full p-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
+                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Média de Consumo (kWh)</label>
+                <input type="number" className="w-full p-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none transition-all"
                   value={formUC.media_consumo} onChange={e => setFormUC({ ...formUC, media_consumo: e.target.value })} />
               </div>
               <div>
-                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Endereço / Identificação</label>
-                <input required type="text" placeholder="Ex: Av Brasil, 100 - Filial Centro" className="w-full p-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
+                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Endereço / Identificação</label>
+                <input required type="text" placeholder="Ex: Av Brasil, 100 - Filial Centro" className="w-full p-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none transition-all"
                   value={formUC.endereco} onChange={e => setFormUC({ ...formUC, endereco: e.target.value })} />
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Bairro</label>
-                  <input type="text" className="w-full p-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
+                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Bairro</label>
+                  <input type="text" className="w-full p-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none transition-all"
                     value={formUC.bairro} onChange={e => setFormUC({ ...formUC, bairro: e.target.value })} />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Cidade</label>
-                  <input type="text" className="w-full p-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
+                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Cidade</label>
+                  <input type="text" className="w-full p-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none transition-all"
                     value={formUC.cidade} onChange={e => setFormUC({ ...formUC, cidade: e.target.value })} />
                 </div>
               </div>
-              <div className="flex gap-3 pt-4">
-                <button type="button" onClick={() => setShowModalUC(false)} className="flex-1 py-2.5 border border-gray-200 text-gray-700 font-bold rounded-xl hover:bg-gray-50 transition-colors">Cancelar</button>
-                <button type="submit" className="flex-1 py-2.5 bg-purple-600 text-white rounded-xl hover:bg-purple-700 font-bold transition-colors shadow-sm shadow-purple-200">Salvar UC</button>
+              <div className="flex gap-3 pt-6 border-t border-slate-100 mt-2">
+                <button type="button" onClick={() => setShowModalUC(false)} className="flex-1 py-3 border border-slate-300 text-slate-700 font-bold rounded-xl hover:bg-slate-50 transition-colors">Cancelar</button>
+                <button type="submit" className="flex-1 py-3 bg-purple-600 text-white rounded-xl hover:bg-purple-700 font-bold transition-all shadow-md shadow-purple-200 active:scale-95">Salvar UC</button>
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
-      {/* Modal de Confirmação de Exclusão */}
+      {/* Modal de Confirmação de Exclusão do Consumidor */}
       <ModalConfirmacao
         isOpen={modalExcluirOpen}
         onClose={() => setModalExcluirOpen(false)}
@@ -328,6 +361,17 @@ export default function DetalheConsumidor() {
         message="Tem certeza que deseja excluir este consumidor? Esta ação não pode ser desfeita."
         isDestructive={true}
         confirmText="Sim, Excluir"
+      />
+
+      {/* 🟢 NOVO: Modal de Confirmação de Exclusão da UC */}
+      <ModalConfirmacao
+        isOpen={ucParaExcluir !== null}
+        onClose={() => setUcParaExcluir(null)}
+        onConfirm={confirmarExclusaoUC}
+        title="Excluir Unidade Consumidora"
+        message="Tem certeza que deseja excluir esta UC? Se ela estiver vinculada a um rateio, os cálculos serão afetados."
+        isDestructive={true}
+        confirmText="Sim, Excluir UC"
       />
 
     </div>

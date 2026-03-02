@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form';
 import { api } from '../../lib/api';
 import {
   ArrowLeft, Save, User, Phone, Mail, MapPin,
-  FileText, Building, DollarSign, Percent
+  FileText, Building, DollarSign, Percent, Lock, Key
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -53,7 +53,6 @@ export default function FormularioConsumidor() {
     setValue('cep', valor.substring(0, 9), { shouldDirty: true, shouldValidate: true });
   };
 
-
   const [tipoCobranca, setTipoCobranca] = useState<'desconto' | 'fixo'>('desconto');
 
   useEffect(() => {
@@ -77,7 +76,11 @@ export default function FormularioConsumidor() {
             setValue('percentual_desconto', data.percentual_desconto);
             setValue('observacao', data.observacao);
             setValue('rg', data.rg);
-            setValue('inscricao_estadual', data.inscricao_estadual); // 🟢 Puxa IE do banco
+            setValue('inscricao_estadual', data.inscricao_estadual);
+            
+            // 🟢 Dados da Copel
+            setValue('login_copel', data.login_copel);
+            setValue('senha_copel', data.senha_copel);
 
             // Lógica para definir o tipo de cobrança visual
             if (Number(data.valor_kw) > 0 && Number(data.percentual_desconto) === 0) {
@@ -116,11 +119,14 @@ export default function FormularioConsumidor() {
         ...data,
         documento: data.documento ? data.documento.replace(/\D/g, '') : null,
         rg: data.rg ? data.rg.replace(/[^0-9X]/g, '') : null,
-        inscricao_estadual: data.inscricao_estadual, // 🟢 Envia IE pro banco
+        inscricao_estadual: data.inscricao_estadual,
         cep: data.cep ? data.cep.replace(/\D/g, '') : null, 
         media_consumo: Number(data.media_consumo) || 0,
         valor_kw: valorFinalKw,
         percentual_desconto: valorFinalDesconto,
+        // 🟢 Enviando dados da Copel
+        login_copel: data.login_copel || null,
+        senha_copel: data.senha_copel || null,
       };
 
       if (id && id !== 'novo') {
@@ -214,7 +220,6 @@ export default function FormularioConsumidor() {
                 </div>
               </div>
 
-              {/* 🟢 NOVO CAMPO: INSCRIÇÃO ESTADUAL */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5 ml-1">Inscrição Estadual</label>
                 <div className="relative">
@@ -341,7 +346,42 @@ export default function FormularioConsumidor() {
           </div>
         </div>
 
-        {/* 3. DADOS COMERCIAIS (CARD DESTAQUE) */}
+        {/* 🟢 3. ACESSO COPEL (NOVO CARD) */}
+        <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-200">
+          <h3 className="text-lg font-bold text-gray-900 mb-6 flex items-center gap-2 pb-4 border-b border-gray-100">
+            <Lock className="w-5 h-5 text-slate-600" />
+            Acesso Concessionária (Copel)
+          </h3>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5 ml-1">Login (CPF/CNPJ)</label>
+              <div className="relative">
+                <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <input
+                  {...register('login_copel')}
+                  placeholder="Login do portal"
+                  className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                />
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5 ml-1">Senha de Acesso</label>
+              <div className="relative">
+                <Key className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <input
+                  {...register('senha_copel')}
+                  type="text" 
+                  placeholder="Senha do portal"
+                  className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                />
+              </div>
+              <p className="text-xs text-gray-400 mt-2 ml-1">Pode ser copiada facilmente depois no perfil do cliente.</p>
+            </div>
+          </div>
+        </div>
+
+        {/* 4. DADOS COMERCIAIS (CARD DESTAQUE) */}
         <div className="bg-white p-8 rounded-2xl shadow-md shadow-blue-50 border border-blue-100">
           <h3 className="text-lg font-bold text-gray-900 mb-6 flex items-center gap-2 pb-4 border-b border-gray-100">
             <Building className="w-5 h-5 text-blue-500" />

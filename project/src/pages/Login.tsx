@@ -1,5 +1,4 @@
 import { useState } from 'react';
-// 🟢 AQUI: O nome deve ser exatamente como está no seu arquivo lib
 import { supabaseClient } from '../lib/supabaseClient'; 
 import toast from 'react-hot-toast';
 
@@ -12,8 +11,7 @@ export default function Login() {
     e.preventDefault();
     setLoading(true);
 
-    // 🟢 AQUI: Use o nome correto da variável importada
-    const { data, error } = await supabaseClient.auth.signInWithPassword({
+    const { error } = await supabaseClient.auth.signInWithPassword({
       email,
       password: senha,
     });
@@ -21,8 +19,8 @@ export default function Login() {
     if (error) {
       toast.error('Erro no login: ' + error.message);
     } else {
-      toast.success('Login realizado! Token gerado.');
-      console.log('Token de acesso:', data.session?.access_token);
+      toast.success('Login realizado com sucesso!');
+      // 🟢 LIMPEZA REALIZADA: Removido o console.log que expunha o access_token
       window.location.href = '/'; // Redireciona para o Dashboard
     }
     setLoading(false);

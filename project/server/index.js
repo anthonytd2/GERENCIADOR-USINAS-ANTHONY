@@ -60,9 +60,11 @@ app.use((req, res, next) => {
 });
 
 app.get('/health', (req, res) => {
-  res.status(200).json({ status: 'OK', timestamp: new Date() });
+  res.status(200).json({ 
+    status: 'OK',
+    message: 'Servidor Bionova operando normalmente' 
+  });
 });
-
 const port = process.env.PORT || 3000;
 
 // 🟢 CORS BLINDADO: Apenas origens autorizadas

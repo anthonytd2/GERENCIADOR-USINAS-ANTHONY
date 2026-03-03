@@ -1,34 +1,32 @@
-import { Navigate, Outlet } from 'react-router-dom';
 import { useEffect, useState } from 'react';
+import { Navigate, Outlet } from 'react-router-dom';
 import { supabaseClient } from '../lib/supabaseClient';
 
-export default function ProtectedRoute() {
-  const [session, setSession] = useState<any>(null);
+const ProtectedRoute = () => {
   const [loading, setLoading] = useState(true);
+  const [authenticated, setAuthenticated] = useState(false);
 
   useEffect(() => {
-    // Verifica se existe uma sessão ativa no Supabase
-    supabaseClient.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
+    const checkUser = async () => {
+      // 🛡️ Ação Crucial: getUser() valida o token no servidor do Supabase
+      const { data: { user }, error } = await supabaseClient.auth.getUser();
+      
+      if (user && !error) {
+        setAuthenticated(true);
+      } else {
+        setAuthenticated(false);
+      }
       setLoading(false);
-    });
+    };
 
-    // Escuta mudanças na autenticação (ex: se o usuário deslogar)
-    const { data: { subscription } } = supabaseClient.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-    });
-
-    return () => subscription.unsubscribe();
+    checkUser();
   }, []);
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-      </div>
-    );
+    return <div className="p-12 text-center text-gray-500">Verificando segurança...</div>;
   }
 
-  // Se não tem sessão, manda para o login. Se tem, libera o acesso (Outlet)
-  return session ? <Outlet /> : <Navigate to="/login" replace />;
-}
+  return authenticated ? <Outlet /> : <Navigate to="/login" replace />;
+};
+
+export default ProtectedRoute;

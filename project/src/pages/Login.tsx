@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom'; // 1. Importe o hook
 import { supabaseClient } from '../lib/supabaseClient'; 
 import toast from 'react-hot-toast';
 
@@ -6,6 +7,7 @@ export default function Login() {
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
   const [loading, setLoading] = useState(false);
+  const navigate = useNavigate(); // 2. Inicialize o hook
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -20,12 +22,12 @@ export default function Login() {
       toast.error('Erro no login: ' + error.message);
     } else {
       toast.success('Login realizado com sucesso!');
-      // 🟢 LIMPEZA REALIZADA: Removido o console.log que expunha o access_token
-      window.location.href = '/'; // Redireciona para o Dashboard
+      // 3. Substitua window.location.href por navigate
+      navigate('/'); 
     }
     setLoading(false);
   };
-
+  
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
       <form onSubmit={handleLogin} className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md border border-gray-100">

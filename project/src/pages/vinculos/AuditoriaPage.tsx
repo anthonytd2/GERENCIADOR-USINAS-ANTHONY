@@ -36,16 +36,19 @@ export default function AuditoriaPage() {
             </h1>
             <p className="text-gray-500 mt-1">
               Cliente: <strong className="text-gray-900">{vinculo.consumidores?.nome}</strong> | 
-              Alocação: <strong className="text-blue-600">{vinculo.percentual}%</strong>
+              Alocação: <strong className="text-blue-600">{Number(vinculo.percentual)}%</strong>
             </p>
           </div>
         </div>
       </div>
 
-      {/* O Componente que já criamos entra aqui */}
+      {/* 🛡️ PRECISÃO MATEMÁTICA: 
+          Forçamos o id e o percentual a serem tratados estritamente como Number. 
+          Isso evita que o componente interno realize somas de texto (concatenação).
+      */}
       <AuditoriaVinculoComponent 
         vinculoId={Number(id)} 
-        percentualVinculo={Number(vinculo.percentual)} 
+        percentualVinculo={Number(vinculo.percentual || 0)} 
       />
 
     </div>

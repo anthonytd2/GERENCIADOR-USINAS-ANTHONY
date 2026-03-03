@@ -1,7 +1,24 @@
 import express from 'express';
 import { supabase } from '../db.js';
+import xss from 'xss'; // 🟢 NOVO: Importando a biblioteca de sanitização
 
 const router = express.Router();
+
+// 🟢 NOVO: Função de Segurança (Varredor de XSS)
+const sanitizeInput = (data) => {
+  if (typeof data !== 'object' || data === null) return data;
+  const sanitized = Array.isArray(data) ? [] : {};
+  for (const [key, value] of Object.entries(data)) {
+    if (typeof value === 'string') {
+      sanitized[key] = xss(value);
+    } else if (typeof value === 'object' && value !== null) {
+      sanitized[key] = sanitizeInput(value);
+    } else {
+      sanitized[key] = value;
+    }
+  }
+  return sanitized;
+};
 
 // 1. LISTAR TUDO (Para o Kanban)
 router.get('/', async (req, res) => {
@@ -21,7 +38,9 @@ router.get('/', async (req, res) => {
 // 2. CRIAR NOVO CARD
 router.post('/', async (req, res) => {
   try {
-    const { titulo, cliente, data_limite, numero_protocolo, descricao, status } = req.body;
+    // 🟢 SEGURANÇA APLICADA: Limpa todos os textos antes de montar o card
+    const dadosLimpos = sanitizeInput(req.body);
+    const { titulo, cliente, data_limite, numero_protocolo, descricao, status } = dadosLimpos;
     
     const { data, error } = await supabase
       .from('protocolos')
@@ -47,7 +66,9 @@ router.post('/', async (req, res) => {
 router.put('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const body = req.body;
+    
+    // 🟢 SEGURANÇA APLICADA: Limpa todos os textos antes de atualizar o card
+    const body = sanitizeInput(req.body);
 
     const payload = {};
     if (body.status) payload.status = body.status;

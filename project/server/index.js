@@ -1,6 +1,9 @@
 import "dotenv/config";
 import express from "express";
 import cors from "cors";
+import helmet from "helmet"; 
+import rateLimit from "express-rate-limit"; 
+
 import usinasRoutes from "./routes/usinas.js";
 import vinculosRoutes from "./routes/vinculos.js";
 import consumidoresRoutes from "./routes/consumidores.js";
@@ -18,43 +21,95 @@ import dashboardBalancoRoutes from "./routes/dashboard_balanco.js";
 import { verificarToken } from "./middlewares/auth.js";
 
 const app = express();
+
+// Configuração OBRIGATÓRIA para nuvem (Render, Heroku, etc)
+app.set('trust proxy', 1);
+
+// 🟢 HELMET: Protege cabeçalhos HTTP e oculta que o servidor usa Express
+app.use(helmet()); 
+
+// 🟢 MASCARAMENTO: Função para nunca exibir senhas ou tokens nos logs do console
+const maskSensitiveData = (obj) => {
+  if (!obj || typeof obj !== 'object') return obj;
+  
+  const sensitiveFields = [
+    'senha', 'password', 'senha_copel', 'token', 
+    'auth', 'secret', 'senhaCopel', 'access_token'
+  ];
+
+  const masked = Array.isArray(obj) ? [...obj] : { ...obj };
+
+  for (const key in masked) {
+    if (sensitiveFields.includes(key.toLowerCase())) {
+      masked[key] = '******** [CONFIDENCIAL]';
+    } else if (typeof masked[key] === 'object') {
+      masked[key] = maskSensitiveData(masked[key]);
+    }
+  }
+  return masked;
+};
+
+// 🟢 LOGGING SEGURO: Registra requisições POST/PUT sem vazar dados sensíveis
+app.use((req, res, next) => {
+  if (req.method !== 'GET' && req.method !== 'OPTIONS') {
+    const cleanBody = maskSensitiveData(req.body);
+    console.log(`[${new Date().toISOString()}] ${req.method} ${req.url} - Payload verificado.`);
+    // Opcional: console.log('Dados recebidos (limpos):', cleanBody);
+  }
+  next();
+});
+
 app.get('/health', (req, res) => {
   res.status(200).json({ status: 'OK', timestamp: new Date() });
 });
+
 const port = process.env.PORT || 3000;
 
-// Configuração de Segurança do CORS (Blindado e tolerante a barras)
+// 🟢 CORS BLINDADO: Apenas origens autorizadas
 const allowedOrigins = [
   process.env.FRONTEND_URL ? process.env.FRONTEND_URL.replace(/\/$/, "") : null,
-  "https://gerenciador-usinas-anthony.vercel.app", // Sua URL oficial de garantia
+  "https://gerenciador-usinas-anthony.vercel.app", 
   "http://localhost:5173",
-  "http://localhost:3000",
 ].filter(Boolean);
 
 app.use(
   cors({
     origin: function (origin, callback) {
-      // 1. Permite requisições sem origin (Postman, Insomnia)
-      if (!origin) return callback(null, true);
+      if (!origin) {
+         console.warn(`🚨 CORS BLOQUEADO: Tentativa de acesso sem origem definida (Postman/Scripts)`);
+         return callback(new Error("Bloqueado pelo CORS: Acesso por API externa não autorizado"));
+      }
 
-      // 2. Limpa a barra final da URL que está tentando acessar (se houver)
       const cleanOrigin = origin.replace(/\/$/, "");
 
-      // 3. Verifica se o site está na lista VIP
       if (allowedOrigins.includes(cleanOrigin)) {
         callback(null, true);
       } else {
-        console.warn(`🚨 CORS BLOQUEADO: Tentativa de acesso de -> ${origin}`);
+        console.warn(`🚨 CORS BLOQUEADO: Tentativa de acesso do domínio -> ${origin}`);
         callback(new Error("Bloqueado pelo CORS: Origem não permitida"));
       }
     },
     credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"], // O 'OPTIONS' é quem responde a requisição "fantasma"
-    allowedHeaders: ["Content-Type", "Authorization"], // Avisa que aceitamos receber o Token
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"], 
+    allowedHeaders: ["Content-Type", "Authorization"], 
   }),
 );
 
-app.use(express.json());
+// 🟢 PAYLOAD LIMIT: Prevenção contra ataques de negação de serviço (DoS) por memória
+app.use(express.json({ limit: '10mb' })); 
+
+// 🟢 RATE LIMIT: Proteção contra ataques de força bruta e robôs
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, 
+  max: 200, 
+  standardHeaders: true, 
+  legacyHeaders: false, 
+  message: { 
+    error: "Muitas requisições feitas a partir deste IP. Por segurança, tente novamente em 15 minutos." 
+  }
+});
+
+app.use("/api/", apiLimiter);
 
 // Registro das Rotas na API
 app.use("/api/usinas", verificarToken, usinasRoutes);
@@ -72,19 +127,23 @@ app.use("/api/relatorios", verificarToken, relatoriosRoutes);
 app.use("/api/dashboard-balanco", verificarToken, dashboardBalancoRoutes);
 app.use("/api/protocolos", verificarToken, protocolosRoutes);
 
-// Rota de Teste (Raiz)
 app.get("/", (req, res) => {
   res.json({ message: "API Gestão Usinas Solar Online 🚀" });
 });
 
-// Tratamento de Erros Global
+// 🟢 ERROR HANDLING: Tratamento de Erros Global (Esconde detalhes técnicos do cliente)
 app.use((err, req, res, next) => {
-  console.error("Erro interno:", err.stack);
+  console.error("Erro interno:", err.message);
+  
+  const isDev = process.env.NODE_ENV === 'development';
   res
     .status(500)
-    .json({ error: "Erro interno do servidor", detail: err.message });
+    .json({ 
+        error: "Erro interno do servidor", 
+        detail: isDev ? err.message : "Contate o suporte técnico." 
+    });
 });
 
 app.listen(port, () => {
-  console.log(`⚡ Servidor rodando na porta ${port}`);
+  console.log(`⚡ Servidor blindado e monitorado rodando na porta ${port}`);
 });

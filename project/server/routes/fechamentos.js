@@ -1,7 +1,24 @@
 import express from 'express';
 import { supabase } from '../db.js';
+import xss from 'xss'; // 🟢 NOVO: Importando a biblioteca de sanitização
 
 const router = express.Router();
+
+// 🟢 NOVO: Função de Segurança (Varredor de XSS)
+const sanitizeInput = (data) => {
+  if (typeof data !== 'object' || data === null) return data;
+  const sanitized = Array.isArray(data) ? [] : {};
+  for (const [key, value] of Object.entries(data)) {
+    if (typeof value === 'string') {
+      sanitized[key] = xss(value);
+    } else if (typeof value === 'object' && value !== null) {
+      sanitized[key] = sanitizeInput(value);
+    } else {
+      sanitized[key] = value;
+    }
+  }
+  return sanitized;
+};
 
 // --- FUNÇÃO AUXILIAR PARA DESCOBRIR A UNIDADE CONSUMIDORA ---
 async function descobrirUnidadeConsumidora(vinculoId, ucIdInformado) {
@@ -58,7 +75,8 @@ router.get('/:vinculoId', async (req, res) => {
 // CRIAR (POST)
 router.post('/', async (req, res) => {
   try {
-    const body = req.body;
+    // 🟢 SEGURANÇA APLICADA: Lavamos o req.body inteiro antes de qualquer coisa
+    const body = sanitizeInput(req.body);
     
     // Usa a função inteligente para achar o ID
     const ucIdParaSalvar = await descobrirUnidadeConsumidora(body.vinculo_id, body.unidade_consumidora_id);
@@ -105,7 +123,9 @@ router.post('/', async (req, res) => {
 router.put('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const body = req.body;
+    
+    // 🟢 SEGURANÇA APLICADA: Lavamos o req.body inteiro antes de qualquer coisa
+    const body = sanitizeInput(req.body);
 
     const ucIdParaSalvar = await descobrirUnidadeConsumidora(body.vinculo_id, body.unidade_consumidora_id);
 

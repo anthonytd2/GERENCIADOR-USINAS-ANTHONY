@@ -1,8 +1,25 @@
 import express from 'express';
 import { supabase } from '../db.js'; // Mantemos para o GET
 import { usinaSchema } from '../validators/schemas.js';
+import xss from 'xss'; // 🟢 NOVO: Importando a biblioteca de sanitização
 
 const router = express.Router();
+
+// 🟢 NOVO: Função de Segurança (Varredor de XSS)
+const sanitizeInput = (data) => {
+  if (typeof data !== 'object' || data === null) return data;
+  const sanitized = Array.isArray(data) ? [] : {};
+  for (const [key, value] of Object.entries(data)) {
+    if (typeof value === 'string') {
+      sanitized[key] = xss(value);
+    } else if (typeof value === 'object' && value !== null) {
+      sanitized[key] = sanitizeInput(value);
+    } else {
+      sanitized[key] = value;
+    }
+  }
+  return sanitized;
+};
 
 // 1. LISTAR TODAS (Mantemos o supabase global aqui pois é só leitura)
 router.get('/', async (req, res) => {
@@ -62,7 +79,8 @@ router.get('/:id/vinculos', async (req, res) => {
 // 4. CRIAR (POST)
 router.post('/', async (req, res) => {
   try {
-    const dadosLimpos = usinaSchema.parse(req.body);
+    // 🟢 SEGURANÇA APLICADA: Limpa o req.body ANTES do Zod validar
+    const dadosLimpos = usinaSchema.parse(sanitizeInput(req.body));
 
     // 🟢 MUDANÇA: Usando req.supabase
     const { data, error } = await req.supabase
@@ -84,7 +102,8 @@ router.post('/', async (req, res) => {
 // 5. ATUALIZAR (PUT)
 router.put('/:id', async (req, res) => {
   try {
-    const dadosLimpos = usinaSchema.partial().parse(req.body);
+    // 🟢 SEGURANÇA APLICADA: Limpa o req.body ANTES do Zod validar
+    const dadosLimpos = usinaSchema.partial().parse(sanitizeInput(req.body));
 
     // 🟢 MUDANÇA: Usando req.supabase
     const { data, error } = await req.supabase

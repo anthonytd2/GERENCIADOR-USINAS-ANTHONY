@@ -1,10 +1,8 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import Layout from './components/Layout';
-import ProtectedRoute from './components/ProtectedRoute'; // O "Guarda" que criamos
+import ProtectedRoute from './components/ProtectedRoute';
 import Login from './pages/Login';
-
-// Importação das Páginas
 import Dashboard from './pages/Dashboard';
 import AuditoriaPage from './pages/vinculos/AuditoriaPage';
 import ListaUsinas from './pages/usinas/ListaUsinas';
@@ -24,8 +22,10 @@ import NovoSimulador from './pages/propostas/NovoSimulador';
 import RelatorioRentabilidade from './pages/relatorios/RelatorioRentabilidade';
 import EmitirMinuta from './pages/financeiro/EmitirMinuta';
 import ListaProtocolos from './pages/protocolos/ListaProtocolos';
+import { useAutoLogout } from './hooks/useAutoLogout';
 
 function App() {
+  useAutoLogout();
   return (
     <BrowserRouter>
       {/* Notificações globais do sistema */}

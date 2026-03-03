@@ -1,7 +1,24 @@
 import express from 'express';
 import { supabase } from '../db.js';
+import xss from 'xss'; // 🟢 NOVO: Importando a biblioteca de sanitização
 
 const router = express.Router();
+
+// 🟢 NOVO: Função de Segurança (Varredor de XSS)
+const sanitizeInput = (data) => {
+  if (typeof data !== 'object' || data === null) return data;
+  const sanitized = Array.isArray(data) ? [] : {};
+  for (const [key, value] of Object.entries(data)) {
+    if (typeof value === 'string') {
+      sanitized[key] = xss(value);
+    } else if (typeof value === 'object' && value !== null) {
+      sanitized[key] = sanitizeInput(value);
+    } else {
+      sanitized[key] = value;
+    }
+  }
+  return sanitized;
+};
 
 // 1. LISTAR TODAS
 router.get('/', async (req, res) => {
@@ -37,7 +54,9 @@ router.get('/:id', async (req, res) => {
 // 3. CRIAR
 router.post('/', async (req, res) => {
   try {
-    const { consumidor_id, nome_cliente_prospect, concessionaria_id, dados_simulacao, status, cpf_cnpj, telefone, email } = req.body;
+    // 🟢 SEGURANÇA APLICADA: Lavamos os dados recebidos antes de extrair
+    const dadosLimpos = sanitizeInput(req.body);
+    const { consumidor_id, nome_cliente_prospect, concessionaria_id, dados_simulacao, status, cpf_cnpj, telefone, email } = dadosLimpos;
 
     const { data, error } = await supabase
       .from('propostas')
@@ -64,7 +83,8 @@ router.post('/', async (req, res) => {
 // 4. ATUALIZAR
 router.put('/:id', async (req, res) => {
   try {
-    const body = req.body;
+    // 🟢 SEGURANÇA APLICADA: Lavamos os dados recebidos antes de atualizar
+    const body = sanitizeInput(req.body);
     
     const payload = {
       updated_at: new Date()

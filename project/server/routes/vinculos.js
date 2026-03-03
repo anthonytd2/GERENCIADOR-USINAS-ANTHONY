@@ -1,8 +1,25 @@
 import express from 'express';
 import { supabase } from '../db.js';
 import { z } from 'zod';
+import xss from 'xss'; // 🟢 NOVO: Importando a biblioteca de sanitização
 
 const router = express.Router();
+
+// 🟢 NOVO: Função de Segurança (Varredor de XSS)
+const sanitizeInput = (data) => {
+  if (typeof data !== 'object' || data === null) return data;
+  const sanitized = Array.isArray(data) ? [] : {};
+  for (const [key, value] of Object.entries(data)) {
+    if (typeof value === 'string') {
+      sanitized[key] = xss(value);
+    } else if (typeof value === 'object' && value !== null) {
+      sanitized[key] = sanitizeInput(value);
+    } else {
+      sanitized[key] = value;
+    }
+  }
+  return sanitized;
+};
 
 const vinculoSchema = z.object({
   usina_id: z.number().int().positive(),
@@ -90,17 +107,20 @@ router.get('/:id', async (req, res) => {
 // 3. CRIAR VÍNCULO (🟢 CORRIGIDO E À PROVA DE BALAS)
 router.post('/', async (req, res) => {
   try {
-    let dataInicio = req.body.data_inicio;
+    // 🟢 SEGURANÇA APLICADA
+    const body = sanitizeInput(req.body);
+
+    let dataInicio = body.data_inicio;
     if (!dataInicio) dataInicio = new Date().toISOString().split('T')[0];
 
     const payload = {
-      usina_id: Number(req.body.usina_id),
-      consumidor_id: Number(req.body.consumidor_id),
-      percentual: Number(req.body.percentual),
-      status_id: Number(req.body.status_id) || 1,
+      usina_id: Number(body.usina_id),
+      consumidor_id: Number(body.consumidor_id),
+      percentual: Number(body.percentual),
+      status_id: Number(body.status_id) || 1,
       data_inicio: dataInicio,
-      data_fim: req.body.data_fim || null,
-      observacao: req.body.observacao || req.body.observacoes
+      data_fim: body.data_fim || null,
+      observacao: body.observacao || body.observacoes
     };
 
     // 🟢 VERIFICAÇÃO 1: Usina já locada?
@@ -112,7 +132,6 @@ router.post('/', async (req, res) => {
       .is('deleted_at', null);
 
     if (errUsina) throw errUsina;
-    // Como tirámos o single/limit, ele devolve sempre Array. Verificamos o length.
     if (usinaOcupada && usinaOcupada.length > 0) {
       return res.status(400).json({ error: 'Atenção: Esta Usina já possui um contrato ativo no sistema.' });
     }
@@ -139,7 +158,7 @@ router.post('/', async (req, res) => {
 
     if (errInsert) throw errInsert;
 
-    const unidadesSelecionadas = req.body.unidades_selecionadas || [];
+    const unidadesSelecionadas = body.unidades_selecionadas || [];
     if (unidadesSelecionadas.length > 0 && novoVinculo) {
       const ucsParaInserir = unidadesSelecionadas.map(ucId => ({
         vinculo_id: novoVinculo.id,
@@ -170,10 +189,13 @@ router.put('/:id', async (req, res) => {
   try {
     const { id } = req.params;
     
+    // 🟢 SEGURANÇA APLICADA
+    const body = sanitizeInput(req.body);
+
     const dados = {
-      status_id: req.body.status_id,
-      observacao: req.body.observacao,
-      data_fim: req.body.data_fim || null 
+      status_id: body.status_id,
+      observacao: body.observacao,
+      data_fim: body.data_fim || null 
     };
 
     const { data, error } = await req.supabase
@@ -194,7 +216,9 @@ router.put('/:id', async (req, res) => {
 router.put('/:id/encerrar', async (req, res) => {
   try {
     const { id } = req.params;
-    const { data_fim } = req.body;
+    // 🟢 SEGURANÇA APLICADA
+    const body = sanitizeInput(req.body);
+    const { data_fim } = body;
 
     const { data, error } = await req.supabase
       .from('vinculos')
@@ -263,7 +287,9 @@ router.get('/:id/auditorias', async (req, res) => {
 router.post('/:id/auditorias', async (req, res) => {
   try {
     const vinculo_id = req.params.id;
-    const { faturas, ...dadosCabecalho } = req.body;
+    // 🟢 SEGURANÇA APLICADA
+    const body = sanitizeInput(req.body);
+    const { faturas, ...dadosCabecalho } = body;
 
     let totalInjetado = 0;
     let totalConsumido = 0;
@@ -322,7 +348,9 @@ router.post('/:id/auditorias', async (req, res) => {
 // 3. ATUALIZAR AUDITORIA (🟢 MUDOU PARA req.supabase)
 router.put('/auditorias/:auditoriaId', async (req, res) => {
   try {
-    const { faturas, ...dadosCabecalho } = req.body;
+    // 🟢 SEGURANÇA APLICADA
+    const body = sanitizeInput(req.body);
+    const { faturas, ...dadosCabecalho } = body;
 
     let totalInjetado = 0;
     let totalConsumido = 0;
@@ -394,7 +422,10 @@ router.delete('/auditorias/:auditoriaId', async (req, res) => {
 router.post('/:id/unidades', async (req, res) => {
   try {
     const vinculo_id = req.params.id;
-    const { unidade_consumidora_id, percentual_rateio } = req.body;
+    // 🟢 SEGURANÇA APLICADA
+    const body = sanitizeInput(req.body);
+    const { unidade_consumidora_id, percentual_rateio } = body;
+
     const { data, error } = await req.supabase
       .from('unidades_vinculadas')
       .insert([{ vinculo_id, unidade_consumidora_id, percentual_rateio }])
@@ -407,7 +438,10 @@ router.post('/:id/unidades', async (req, res) => {
 // (🟢 MUDOU PARA req.supabase)
 router.put('/unidades_vinculadas/:linkId', async (req, res) => {
   try {
-    const { percentual_rateio } = req.body;
+    // 🟢 SEGURANÇA APLICADA
+    const body = sanitizeInput(req.body);
+    const { percentual_rateio } = body;
+
     const { error } = await req.supabase
       .from('unidades_vinculadas')
       .update({ percentual_rateio })

@@ -1,7 +1,24 @@
 import express from 'express';
 import { supabase } from '../db.js';
+import xss from 'xss'; // 🟢 NOVO: Importando a biblioteca de sanitização
 
 const router = express.Router();
+
+// 🟢 NOVO: Função de Segurança (Varredor de XSS)
+const sanitizeInput = (data) => {
+  if (typeof data !== 'object' || data === null) return data;
+  const sanitized = Array.isArray(data) ? [] : {};
+  for (const [key, value] of Object.entries(data)) {
+    if (typeof value === 'string') {
+      sanitized[key] = xss(value);
+    } else if (typeof value === 'object' && value !== null) {
+      sanitized[key] = sanitizeInput(value);
+    } else {
+      sanitized[key] = value;
+    }
+  }
+  return sanitized;
+};
 
 // LISTAR
 router.get('/', async (req, res) => {
@@ -21,7 +38,9 @@ router.get('/', async (req, res) => {
 // CADASTRAR (Padronizado com .single())
 router.post('/', async (req, res) => {
   try {
-    const { nome, cpf_cnpj, endereco, cidade, uf } = req.body;
+    // 🟢 SEGURANÇA APLICADA: Limpamos o req.body antes de extrair as variáveis
+    const dadosLimpos = sanitizeInput(req.body);
+    const { nome, cpf_cnpj, endereco, cidade, uf } = dadosLimpos;
     
     const { data, error } = await supabase
       .from('entidades')

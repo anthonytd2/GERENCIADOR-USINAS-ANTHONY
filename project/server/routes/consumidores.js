@@ -1,8 +1,26 @@
 import express from 'express';
 import { supabase } from '../db.js';
 import { consumidorSchema } from '../validators/schemas.js';
+import xss from 'xss'; // 🟢 NOVO: Importando a biblioteca de sanitização
 
 const router = express.Router();
+
+// 🟢 NOVO: Função de Segurança (Varredor de XSS)
+// Ela olha para todos os campos recebidos e "limpa" qualquer tag de script ou código HTML malicioso
+const sanitizeInput = (data) => {
+  if (typeof data !== 'object' || data === null) return data;
+  const sanitized = Array.isArray(data) ? [] : {};
+  for (const [key, value] of Object.entries(data)) {
+    if (typeof value === 'string') {
+      sanitized[key] = xss(value); // Arranca scripts invisíveis do texto
+    } else if (typeof value === 'object' && value !== null) {
+      sanitized[key] = sanitizeInput(value); // Varre objetos dentro de objetos
+    } else {
+      sanitized[key] = value;
+    }
+  }
+  return sanitized;
+};
 
 // 1. LISTAR TODOS (Mantém supabase global)
 router.get('/', async (req, res) => {
@@ -50,7 +68,8 @@ router.get('/:id', async (req, res) => {
 // 3. CRIAR (🟢 MUDOU PARA req.supabase)
 router.post('/', async (req, res) => {
   try {
-    const dadosLimpos = consumidorSchema.parse(req.body);
+    // 🟢 SEGURANÇA APLICADA: Limpa o req.body ANTES do Zod validar
+    const dadosLimpos = consumidorSchema.parse(sanitizeInput(req.body));
 
     const { data, error } = await req.supabase
       .from('consumidores')
@@ -72,7 +91,9 @@ router.post('/', async (req, res) => {
 router.put('/:id', async (req, res) => {
   try {
     const id = Number(req.params.id);
-    const dadosLimpos = consumidorSchema.partial().parse(req.body);
+    
+    // 🟢 SEGURANÇA APLICADA: Limpa o req.body ANTES do Zod validar
+    const dadosLimpos = consumidorSchema.partial().parse(sanitizeInput(req.body));
 
     const { data, error } = await req.supabase
       .from('consumidores')
@@ -147,7 +168,9 @@ router.get('/:id/unidades', async (req, res) => {
 router.post('/:id/unidades', async (req, res) => {
   try {
     const id = Number(req.params.id);
-    const novaUC = { ...req.body, consumidor_id: id };
+    
+    // 🟢 SEGURANÇA APLICADA: Aqui o req.body ia direto pro banco, agora passa pelo filtro
+    const novaUC = { ...sanitizeInput(req.body), consumidor_id: id };
 
     const { data, error } = await req.supabase
       .from('unidades_consumidoras')
@@ -168,9 +191,12 @@ router.put('/unidades/:ucId', async (req, res) => {
   try {
     const ucId = Number(req.params.ucId);
 
+    // 🟢 SEGURANÇA APLICADA: Limpa antes de atualizar no banco
+    const dadosLimpos = sanitizeInput(req.body);
+
     const { data, error } = await req.supabase
       .from('unidades_consumidoras')
-      .update(req.body)
+      .update(dadosLimpos)
       .eq('id', ucId)
       .select()
       .single();

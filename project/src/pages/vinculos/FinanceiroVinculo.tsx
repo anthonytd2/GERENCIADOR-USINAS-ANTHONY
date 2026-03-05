@@ -2,593 +2,278 @@ import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { api } from '../../lib/api';
 import { supabaseClient as supabase } from '../../lib/supabaseClient';
-import { ArrowLeft, FileText, Upload, Trash2, DollarSign, Download, Edit2, X, Zap, TrendingUp, Calculator, Wallet, BatteryCharging, Building2 } from 'lucide-react';
-
-import toast from 'react-hot-toast'; 
-import ModalConfirmacao from '../../components/ModalConfirmacao'; 
+import { ArrowLeft, FileText, Upload, Trash2, DollarSign, Download, Edit2, X, Settings2 } from 'lucide-react';
+import toast from 'react-hot-toast';
+import ModalConfirmacao from '../../components/ModalConfirmacao';
 import { gerarRelatorioPDF } from '../../utils/gerarRelatorioPDF';
-
-interface Fechamento {
-  fechamento_id: number;
-  mes_referencia: string;
-  energia_compensada: number;
-  consumo_rede: number;
-  tarifa_kwh: number;
-  total_bruto: number;
-  tusd_fio_b: number;
-  total_fio_b: number;
-  valor_fatura_geradora: number;
-  spread: number;
-  tarifa_com_imposto: number;
-  iluminacao_publica: number;
-  outras_taxas: number;
-  valor_pago_fatura: number;
-  economia_gerada: number;
-  valor_recebido: number;
-  arquivo_url?: string;
-  recibo_url?: string;
-  saldo_acumulado_kwh?: number;
-  unidade_consumidora_id?: number;
-  unidades_consumidoras?: {
-    codigo_uc: string;
-    endereco: string;
-  };
-}
-
-interface VinculoDetalhado {
-  vinculo_id: number;
-  percentual: number;
-  status: { descricao: string };
-  consumidores: { nome: string; cpf_cnpj: string; percentual_desconto: number };
-  usinas: { nome_proprietario: string; nome: string };
-  unidades_vinculadas?: {
-    unidade_consumidora_id: number;
-    unidades_consumidoras: {
-        codigo_uc: string;
-        endereco: string;
-    }
-  }[];
-}
 
 export default function FinanceiroVinculo() {
   const { id } = useParams();
-  const [vinculo, setVinculo] = useState<VinculoDetalhado | null>(null);
-  const [fechamentos, setFechamentos] = useState<Fechamento[]>([]);
-  const [ucsVinculadas, setUcsVinculadas] = useState<any[]>([]); 
+  const [vinculo, setVinculo] = useState<any>(null);
+  const [relatorios, setRelatorios] = useState<any[]>([]);
+  const [ucsVinculadas, setUcsVinculadas] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
-
   const [modalExclusaoAberto, setModalExclusaoAberto] = useState(false);
   const [idParaExcluir, setIdParaExcluir] = useState<number | null>(null);
 
-  // Estados do formulário
-  const [formData, setFormData] = useState({
-    unidade_consumidora_id: '',
-    mes_referencia: '',
-    consumo_rede: '',
-    energia_compensada: '',
-    tarifa_kwh: '',
-    tusd_fio_b: '',
-    valor_fatura_geradora: '',
-    tarifa_com_imposto: '',
-    iluminacao_publica: '',
-    outras_taxas: '',
-    valor_pago_fatura: '',
-    percentual_desconto: '',
-    saldo_acumulado_kwh: '',
-    arquivo: null as File | null,
-    recibo: null as File | null,
-    arquivo_url_existente: null as string | null,
-    recibo_url_existente: null as string | null
-  });
+  const formInicial = {
+    tipo_relatorio: 'consumo' as 'consumo' | 'injetado' | 'usina_consumo',
+    mes_referencia: '', unidade_consumidora_id: '', unidade_geradora: '',
+    energia_consumida: '', energia_compensada: '', valor_tarifa: '', outras_taxas: '', iluminacao_publica: '', injecao_propria: '', desconto_bandeira_injecao: '', valor_pago_fatura: '', economia_fatura: '', desconto_economia: '', valor_economizado_solar: '', total_receber: '', energia_acumulada: '',
+    leitura_anterior: '', leitura_atual: '', qtd_injetada: '', qtd_compensada_geradora: '', saldo_transferido: '', valor_kwh_bruto: '', valor_kwh_fio_b: '', valor_kwh_liquido: '', valor_pagar: '', valor_fatura_geradora: '', valor_liquido_pagar: '', total_bruto: '', dif_tusd_fio_b: '',
+    arquivo: null as File | null, recibo: null as File | null, arquivo_url_existente: null as string | null, recibo_url_existente: null as string | null
+  };
 
-  const [calculos, setCalculos] = useState({
-    totalBruto: 0,
-    custoFioB: 0,
-    totalLiquidoPagarGerador: 0,
-    totalPagariaCopel: 0,
-    economia: 0,
-    descontoAplicado: 0,
-    totalReceberCliente: 0,
-    lucroEmpresa: 0
-  });
+  const [formData, setFormData] = useState(formInicial);
 
   const carregarDados = async () => {
     try {
       setLoading(true);
       const dadosVinculo = await api.vinculos.get(Number(id));
       setVinculo(dadosVinculo);
-
-      if (dadosVinculo.unidades_vinculadas) {
-        setUcsVinculadas(dadosVinculo.unidades_vinculadas);
-      }
-
-      if (!editingId && !formData.percentual_desconto) {
-        setFormData(prev => ({
-          ...prev,
-          percentual_desconto: String(dadosVinculo.consumidores?.percentual_desconto || 0)
-        }));
-      }
-
+      if (dadosVinculo.unidades_vinculadas) setUcsVinculadas(dadosVinculo.unidades_vinculadas);
       try {
-        const dadosFechamentos = await api.financeiro.list(Number(id));
-        setFechamentos(Array.isArray(dadosFechamentos) ? dadosFechamentos : []);
-      } catch (e) { setFechamentos([]); }
-    } catch (error) {
-      toast.error('Erro ao carregar dados do sistema.'); 
-    } finally { setLoading(false); }
+        const dados = await api.relatoriosFinanceiros.list(Number(id));
+        setRelatorios(Array.isArray(dados) ? dados : []);
+      } catch (e) { setRelatorios([]); }
+    } catch (error) { toast.error('Erro ao carregar dados.'); } finally { setLoading(false); }
   };
 
   useEffect(() => { if (id) carregarDados(); }, [id]);
 
-  // --- CORREÇÃO DO ERRO AQUI ---
-  useEffect(() => {
-    const energiaCompensada = parseFloat(formData.energia_compensada) || 0;
-    const consumoRede = parseFloat(formData.consumo_rede) || 0;
-    const valorKwh = parseFloat(formData.tarifa_kwh) || 0;
-    const difTusd = parseFloat(formData.tusd_fio_b) || 0;
-    const faturaGeradora = parseFloat(formData.valor_fatura_geradora) || 0;
-
-    const totalBruto = energiaCompensada * valorKwh;
-    const custoFioB = energiaCompensada * difTusd;
-    const totalLiquidoPagarGerador = totalBruto - custoFioB - faturaGeradora;
-
-    const tarifaImposto = parseFloat(formData.tarifa_com_imposto) || 0;
-    const ilumPublica = parseFloat(formData.iluminacao_publica) || 0;
-    const outrasTaxas = parseFloat(formData.outras_taxas) || 0;
-    const valorPagoFatura = parseFloat(formData.valor_pago_fatura) || 0;
-    const percentualDescManual = parseFloat(formData.percentual_desconto) || 0;
-
-    const totalPagariaCopel = (consumoRede * tarifaImposto) + ilumPublica + outrasTaxas;
-    const economia = totalPagariaCopel - valorPagoFatura;
-
-    const fatorDesconto = percentualDescManual / 100;
-    const valorDesconto = economia * fatorDesconto; // Variável calculada
-    const totalReceberCliente = economia - valorDesconto;
-
-    const lucroEmpresa = totalReceberCliente - totalLiquidoPagarGerador;
-
-    setCalculos({
-      totalBruto,
-      custoFioB,
-      totalLiquidoPagarGerador,
-      totalPagariaCopel,
-      economia,
-      descontoAplicado: valorDesconto, // <--- CORREÇÃO: Mapeando a variável correta
-      totalReceberCliente,
-      lucroEmpresa
-    });
-  }, [formData]);
+  const handleChange = (e: any) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
 
   const uploadArquivo = async (file: File, bucketName: string) => {
-    const nomeLimpo = file.name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s/g, '_');
-    const nomeArquivo = `${Date.now()}_${nomeLimpo}`;
-    const { error } = await supabase.storage.from(bucketName).upload(nomeArquivo, file);
-    if (error) throw error;
-    const { data } = supabase.storage.from(bucketName).getPublicUrl(nomeArquivo);
-    return data.publicUrl;
+    try {
+      const cleanName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_'); 
+      const nomeArquivo = `${Date.now()}_${cleanName}`;
+      const { error: uploadError } = await supabase.storage.from(bucketName).upload(nomeArquivo, file);
+      if (uploadError) throw uploadError;
+      return nomeArquivo;
+    } catch (err: any) {
+      console.error("Falha ao subir arquivo:", err.message);
+      throw err;
+    }
+  };
+
+  const handleDownloadSeguro = async (caminho: string) => {
+    try {
+      if (caminho.startsWith('http')) {
+        window.open(caminho, '_blank');
+        return;
+      }
+      const { data, error } = await supabase.storage.from('documentos').createSignedUrl(caminho, 60);
+      if (error) throw error;
+      if (data?.signedUrl) window.open(data.signedUrl, '_blank');
+    } catch (err) {
+      toast.error('Erro ao acessar o arquivo.');
+    }
   };
 
   const handleSalvar = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (!formData.mes_referencia) {
-      toast.error('Selecione o Mês de Referência!');
-      return;
-    }
-
+    if (!formData.mes_referencia) return toast.error('Mês obrigatório!');
     setUploading(true);
-    const toastId = toast.loading('Salvando dados financeiros...'); 
+    const toastId = toast.loading('Salvando relatório...');
 
     try {
-      let finalPlanilhaUrl = formData.arquivo_url_existente;
-      let finalReciboUrl = formData.recibo_url_existente;
+      let finalPlanilha = formData.arquivo_url_existente || null;
+      let finalRecibo = formData.recibo_url_existente || null;
       
-      // Bucket correto: 'documentos'
-      if (formData.arquivo) finalPlanilhaUrl = await uploadArquivo(formData.arquivo, 'documentos');
-      if (formData.recibo) finalReciboUrl = await uploadArquivo(formData.recibo, 'documentos');
+      if (formData.arquivo) finalPlanilha = await uploadArquivo(formData.arquivo, 'documentos');
+      if (formData.recibo) finalRecibo = await uploadArquivo(formData.recibo, 'documentos');
 
       const payload = {
         vinculo_id: Number(id),
-        unidade_consumidora_id: formData.unidade_consumidora_id ? Number(formData.unidade_consumidora_id) : null,
-        mes_referencia: formData.mes_referencia,
-        energia_compensada: Number(formData.energia_compensada),
-        consumo_rede: Number(formData.consumo_rede),
-        tarifa_kwh: Number(formData.tarifa_kwh),
-        total_bruto: calculos.totalBruto,
-        tusd_fio_b: Number(formData.tusd_fio_b),
-        total_fio_b: calculos.custoFioB,
-        valor_fatura_geradora: Number(formData.valor_fatura_geradora),
-        spread: calculos.lucroEmpresa,
-        tarifa_com_imposto: Number(formData.tarifa_com_imposto),
-        iluminacao_publica: Number(formData.iluminacao_publica),
-        outras_taxas: Number(formData.outras_taxas),
-        valor_pago_fatura: Number(formData.valor_pago_fatura),
-        economia_gerada: calculos.economia,
-        valor_recebido: calculos.totalReceberCliente,
-        saldo_acumulado_kwh: Number(formData.saldo_acumulado_kwh) || 0,
-        arquivo_url: finalPlanilhaUrl,
-        recibo_url: finalReciboUrl,
+        ...formData,
+        unidade_consumidora_id: formData.tipo_relatorio === 'consumo' ? (formData.unidade_consumidora_id || null) : null,
+        unidade_geradora: formData.tipo_relatorio !== 'consumo' ? (formData.unidade_geradora || null) : null,
+        arquivo_url: finalPlanilha,
+        recibo_url: finalRecibo
       };
 
-      if (editingId) await api.fechamentos.update(editingId, payload);
-      else await api.fechamentos.create(payload);
+      if (editingId) await api.relatoriosFinanceiros.update(editingId, payload);
+      else await api.relatoriosFinanceiros.create(payload);
 
-      toast.success('Cálculo salvo com sucesso!', { id: toastId }); 
+      toast.success('Relatório salvo!', { id: toastId });
       setShowForm(false); setEditingId(null); carregarDados();
     } catch (error) {
-      console.error(error);
-      toast.error('Erro ao salvar. Verifique se os arquivos não são muito grandes.', { id: toastId }); 
+      toast.error('Erro ao salvar dados.', { id: toastId });
     } finally { setUploading(false); }
   };
 
-  const handleEditar = (item: Fechamento) => {
-    setEditingId(item.fechamento_id);
-    let percentualInferido = '0';
-    if (item.economia_gerada > 0) {
-      const descontoDado = item.economia_gerada - item.valor_recebido;
-      const p = (descontoDado / item.economia_gerada) * 100;
-      percentualInferido = p.toFixed(2);
-    }
-
-    setFormData({
-      unidade_consumidora_id: String(item.unidade_consumidora_id || ''), 
-      mes_referencia: item.mes_referencia,
-      consumo_rede: String(item.consumo_rede || ''),
-      energia_compensada: String(item.energia_compensada || ''),
-      tarifa_kwh: String(item.tarifa_kwh || ''),
-      tusd_fio_b: String(item.tusd_fio_b || ''),
-      valor_fatura_geradora: String(item.valor_fatura_geradora || ''),
-      tarifa_com_imposto: String(item.tarifa_com_imposto || ''),
-      iluminacao_publica: String(item.iluminacao_publica || ''),
-      outras_taxas: String(item.outras_taxas || ''),
-      valor_pago_fatura: String(item.valor_pago_fatura || ''),
-      percentual_desconto: percentualInferido,
-      saldo_acumulado_kwh: String(item.saldo_acumulado_kwh || ''),
-      arquivo: null, recibo: null,
-      arquivo_url_existente: item.arquivo_url || null,
-      recibo_url_existente: item.recibo_url || null
+  const handleEditar = (item: any) => {
+    setEditingId(item.id);
+    setFormData({ 
+      ...formInicial, ...item, 
+      unidade_consumidora_id: item.unidade_consumidora_id ? String(item.unidade_consumidora_id) : '',
+      unidade_geradora: item.unidade_geradora || '',
+      arquivo_url_existente: item.arquivo_url, 
+      recibo_url_existente: item.recibo_url 
     });
     setShowForm(true); window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
-  const solicitarExclusao = (id: number) => {
-    setIdParaExcluir(id);
-    setModalExclusaoAberto(true);
   };
 
   const confirmarExclusao = async () => {
     if (!idParaExcluir) return;
     try {
-      await api.fechamentos.delete(idParaExcluir);
-      toast.success('Registro excluído com sucesso.');
-      carregarDados();
-    } catch (e) {
-      toast.error('Erro ao excluir registro.');
-    } finally {
-      setModalExclusaoAberto(false);
-      setIdParaExcluir(null);
-    }
+      await api.relatoriosFinanceiros.delete(idParaExcluir);
+      toast.success('Excluído com sucesso.'); carregarDados();
+    } catch (e) { toast.error('Erro ao excluir.'); } finally { setModalExclusaoAberto(false); setIdParaExcluir(null); }
   };
 
-  if (loading) return <div className="p-12 text-center text-gray-500 animate-pulse">Carregando dados financeiros...</div>;
-  if (!vinculo) return <div className="p-12 text-center text-red-500 font-bold">Erro: Vínculo não encontrado</div>;
+  const camposConsumo = [
+    { name: 'energia_consumida', label: 'Energia Consumida', suffix: 'kWh' }, { name: 'energia_compensada', label: 'Energia Compensada', suffix: 'kWh' }, { name: 'injecao_propria', label: 'Injeção Própria', suffix: 'kWh' }, { name: 'energia_acumulada', label: 'Energia Acumulada', suffix: 'kWh' }, { name: 'valor_tarifa', label: 'Valor Tarifa', prefix: 'R$' }, { name: 'iluminacao_publica', label: 'Iluminação Pública', prefix: 'R$' }, { name: 'outras_taxas', label: 'Outras Taxas', prefix: 'R$' }, { name: 'desconto_bandeira_injecao', label: 'Desc. Bandeira / Inj. Própria', prefix: 'R$' }, { name: 'valor_pago_fatura', label: 'Valor Pago na Fatura', prefix: 'R$' }, { name: 'economia_fatura', label: 'Economia na Fatura', prefix: 'R$' }, { name: 'desconto_economia', label: 'Desconto s/ Economia', prefix: 'R$' }, { name: 'valor_economizado_solar', label: 'Valor Economizado Solar', prefix: 'R$' }, { name: 'total_receber', label: 'Total a Receber', prefix: 'R$', highlight: true },
+  ];
+
+  const camposInjetado = [
+    { name: 'leitura_anterior', label: 'Leitura Anterior', suffix: 'kWh' }, { name: 'leitura_atual', label: 'Leitura Atual', suffix: 'kWh' }, { name: 'qtd_injetada', label: 'Qtd Injetada', suffix: 'kWh' }, { name: 'qtd_compensada_geradora', label: 'Compensada Geradora', suffix: 'kWh' }, { name: 'saldo_transferido', label: 'Saldo Transferido', suffix: 'kWh' }, { name: 'valor_kwh_bruto', label: 'Valor kWh Bruto', prefix: 'R$' }, { name: 'valor_kwh_fio_b', label: 'Valor kWh Fio B', prefix: 'R$' }, { name: 'valor_kwh_liquido', label: 'Valor kWh Líquido', prefix: 'R$' }, { name: 'valor_pagar', label: 'Valor a Pagar', prefix: 'R$' }, { name: 'valor_fatura_geradora', label: 'Valor Fatura Geradora', prefix: 'R$' }, { name: 'valor_liquido_pagar', label: 'Valor Líquido a Pagar', prefix: 'R$', highlight: true },
+  ];
+
+  const camposUsinaConsumo = [
+    { name: 'energia_consumida', label: 'Energia Consumida da Rede', suffix: 'kWh' }, { name: 'energia_compensada', label: 'Energia Compensada', suffix: 'kWh' }, { name: 'valor_tarifa', label: 'Valor kW', prefix: 'R$' }, { name: 'total_bruto', label: 'Total Bruto', prefix: 'R$' }, { name: 'valor_kwh_fio_b', label: 'Fio B', prefix: 'R$' }, { name: 'dif_tusd_fio_b', label: 'DIF TUSD Sem Imposto (Fio B)', prefix: 'R$' }, { name: 'valor_fatura_geradora', label: 'Valor Fatura UC Geradora', prefix: 'R$' }, { name: 'valor_liquido_pagar', label: 'Total Líquido a Pagar', prefix: 'R$', highlight: true },
+  ];
+
+  const renderField = (campo: any, color: string) => (
+    <div key={campo.name} className={`${campo.highlight ? `col-span-full md:col-span-3 bg-${color}-100 p-4 rounded-xl border border-${color}-300` : ''}`}>
+      <label className="block text-[11px] font-bold uppercase mb-1 text-gray-600">{campo.label}</label>
+      <div className="relative flex items-center">
+        {campo.prefix && <span className="absolute left-3 text-sm font-bold text-gray-400">{campo.prefix}</span>}
+        <input type="number" step="any" name={campo.name} className={`w-full py-2.5 pl-${campo.prefix ? '9' : '3'} pr-${campo.suffix ? '12' : '3'} border border-gray-200 rounded-lg outline-none font-semibold focus:ring-2 focus:ring-${color}-500`} value={(formData as any)[campo.name] || ''} onChange={handleChange} />
+        {campo.suffix && <span className="absolute right-3 text-[11px] font-bold text-gray-400 uppercase">{campo.suffix}</span>}
+      </div>
+    </div>
+  );
 
   return (
     <div className="max-w-6xl mx-auto space-y-6 pb-20">
-      {/* CABEÇALHO */}
-      <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-        <div className="flex items-center gap-4 w-full">
-          <Link to={`/vinculos/${id}`} className="p-3 bg-gray-50-card hover:bg-blue-50 rounded-full text-blue-600 transition-colors shadow-sm border border-gray-200">
-            <ArrowLeft size={24} />
-          </Link>
+      <div className="flex justify-between items-center gap-4">
+        <div className="flex items-center gap-4">
+          <Link to={`/vinculos/${id}`} className="p-3 bg-white hover:bg-gray-50 rounded-full border border-gray-200 shadow-sm"><ArrowLeft size={24}/></Link>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Financeiro do Vínculo</h1>
-            <div className="flex items-center gap-2 text-sm text-gray-500">
-              <span className=" text-blue-600">Contrato #{vinculo.vinculo_id}</span>
-              <span>•</span>
-              <Link to={`/consumidores/${vinculo.consumidores?.cpf_cnpj}`} className="text-blue-600 hover:underline font-bold">
-                {vinculo.consumidores?.nome}
-              </Link>
-              <span className="bg-green-100 text-green-800 px-2 rounded-full text-xs font-bold">Desc. Contrato: {vinculo.consumidores?.percentual_desconto}%</span>
-            </div>
-          </div>
-        </div>
-        <div className="bg-orange-50 px-6 py-2 rounded-xl border border-orange-200 flex items-center gap-3 shadow-sm mx-4">
-          <div className="p-2 bg-orange-100 rounded-lg text-orange-600"><BatteryCharging size={20} /></div>
-          <div>
-            <p className="text-xs font-bold text-orange-600 uppercase">Saldo de Créditos</p>
-            <p className="text-xl font-black text-gray-900">
-              {fechamentos.length > 0 ? fechamentos[0].saldo_acumulado_kwh : 0} kWh
-            </p>
+            <h1 className="text-2xl font-bold">Relatórios Financeiros</h1>
+            <div className="text-sm text-gray-500">#{vinculo?.vinculo_id} • {vinculo?.consumidores?.nome}</div>
           </div>
         </div>
         {!showForm && (
-          <button onClick={() => {
-            setShowForm(true);
-            setEditingId(null);
-            setFormData(prev => ({ 
-                ...prev, 
-                unidade_consumidora_id: '', 
-                percentual_desconto: String(vinculo.consumidores?.percentual_desconto || 0) 
-            }));
-          }} className="w-full md:w-auto bg-blue-600 text-white px-6 py-3 rounded-xl flex items-center justify-center gap-2 hover:bg-blue-700 shadow-sm shadow-blue-500/20 transition-all font-bold transform hover:scale-105 active:scale-95">
-            <DollarSign size={20} /> Novo Fechamento
+          <button onClick={() => { setShowForm(true); setEditingId(null); setFormData(formInicial); }} className="bg-blue-600 text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 shadow-md hover:bg-blue-700 transition-all">
+            <DollarSign size={20} /> Novo Relatório
           </button>
         )}
       </div>
 
       {showForm && (
-        <div className="bg-gray-50-card rounded-lg border border-blue-100 shadow-xl p-6 md:p-6 animate-fade-in-down">
-          <div className="flex justify-between items-center mb-6 pb-4 border-b border-gray-200">
-            <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-              <Calculator className="text-blue-600" size={24} />
-              {editingId ? 'Editar Cálculo' : 'Novo Cálculo Financeiro'}
-            </h3>
-            <button onClick={() => setShowForm(false)} className="p-2 hover:bg-gray-100 rounded-full text-gray-500"><X size={24} /></button>
+        <div className="bg-white rounded-xl border border-gray-200 shadow-2xl p-6 md:p-8 animate-fade-in-down">
+          <div className="flex justify-between items-center mb-6 pb-4 border-b border-gray-100">
+            <h3 className="text-xl font-bold flex items-center gap-2 text-slate-800"><Settings2 className="text-blue-600" /> {editingId ? 'Editar Relatório' : 'Preenchimento Manual'}</h3>
+            <button onClick={() => setShowForm(false)} className="text-gray-400 hover:text-gray-600"><X size={24} /></button>
           </div>
 
-          <form onSubmit={handleSalvar}>
-
-            <div className="flex flex-col md:flex-row gap-4 mb-8">
-              {/* SELETOR DE UC (NOVO) */}
-              <div className="w-full md:w-1/2">
-                <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Unidade Consumidora (UC)</label>
-                <select
-                  required
-                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                  value={formData.unidade_consumidora_id}
-                  onChange={e => setFormData({ ...formData, unidade_consumidora_id: e.target.value })}
-                >
-                  <option value="">Selecione a UC...</option>
-                  {ucsVinculadas.map(u => (
-                    <option key={u.id} value={u.unidade_consumidora_id}>
-                      UC {u.unidades_consumidoras.codigo_uc} - {u.unidades_consumidoras.endereco}
-                    </option>
-                  ))}
-                </select>
+          <form onSubmit={handleSalvar} className="space-y-6">
+            {!editingId && (
+              <div className="flex flex-wrap gap-4 p-2 bg-gray-50 rounded-lg w-max mb-6">
+                {['consumo', 'injetado', 'usina_consumo'].map(tipo => (
+                  <label key={tipo} className={`px-4 py-2 rounded-md cursor-pointer font-bold transition-all ${formData.tipo_relatorio === tipo ? 'bg-white shadow text-blue-600 border border-gray-200' : 'text-gray-500'}`}>
+                    <input type="radio" name="tipo_relatorio" value={tipo} checked={formData.tipo_relatorio === tipo} onChange={handleChange} className="hidden"/>
+                    {tipo.replace('_', ' ').toUpperCase()}
+                  </label>
+                ))}
               </div>
+            )}
 
-              {/* MÊS DE REFERÊNCIA */}
-              <div className="w-full md:w-1/2">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-gray-50 p-5 rounded-xl border border-gray-100">
+              <div>
                 <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Mês de Referência</label>
-                <input required type="date" className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none shadow-sm"
-                  value={formData.mes_referencia} onChange={e => setFormData({ ...formData, mes_referencia: e.target.value })} />
+                <input required type="month" name="mes_referencia" className="w-full p-3 bg-white border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 font-semibold" value={formData.mes_referencia} onChange={handleChange} />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-gray-500 uppercase mb-2">{formData.tipo_relatorio === 'consumo' ? 'Unidade Consumidora (UC)' : 'Unidade Geradora'}</label>
+                {formData.tipo_relatorio === 'consumo' ? (
+                  <select name="unidade_consumidora_id" className="w-full p-3 bg-white border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 font-semibold" value={formData.unidade_consumidora_id} onChange={handleChange}>
+                    <option value="">Selecione UC...</option>
+                    {ucsVinculadas.map(u => <option key={u.id} value={u.unidade_consumidora_id}>UC {u.unidades_consumidoras.codigo_uc}</option>)}
+                  </select>
+                ) : (
+                  <input type="text" name="unidade_geradora" placeholder="Número da Geradora" className="w-full p-3 bg-white border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-orange-500 font-semibold" value={formData.unidade_geradora} onChange={handleChange} />
+                )}
               </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* COLUNA AZUL: GERADOR */}
-              <div className="bg-blue-50/50 p-6 rounded-lg border border-blue-100 shadow-sm hover:shadow-sm transition-shadow">
-                <h4 className="text-sm font-black text-blue-800 uppercase mb-6 flex items-center gap-2 pb-2 border-b border-blue-200">
-                  <Zap size={18} /> Usina (Gerador)
-                </h4>
-                <div className="grid grid-cols-2 gap-5">
-                  <div className="col-span-1">
-                    <label className="text-xs text-gray-500 font-bold mb-1 block">Energia Consumida (kWh)</label>
-                    <input required type="number" className="w-full p-2 border border-blue-200 rounded-lg focus:border-blue-500 outline-none"
-                      value={formData.consumo_rede} onChange={e => setFormData({ ...formData, consumo_rede: e.target.value })} />
-                  </div>
-                  <div className="col-span-1">
-                    <label className="text-xs text-gray-500 font-bold mb-1 block">Compensada (kWh)</label>
-                    <input required type="number" className="w-full p-2 border border-blue-200 rounded-lg focus:border-blue-500 outline-none"
-                      value={formData.energia_compensada} onChange={e => setFormData({ ...formData, energia_compensada: e.target.value })} />
-                  </div>
-                  <div className="col-span-1">
-                    <label className="text-xs text-gray-500 font-bold mb-1 block">Valor kWh (R$)</label>
-                    <input required type="number" step="0.0001" className="w-full p-2 border border-blue-200 rounded-lg focus:border-blue-500 outline-none"
-                      value={formData.tarifa_kwh} onChange={e => setFormData({ ...formData, tarifa_kwh: e.target.value })} />
-                  </div>
-                  <div className="col-span-1 bg-gray-50-card p-2 rounded-lg border border-blue-100 flex flex-col justify-center shadow-inner">
-                    <span className="text-[10px] text-blue-400 font-bold">TOTAL BRUTO</span>
-                    <span className="font-bold text-gray-900">R$ {calculos.totalBruto.toFixed(2)}</span>
-                  </div>
-                  <div className="col-span-1">
-                    <label className="text-xs text-gray-500 font-bold mb-1 block">TUSD Fio B</label>
-                    <input required type="number" step="0.0001" className="w-full p-2 border border-blue-200 rounded-lg outline-none"
-                      value={formData.tusd_fio_b} onChange={e => setFormData({ ...formData, tusd_fio_b: e.target.value })} />
-                  </div>
-                  <div className="col-span-1">
-                    <label className="text-xs text-gray-500 font-bold mb-1 block">Fatura Geradora</label>
-                    <input required type="number" step="0.01" className="w-full p-2 border border-blue-200 rounded-lg outline-none"
-                      value={formData.valor_fatura_geradora} onChange={e => setFormData({ ...formData, valor_fatura_geradora: e.target.value })} />
-                  </div>
+            {formData.tipo_relatorio === 'consumo' && <div className="grid grid-cols-1 md:grid-cols-3 gap-4">{camposConsumo.map(c => renderField(c, 'blue'))}</div>}
+            {formData.tipo_relatorio === 'injetado' && <div className="grid grid-cols-1 md:grid-cols-3 gap-4">{camposInjetado.map(c => renderField(c, 'orange'))}</div>}
+            {formData.tipo_relatorio === 'usina_consumo' && <div className="grid grid-cols-1 md:grid-cols-3 gap-4">{camposUsinaConsumo.map(c => renderField(c, 'green'))}</div>}
 
-                  <div className="col-span-2 bg-blue-100 p-3 rounded-lg flex justify-between items-center mt-2 border border-blue-200">
-                    <span className="text-xs font-bold text-blue-800">PAGAR AO GERADOR</span>
-                    <span className="text-2xl font-black text-blue-700">R$ {calculos.totalLiquidoPagarGerador.toFixed(2)}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* COLUNA VERDE: CONSUMIDOR */}
-              <div className="bg-green-50/50 p-6 rounded-lg border border-green-100 shadow-sm hover:shadow-sm transition-shadow">
-                <h4 className="text-sm font-black text-green-800 uppercase mb-6 flex items-center gap-2 pb-2 border-b border-green-200">
-                  <TrendingUp size={18} /> Consumidor
-                </h4>
-                <div className="grid grid-cols-2 gap-5">
-                  <div className="col-span-1">
-                    <label className="text-xs text-gray-500 font-bold mb-1 block">Tarifa c/ Imposto</label>
-                    <input required type="number" step="0.0001" className="w-full p-2 border border-green-200 rounded-lg focus:border-green-500 outline-none"
-                      value={formData.tarifa_com_imposto} onChange={e => setFormData({ ...formData, tarifa_com_imposto: e.target.value })} />
-                  </div>
-                  <div className="col-span-1">
-                    <label className="text-xs text-gray-500 font-bold mb-1 block">Ilum. Pública</label>
-                    <input required type="number" step="0.01" className="w-full p-2 border border-green-200 rounded-lg outline-none"
-                      value={formData.iluminacao_publica} onChange={e => setFormData({ ...formData, iluminacao_publica: e.target.value })} />
-                  </div>
-                  <div className="col-span-1">
-                    <label className="text-xs text-gray-500 font-bold mb-1 block">Outras Taxas</label>
-                    <input required type="number" step="0.01" className="w-full p-2 border border-green-200 rounded-lg outline-none"
-                      value={formData.outras_taxas} onChange={e => setFormData({ ...formData, outras_taxas: e.target.value })} />
-                  </div>
-                  <div className="col-span-1">
-                    <label className="text-xs text-red-500 font-bold mb-1 block">Pago Fatura (R$)</label>
-                    <input required type="number" step="0.01" className="w-full p-2 border border-red-200 bg-red-50 text-red-700 font-bold rounded-lg outline-none"
-                      value={formData.valor_pago_fatura} onChange={e => setFormData({ ...formData, valor_pago_fatura: e.target.value })} />
-                  </div>
-
-                  <div className="col-span-2 mt-2 pt-2 border-t border-green-200">
-                    <label className="text-xs font-black text-orange-600 block mb-1 uppercase flex items-center gap-1">
-                      <BatteryCharging size={14} /> Saldo Acumulado (kWh)
-                    </label>
-                    <input
-                      type="number"
-                      className="w-full p-2 rounded border border-orange-200 bg-orange-50 font-bold text-gray-900"
-                      placeholder="Valor da Fatura Copel"
-                      value={formData.saldo_acumulado_kwh}
-                      onChange={e => setFormData({ ...formData, saldo_acumulado_kwh: e.target.value })}
-                    />
-                  </div>
-
-                  <div className="col-span-2 border-t border-green-200 pt-3 mt-2">
-                    <div className="flex justify-between items-center mb-2">
-                      <span className="text-sm text-gray-500">Total Pagaria Copel:</span>
-                      <span className="text-lg font-bold text-gray-900">R$ {calculos.totalPagariaCopel.toFixed(2)}</span>
-                    </div>
-                    <div className="flex justify-between items-center mb-3">
-                      <span className="text-sm text-green-700 font-bold uppercase">Economia na Fatura:</span>
-                      <span className="text-xl font-black text-green-700">R$ {calculos.economia.toFixed(2)}</span>
-                    </div>
-                  </div>
-
-                  <div className="col-span-1">
-                    <label className="text-xs text-purple-600 font-bold mb-1 block">Desconto Manual (%)</label>
-                    <input required type="number" step="0.01" className="w-full p-2 border border-purple-200 rounded-lg focus:border-purple-500 outline-none text-purple-700 font-bold text-lg"
-                      value={formData.percentual_desconto} onChange={e => setFormData({ ...formData, percentual_desconto: e.target.value })} />
-                  </div>
-                  <div className="col-span-1 bg-purple-50 p-2 rounded-lg flex flex-col justify-center border border-purple-100 shadow-inner">
-                    <span className="text-[10px] text-purple-500 font-bold">VALOR CLIENTE (DESC)</span>
-                    <span className="font-bold text-purple-800 text-lg">R$ {calculos.descontoAplicado.toFixed(2)}</span>
-                  </div>
-
-                  <div className="col-span-2 bg-green-100 p-4 rounded-xl flex flex-col items-center justify-center mt-2 border border-green-200 shadow-sm">
-                    <span className="text-sm font-bold text-green-800 uppercase tracking-wider">RECEBER DO CONSUMIDOR</span>
-                    <span className="text-3xl font-black text-green-700 mt-1">R$ {calculos.totalReceberCliente.toFixed(2)}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* BARRA DE LUCRO FINAL */}
-            <div className="mt-8 bg-slate-800 p-6 rounded-lg text-white shadow-xl flex flex-col md:flex-row items-center justify-between border border-slate-700 hover:shadow-2xl transition-shadow">
-              <div className="flex items-center gap-4">
-                <div className="p-4 bg-yellow-500 rounded-full text-slate-900 shadow-sm shadow-yellow-500/50">
-                  <Wallet size={32} />
-                </div>
-                <div>
-                  <h4 className="text-slate-400 font-bold text-sm uppercase tracking-widest">Lucro da Empresa (Spread)</h4>
-                  <p className="text-xs text-slate-500">Recebido do Cliente - Pago ao Gerador</p>
-                </div>
-              </div>
-              <div className="text-center md:text-right mt-4 md:mt-0">
-                <span className={`text-5xl font-black drop-shadow-sm ${calculos.lucroEmpresa >= 0 ? 'text-yellow-400' : 'text-red-400'}`}>
-                  R$ {calculos.lucroEmpresa.toFixed(2)}
-                </span>
-              </div>
-            </div>
-
-            {/* Uploads */}
-            <div className="mt-8 pt-6 border-t border-gray-200 grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="border border-dashed border-gray-200 rounded-xl p-4 bg-gray-50 hover:bg-gray-50-card transition-colors cursor-pointer group">
-                <label className="cursor-pointer block">
-                  <span className="text-sm font-bold text-gray-500 flex items-center gap-2 mb-2 group-hover:text-blue-600 transition-colors"><FileText size={16} /> Anexar Planilha</span>
-                  <input type="file" className="text-xs w-full text-gray-500" onChange={e => setFormData({ ...formData, arquivo: e.target.files?.[0] || null })} />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="p-4 border-2 border-dashed border-gray-200 rounded-xl bg-gray-50">
+                <label className="cursor-pointer block text-sm font-bold text-gray-500">
+                  <div className="flex items-center gap-2 mb-1"><FileText size={16}/> Planilha/Memória</div>
+                  <input type="file" className="text-xs w-full" onChange={e => setFormData({ ...formData, arquivo: e.target.files?.[0] || null })} />
+                  {formData.arquivo_url_existente && <div className="text-[10px] text-blue-500 mt-1">Já existe um arquivo salvo.</div>}
                 </label>
               </div>
-              <div className="border border-dashed border-gray-200 rounded-xl p-4 bg-gray-50 hover:bg-gray-50-card transition-colors cursor-pointer group">
-                <label className="cursor-pointer block">
-                  <span className="text-sm font-bold text-gray-500 flex items-center gap-2 mb-2 group-hover:text-green-600 transition-colors"><Upload size={16} /> Anexar Recibo</span>
-                  <input type="file" className="text-xs w-full text-gray-500" onChange={e => setFormData({ ...formData, recibo: e.target.files?.[0] || null })} />
+              <div className="p-4 border-2 border-dashed border-gray-200 rounded-xl bg-gray-50">
+                <label className="cursor-pointer block text-sm font-bold text-gray-500">
+                  <div className="flex items-center gap-2 mb-1"><Upload size={16}/> Fatura/Recibo</div>
+                  <input type="file" className="text-xs w-full" onChange={e => setFormData({ ...formData, recibo: e.target.files?.[0] || null })} />
+                  {formData.recibo_url_existente && <div className="text-[10px] text-green-600 mt-1">Já existe um recibo salvo.</div>}
                 </label>
               </div>
             </div>
 
-            <div className="mt-8 flex justify-end gap-4">
-              <button type="button" onClick={() => setShowForm(false)} className="px-6 py-3 bg-gray-50-card text-gray-500 border border-gray-200 rounded-xl font-bold hover:bg-gray-50 transition-colors">Cancelar</button>
-              <button type="submit" disabled={uploading} className="px-8 py-3 bg-blue-600 text-white rounded-xl font-bold shadow-sm hover:bg-blue-700 disabled:opacity-50 transition-all transform hover:scale-105 active:scale-95">
-                {uploading ? 'Salvando...' : 'Salvar Cálculo'}
+            <div className="flex justify-end gap-4">
+              <button type="button" onClick={() => setShowForm(false)} className="px-6 py-3 font-bold text-gray-500 hover:bg-gray-100 rounded-xl transition-all">Cancelar</button>
+              <button type="submit" disabled={uploading} className="bg-slate-800 text-white px-8 py-3 rounded-xl font-bold hover:bg-slate-900 shadow-md transition-all">
+                {uploading ? 'A guardar...' : 'Salvar e Gerar Relatório'}
               </button>
             </div>
           </form>
         </div>
       )}
 
-      {/* TABELA VISUAL */}
-      <div className="bg-gray-50-card rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-        <table className="w-full text-sm">
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <table className="w-full text-sm text-left">
           <thead className="bg-gray-50 text-gray-500 font-bold uppercase text-xs">
             <tr>
-              <th className="px-6 py-4 text-left">Mês</th>
-              <th className="px-6 py-4 text-left text-blue-600">UC</th>
-              <th className="px-6 py-4 text-right text-orange-600">Saldo (kWh)</th>
-              <th className="px-6 py-4 text-right">Compensada</th>
-              <th className="px-6 py-4 text-right text-yellow-600">Lucro (Spread)</th>
-              <th className="px-6 py-4 text-right text-green-600">Economia</th>
-              <th className="px-6 py-4 text-right bg-green-50 text-green-800">Recebido</th>
-              <th className="px-6 py-4 text-center">Docs</th>
+              <th className="px-6 py-4">Mês Referência</th>
+              <th className="px-6 py-4 text-center">Tipo</th>
+              <th className="px-6 py-4 text-center">Anexos</th>
               <th className="px-6 py-4 text-right">Ações</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
-            {fechamentos.map((f) => (
-              <tr key={f.fechamento_id} className="hover:bg-blue-50/20 transition-colors">
-                <td className="px-6 py-4 font-bold text-gray-900 capitalize">
-                  {new Date(f.mes_referencia).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric', timeZone: 'UTC' })}
+            {relatorios.map((r) => (
+              <tr key={r.id} className="hover:bg-gray-50 transition-all">
+                <td className="px-6 py-4 font-bold capitalize">{new Date(r.mes_referencia).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric', timeZone: 'UTC' })}</td>
+                <td className="px-6 py-4 text-center">
+                  <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase ${r.tipo_relatorio === 'injetado' ? 'bg-orange-100 text-orange-700' : r.tipo_relatorio === 'usina_consumo' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}`}>
+                    {r.tipo_relatorio.replace('_', ' ')}
+                  </span>
                 </td>
-                <td className="px-6 py-4 text-left font-bold text-blue-600 text-xs">
-                    {f.unidades_consumidoras ? (
-                        <span className="flex items-center gap-1">
-                            <Building2 size={12}/> UC {f.unidades_consumidoras.codigo_uc}
-                        </span>
-                    ) : '-'}
+                <td className="px-6 py-4 text-center flex justify-center gap-3">
+                  {r.arquivo_url && <button onClick={() => handleDownloadSeguro(r.arquivo_url)} className="text-blue-500 hover:scale-110 transition-transform"><FileText /></button>}
+                  {r.recibo_url && <button onClick={() => handleDownloadSeguro(r.recibo_url)} className="text-green-500 hover:scale-110 transition-transform"><Download /></button>}
                 </td>
-                <td className="px-6 py-4 text-right font-bold text-orange-600 bg-orange-50/30">
-                  {f.saldo_acumulado_kwh} kWh
-                </td>
-                <td className="px-6 py-4 text-right text-gray-500">{f.energia_compensada} kWh</td>
-                <td className="px-6 py-4 text-right font-bold text-yellow-600">R$ {f.spread?.toFixed(2)}</td>
-                <td className="px-6 py-4 text-right  text-green-600">R$ {f.economia_gerada?.toFixed(2)}</td>
-                <td className="px-6 py-4 text-right font-bold text-green-800 bg-green-50/50">R$ {f.valor_recebido?.toFixed(2)}</td>
-                <td className="px-6 py-4 text-center flex justify-center gap-2">
-                  {f.arquivo_url && <a href={f.arquivo_url} target="_blank" className="text-blue-400 hover:text-blue-600 p-1 hover:bg-blue-50 rounded"><FileText size={18} /></a>}
-                  {f.recibo_url && <a href={f.recibo_url} target="_blank" className="text-green-400 hover:text-green-600 p-1 hover:bg-green-50 rounded"><Download size={18} /></a>}
-                </td>
-                <td className="px-6 py-4 text-right flex items-center justify-end gap-2">
-                  <button
-                    onClick={() => gerarRelatorioPDF(f, vinculo?.consumidores?.nome || 'Cliente', f.mes_referencia)}
-                    className="text-white bg-red-500 hover:bg-red-600 p-2 rounded-lg transition-colors"
-                    title="Baixar Relatório PDF"
-                  >
-                    <FileText size={16} />
-                  </button>
-
-                  <button onClick={() => handleEditar(f)} className="text-blue-500 hover:bg-blue-50 p-2 rounded-lg transition-colors" title="Editar">
-                    <Edit2 size={16} />
-                  </button>
-
-                  <button onClick={() => solicitarExclusao(f.fechamento_id)} className="text-red-500 hover:bg-red-50 p-2 rounded-lg transition-colors" title="Excluir">
-                    <Trash2 size={16} />
-                  </button>
+                <td className="px-6 py-4 text-right">
+                  <div className="flex justify-end gap-2">
+                    <button onClick={() => gerarRelatorioPDF(r, vinculo)} className={`px-4 py-1.5 rounded-lg text-white font-bold text-xs ${r.tipo_relatorio === 'injetado' ? 'bg-orange-500' : r.tipo_relatorio === 'usina_consumo' ? 'bg-green-600' : 'bg-blue-600'}`}>PDF</button>
+                    <button onClick={() => handleEditar(r)} className="p-2 bg-gray-100 rounded-lg text-gray-600 hover:bg-gray-200"><Edit2 size={16}/></button>
+                    <button onClick={() => { setIdParaExcluir(r.id); setModalExclusaoAberto(true); }} className="p-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200"><Trash2 size={16}/></button>
+                  </div>
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
-        {fechamentos.length === 0 && <div className="p-12 text-center text-gray-500">Nenhum registro encontrado.</div>}
+        {relatorios.length === 0 && <div className="p-12 text-center text-gray-500">Nenhum relatório para este contrato.</div>}
       </div>
 
-      <ModalConfirmacao
-        isOpen={modalExclusaoAberto}
-        onClose={() => setModalExclusaoAberto(false)}
-        onConfirm={confirmarExclusao}
-        title="Excluir Fechamento?"
-        message="Tem certeza que deseja excluir este registro financeiro? Essa ação não pode ser desfeita e pode afetar o histórico."
-        confirmText="Sim, Excluir"
-        isDestructive={true}
-      />
+      <ModalConfirmacao isOpen={modalExclusaoAberto} onClose={() => setModalExclusaoAberto(false)} onConfirm={confirmarExclusao} title="Excluir Relatório?" message="Esta ação não pode ser desfeita." confirmText="Excluir" isDestructive={true} />
     </div>
   );
 }

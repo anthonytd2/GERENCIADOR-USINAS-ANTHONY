@@ -1,10 +1,10 @@
 import express from 'express';
 import { supabase } from '../db.js';
-import xss from 'xss'; // 🟢 NOVO: Importando a biblioteca de sanitização
+import xss from 'xss';
 
 const router = express.Router();
 
-// 🟢 NOVO: Função de Segurança (Varredor de XSS)
+// Função de Segurança (Varredor de XSS)
 const sanitizeInput = (data) => {
   if (typeof data !== 'object' || data === null) return data;
   const sanitized = Array.isArray(data) ? [] : {};
@@ -22,21 +22,18 @@ const sanitizeInput = (data) => {
 
 // --- FUNÇÃO AUXILIAR PARA DESCOBRIR A UNIDADE CONSUMIDORA ---
 async function descobrirUnidadeConsumidora(vinculoId, ucIdInformado) {
-  // Se já veio o ID correto, usa ele
-  if (ucIdInformado) return ucIdInformado;
+  // Se já veio o ID correto (e não for vazio), usa ele
+  if (ucIdInformado && ucIdInformado !== '') return ucIdInformado;
 
   // Se não veio ID da UC, mas temos o Vínculo, vamos buscar no banco
   if (vinculoId) {
-    // 1. Acha o consumidor do vínculo
     const { data: vinculo } = await supabase
       .from('vinculos')
       .select('consumidor_id')
-      .eq('id', vinculoId) // CORREÇÃO: Busca por 'id' na tabela vinculos
+      .eq('id', vinculoId)
       .single();
 
     if (vinculo) {
-      // 2. Acha a UC do consumidor
-      // CORREÇÃO: Agora a tabela de UCs usa 'id' como chave primária
       const { data: uc } = await supabase
         .from('unidades_consumidoras')
         .select('id') 
@@ -47,10 +44,9 @@ async function descobrirUnidadeConsumidora(vinculoId, ucIdInformado) {
       if (uc) return uc.id;
     }
   }
-  return null; // Não achou nada
+  return null; // Não achou nada ou é Injetado (que não precisa de UC)
 }
 // -----------------------------------------------------------
-
 
 // LISTAR FECHAMENTOS DO VÍNCULO
 router.get('/:vinculoId', async (req, res) => {
@@ -61,7 +57,7 @@ router.get('/:vinculoId', async (req, res) => {
         *,
         unidades_consumidoras (codigo_uc, endereco, bairro)
       `)
-      .eq('vinculo_id', req.params.vinculoId) // Mantém vinculo_id pois é a coluna no fechamento
+      .eq('vinculo_id', req.params.vinculoId)
       .order('mes_referencia', { ascending: false });
 
     if (error) throw error;
@@ -75,14 +71,18 @@ router.get('/:vinculoId', async (req, res) => {
 // CRIAR (POST)
 router.post('/', async (req, res) => {
   try {
-    // 🟢 SEGURANÇA APLICADA: Lavamos o req.body inteiro antes de qualquer coisa
     const body = sanitizeInput(req.body);
     
-    // Usa a função inteligente para achar o ID
     const ucIdParaSalvar = await descobrirUnidadeConsumidora(body.vinculo_id, body.unidade_consumidora_id);
 
     const payload = {
-      unidade_consumidora_id: ucIdParaSalvar, // <--- ID Automático
+      // 🟢 NOVOS CAMPOS DO MOTOR DE CÁLCULO
+      tipo_calculo: body.tipo_calculo || 'consumo',
+      leitura_anterior: body.leitura_anterior || 0,
+      leitura_atual: body.leitura_atual || 0,
+      qtd_compensada_geradora: body.qtd_compensada_geradora || 0,
+
+      unidade_consumidora_id: ucIdParaSalvar || null, // Pode ser nulo no Injetado
       vinculo_id: body.vinculo_id,
       mes_referencia: body.mes_referencia,
       energia_compensada: body.energia_compensada,
@@ -123,13 +123,17 @@ router.post('/', async (req, res) => {
 router.put('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    
-    // 🟢 SEGURANÇA APLICADA: Lavamos o req.body inteiro antes de qualquer coisa
     const body = sanitizeInput(req.body);
 
     const ucIdParaSalvar = await descobrirUnidadeConsumidora(body.vinculo_id, body.unidade_consumidora_id);
 
     const payload = {
+      // 🟢 NOVOS CAMPOS DO MOTOR DE CÁLCULO
+      tipo_calculo: body.tipo_calculo || 'consumo',
+      leitura_anterior: body.leitura_anterior || 0,
+      leitura_atual: body.leitura_atual || 0,
+      qtd_compensada_geradora: body.qtd_compensada_geradora || 0,
+
       mes_referencia: body.mes_referencia,
       energia_compensada: body.energia_compensada,
       consumo_rede: body.consumo_rede,
@@ -149,9 +153,8 @@ router.put('/:id', async (req, res) => {
       updated_at: new Date()
     };
 
-    if (ucIdParaSalvar) {
-      payload.unidade_consumidora_id = ucIdParaSalvar;
-    }
+    // Permite setar nulo se for injetado
+    payload.unidade_consumidora_id = ucIdParaSalvar || null;
 
     if (body.arquivo_url !== undefined) payload.arquivo_url = body.arquivo_url;
     if (body.recibo_url !== undefined) payload.recibo_url = body.recibo_url;

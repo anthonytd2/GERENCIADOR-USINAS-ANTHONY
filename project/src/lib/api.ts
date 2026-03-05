@@ -188,6 +188,20 @@ export const api = {
     delete: (id: number) => axiosInstance.delete(`/cpf_cnpjs/${id}`).then((res: any) => res.data),
   },
 
+  transacoes: {
+    listByVinculo: (vinculoId: number) => axiosInstance.get(`/transacoes/vinculo/${vinculoId}`).then((res: any) => res.data),
+    create: (data: any) => axiosInstance.post('/transacoes', data).then((res: any) => res.data),
+    update: (id: number, data: any) => axiosInstance.put(`/transacoes/${id}`, data).then((res: any) => res.data),
+    delete: (id: number) => axiosInstance.delete(`/transacoes/${id}`).then((res: any) => res.data),
+  },
+
+  relatoriosFinanceiros: {
+    list: (vinculoId: number) => axiosInstance.get(`/relatorios_financeiros/${vinculoId}`).then(res => res.data),
+    create: (data: any) => axiosInstance.post('/relatorios_financeiros', data).then(res => res.data),
+    update: (id: number, data: any) => axiosInstance.put(`/relatorios_financeiros/${id}`, data).then(res => res.data),
+    delete: (id: number) => axiosInstance.delete(`/relatorios_financeiros/${id}`).then(res => res.data),
+  },
+
   financeiro: {
     list: (vinculoId: number) => axiosInstance.get(`/fechamentos/${vinculoId}`).then((res: any) => res.data),
     create: (data: any) => axiosInstance.post('/fechamentos', data).then((res: any) => res.data),

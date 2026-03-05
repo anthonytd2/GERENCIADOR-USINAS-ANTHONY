@@ -67,10 +67,10 @@ router.get('/:id', async (req, res) => {
       .select(`
         *,
         status:status_id (*),
-        consumidores:consumidor_id (
+consumidores:consumidor_id (
             consumidor_id, nome, documento, endereco, bairro, cidade, uf, cep, percentual_desconto, media_consumo
         ),
-        usinas:usina_id (id, nome, tipo, potencia, endereco_proprietario),
+        usinas:usina_id (id, nome, tipo, potencia, endereco_proprietario, valor_kw_bruto),
         unidades_vinculadas (
           id, 
           percentual_rateio,  

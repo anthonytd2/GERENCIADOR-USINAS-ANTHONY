@@ -3,7 +3,7 @@ import express from "express";
 import cors from "cors";
 import helmet from "helmet"; 
 import rateLimit from "express-rate-limit"; 
-
+import transacoesRoutes from "./routes/transacoes.js";
 import usinasRoutes from "./routes/usinas.js";
 import vinculosRoutes from "./routes/vinculos.js";
 import consumidoresRoutes from "./routes/consumidores.js";
@@ -19,6 +19,7 @@ import relatoriosRoutes from "./routes/relatorios.js";
 import protocolosRoutes from "./routes/protocolos.js";
 import dashboardBalancoRoutes from "./routes/dashboard_balanco.js";
 import { verificarToken } from "./middlewares/auth.js";
+import relatoriosFinanceirosRoutes from "./routes/relatorios_financeiros.js";
 
 const app = express();
 
@@ -128,6 +129,8 @@ app.use("/api/entidades", verificarToken, entidadesRoutes);
 app.use("/api/relatorios", verificarToken, relatoriosRoutes);
 app.use("/api/dashboard-balanco", verificarToken, dashboardBalancoRoutes);
 app.use("/api/protocolos", verificarToken, protocolosRoutes);
+app.use("/api/transacoes", verificarToken, transacoesRoutes);
+app.use('/api/relatorios_financeiros', verificarToken, relatoriosFinanceirosRoutes);
 
 app.get("/", (req, res) => {
   res.json({ message: "API Gestão Usinas Solar Online 🚀" });

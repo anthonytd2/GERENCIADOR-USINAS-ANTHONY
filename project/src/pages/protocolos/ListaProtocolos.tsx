@@ -181,7 +181,7 @@ export default function ListaProtocolos() {
         <div>
           <h1 className="text-3xl font-extrabold text-slate-900 flex items-center gap-2 tracking-tight">
             <FileText className="text-indigo-600 w-8 h-8" /> 
-            Afazeres e Protocolos
+            Status e Protocolos
           </h1>
           <p className="text-slate-500  mt-1">Controle operacional de processos.</p>
         </div>

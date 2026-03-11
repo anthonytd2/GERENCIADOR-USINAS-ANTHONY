@@ -211,7 +211,6 @@ export default function ListaPropostas() {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4 px-1 pt-2 border-b border-slate-200 pb-6">
         <div>
           <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight">Pipeline de Vendas</h2>
-          <p className="text-slate-500 text-sm mt-1 font-medium">Gestão visual e rápida de negociações.</p>
         </div>
         <Link to="/propostas/novo" className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 shadow-md shadow-blue-200 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 font-bold text-sm">
           <Plus className="w-5 h-5" /> Nova Simulação

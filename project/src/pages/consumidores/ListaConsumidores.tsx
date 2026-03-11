@@ -125,7 +125,7 @@ export default function ListaConsumidores() {
               Carteira de Consumidores
             </h1>
             <p className="text-gray-500 mt-1 text-sm">
-              Gerencie os beneficiários dos créditos de energia.
+              Beneficiários dos créditos de energia
             </p>
           </div>
         </div>

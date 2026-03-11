@@ -84,7 +84,7 @@ export default function Dashboard() {
             <Activity className="text-blue-600 fill-blue-600" />
             Visão Geral
           </h1>
-          <p className="text-gray-500 mt-1">Acompanhe o desempenho da sua gestão de energia.</p>
+          <p className="text-gray-500 mt-1">Desempenho da gestão</p>
         </div>
 
         {/* Filtro do Mês */}
@@ -115,7 +115,7 @@ export default function Dashboard() {
             <Zap size={28} className="fill-orange-600" />
           </div>
           <div>
-            <p className="text-sm text-gray-500 font-bold uppercase tracking-wide">Usinas Ativas</p>
+            <p className="text-sm text-gray-500 font-bold uppercase tracking-wide">Usinas</p>
             <h3 className="text-3xl font-black text-gray-900 mt-1">{loading ? '...' : dados.contadores.usinas}</h3>
           </div>
         </div>

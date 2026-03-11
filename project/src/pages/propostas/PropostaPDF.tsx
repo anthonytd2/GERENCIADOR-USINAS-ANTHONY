@@ -23,7 +23,7 @@ export function PropostaPDF({ form, resultado }: PropostaPDFProps) {
               <div className="bg-emerald-500 p-3 rounded-lg">
                 <Zap className="w-12 h-12 text-white" fill="currentColor" />
               </div>
-              <span className="text-6xl font-bold tracking-wider">BIONOVA</span>
+              <span className="text-6xl font-bold tracking-wider">Solar Locações</span>
             </div>
             <div className="h-2 w-32 bg-emerald-500 rounded-full"></div>
           </div>
@@ -107,8 +107,8 @@ export function PropostaPDF({ form, resultado }: PropostaPDFProps) {
                 <thead>
                   <tr className="bg-slate-100 text-slate-600 uppercase text-xs tracking-wider">
                     <th className="p-4 text-left font-extrabold w-[40%]">Descrição do Custo</th>
-                    <th className="p-4 text-right font-extrabold text-red-900 bg-red-100/50 w-[30%] border-l border-slate-200">Sem Bionova</th>
-                    <th className="p-4 text-right font-extrabold text-emerald-900 bg-emerald-100/50 w-[30%] border-l border-slate-200">Com Bionova</th>
+                    <th className="p-4 text-right font-extrabold text-red-900 bg-red-100/50 w-[30%] border-l border-slate-200">Sem Solar Locações</th>
+                    <th className="p-4 text-right font-extrabold text-emerald-900 bg-emerald-100/50 w-[30%] border-l border-slate-200">Com Solar Locações</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 text-lg"> 
@@ -144,7 +144,7 @@ export function PropostaPDF({ form, resultado }: PropostaPDFProps) {
 
                   {/* Assinatura */}
                   <tr className="bg-blue-50 border-t-2 border-white">
-                    <td className="p-4 pl-6 text-blue-900 font-bold">+ Assinatura Bionova</td>
+                    <td className="p-4 pl-6 text-blue-900 font-bold">+ Assinatura Solar Locações</td>
                     <td className="p-4 text-right text-gray-500 font-normal border-l border-white">-</td>
                     <td className="p-4 text-right text-blue-700 font-bold border-l border-white">{fmt(resultado.pagamentoUsina)}</td>
                   </tr>
@@ -182,7 +182,7 @@ export function PropostaPDF({ form, resultado }: PropostaPDFProps) {
           <div className="mt-auto border-t border-slate-200 pt-6">
               <div className="flex justify-between items-center text-slate-500">
                 <div className="flex items-center gap-2 font-bold text-sm">
-                  <Globe size={18} className="text-blue-600"/> www.bionovaenergia.com.br
+                  <Globe size={18} className="text-blue-600"/> www.SolarLocações.com.br
                 </div>
                 <div className="flex items-center gap-2 font-bold text-sm">
                   <Phone size={18} className="text-emerald-600"/> (44) 99999-9999

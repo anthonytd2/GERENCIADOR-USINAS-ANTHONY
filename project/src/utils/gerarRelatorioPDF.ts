@@ -94,7 +94,7 @@ export const gerarRelatorioPDF = (dados: any, vinculo: any) => {
   // MODELO 3: RELATÓRIO USINA CONSUMO (VERDE)
   // =========================================================================
   else if (dados.tipo_relatorio === 'usina_consumo') {
-    doc.setFillColor(21, 128, 61); // Verde Bionova Usina Consumo
+    doc.setFillColor(21, 128, 61); // Verde Solar Locações Usina Consumo
     doc.rect(0, 0, larguraPagina, 40, 'F'); 
     
     doc.setFont("helvetica", "bold"); doc.setFontSize(22); doc.setTextColor(255, 255, 255);

@@ -382,7 +382,7 @@ export default function FechamentoMensal() {
                                     <tr>
                                         <th className="p-4 text-left">Cliente</th>
                                         <th className="p-4 text-right">Economia Bruta</th>
-                                        <th className="p-4 text-right bg-emerald-50 text-emerald-800">A Cobrar (Bionova)</th>
+                                        <th className="p-4 text-right bg-emerald-50 text-emerald-800">A Cobrar (Solar Locações)</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-200">

@@ -32,7 +32,7 @@ export default function Login() {
     <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
       <form onSubmit={handleLogin} className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md border border-gray-100">
         <div className="text-center mb-8">
-          <h2 className="text-3xl font-bold text-gray-900">Bionova</h2>
+          <h2 className="text-3xl font-bold text-gray-900">Solar Locações</h2>
           <p className="text-gray-500 mt-2">Gestão de Usinas Solares</p>
         </div>
         
@@ -42,7 +42,7 @@ export default function Login() {
             <input 
               type="email" 
               required
-              placeholder="exemplo@bionova.com" 
+              placeholder="exemplo@SolarLocações.com" 
               className="w-full p-3 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 transition-all"
               value={email} onChange={e => setEmail(e.target.value)}
             />

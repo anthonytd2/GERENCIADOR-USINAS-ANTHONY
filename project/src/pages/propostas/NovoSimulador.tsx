@@ -394,9 +394,9 @@ export default function NovoSimulador() {
               </div>
 
               <div className="pt-4">
-                <label className="text-sm font-bold text-blue-900 block mb-1">Desconto Bionova</label>
+                <label className="text-sm font-bold text-blue-900 block mb-1">Desconto Solar Locações</label>
                 <div className="flex items-center gap-3">
-                  <input type="range" min="0" max="30" name="descontoBionova" value={form.descontoBionova} onChange={handleInputChange} className="flex-1" />
+                  <input type="range" min="0" max="30" name="desconto Solar Locações" value={form.descontoBionova} onChange={handleInputChange} className="flex-1" />
                   <span className="text-xl font-bold text-blue-600">{form.descontoBionova}%</span>
                 </div>
               </div>
@@ -447,7 +447,7 @@ export default function NovoSimulador() {
                     <tr>
                       <th className="px-6 py-3 text-left">Item da Fatura</th>
                       <th className="px-6 py-3 text-right">Cenário Atual</th>
-                      <th className="px-6 py-3 text-right text-blue-700 font-bold">Com Bionova</th>
+                      <th className="px-6 py-3 text-right text-blue-700 font-bold">Com Solar Locações</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
@@ -457,7 +457,7 @@ export default function NovoSimulador() {
                     <tr><td className="px-6 py-3 text-gray-500">Iluminação Pública</td><td className="px-6 py-3 text-right">{fmt(resultado.dadosOriginais.valorIluminacao)}</td><td className="px-6 py-3 text-right text-gray-900">{fmt(resultado.dadosOriginais.valorIluminacao)}</td></tr>
                     <tr><td className="px-6 py-3 text-gray-500">Outros / Multas</td><td className="px-6 py-3 text-right">{fmt(resultado.dadosOriginais.valorOutros)}</td><td className="px-6 py-3 text-right text-gray-900">{fmt(resultado.dadosOriginais.valorOutros)}</td></tr>
                     <tr className="bg-gray-50  text-gray-500"><td className="px-6 py-3 italic">Total Distribuidora</td><td className="px-6 py-3 text-right">{fmt(resultado.faturaAtual)}</td><td className="px-6 py-3 text-right">{fmt(resultado.novaFaturaDistribuidora)}</td></tr>
-                    <tr className="bg-blue-50/50 border-t-2 border-blue-100"><td className="px-6 py-4 text-blue-900 font-bold">Assinatura Bionova</td><td className="px-6 py-4 text-right text-gray-300">-</td><td className="px-6 py-4 text-right font-bold text-blue-700">{fmt(resultado.pagamentoUsina)}</td></tr>
+                    <tr className="bg-blue-50/50 border-t-2 border-blue-100"><td className="px-6 py-4 text-blue-900 font-bold">Assinatura Solar Locações</td><td className="px-6 py-4 text-right text-gray-300">-</td><td className="px-6 py-4 text-right font-bold text-blue-700">{fmt(resultado.pagamentoUsina)}</td></tr>
                     <tr className="bg-gray-100 text-sm border-t-2 border-gray-200"><td className="px-6 py-5 font-bold text-gray-900">VOCÊ PAGA NO TOTAL</td><td className="px-6 py-5 text-right font-bold text-gray-500 line-through decoration-red-400">{fmt(resultado.faturaAtual)}</td><td className="px-6 py-5 text-right font-bold text-blue-700 text-lg">{fmt(resultado.novoCustoTotal)}</td></tr>
                   </tbody>
                 </table>

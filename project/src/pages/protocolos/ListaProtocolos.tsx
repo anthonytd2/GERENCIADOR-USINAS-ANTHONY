@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
-import { createPortal } from 'react-dom'; // 🟢 NOVO: Importamos o createPortal
+import { createPortal } from 'react-dom'; 
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import { api } from '../../lib/api';
 import { 
   Plus, Calendar, AlertCircle, CheckCircle, Clock, 
-  Trash2, FileText, Search, AlertTriangle, Edit3, X 
+  Trash2, FileText, Search, AlertTriangle, Edit3, X, Zap
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -34,6 +34,12 @@ const COLUNAS = [
     id: 'CONCLUIDO', 
     titulo: 'Concluído', 
     cor: 'border-2 border-emerald-600 bg-emerald-50' 
+  },
+  // 🟢 NOVA COLUNA ADICIONADA AQUI (com verde mais claro)
+  { 
+    id: 'INJETANDO', 
+    titulo: 'Injetando', 
+    cor: 'border-2 border-green-500 bg-green-50' 
   }
 ];
 
@@ -79,13 +85,18 @@ export default function ListaProtocolos() {
       case 'PROTOCOLADO': return 'bg-blue-700';  
       case 'PENDENCIA': return 'bg-red-700';     
       case 'CONCLUIDO': return 'bg-emerald-700'; 
+      case 'INJETANDO': return 'bg-green-600'; // 🟢 COR DA BOLINHA DA NOVA COLUNA (verde-claro)
       default: return 'bg-slate-600';            
     }
   };
 
   // --- SEMÁFORO DE PRAZOS ---
   const getStatusPrazo = (dataLimite: string, status: string) => {
-    if (status === 'CONCLUIDO') return { style: 'border-l-4 border-emerald-500 bg-gray-50-card text-emerald-700', icon: CheckCircle, label: 'Finalizado' };
+    // 🟢 REGRA ATUALIZADA: Se estiver Concluído OU Injetada, o prazo para de contar (Finalizado)
+    if (status === 'CONCLUIDO' || status === 'INJETANDO') {
+      return { style: 'border-l-4 border-emerald-500 bg-gray-50-card text-emerald-700', icon: CheckCircle, label: 'Finalizado' };
+    }
+    
     if (!dataLimite) return { style: 'border-l-4 border-slate-200 bg-gray-50-card text-slate-400', icon: Calendar, label: 'S/ Prazo' };
 
     const hoje = new Date();
@@ -196,7 +207,8 @@ export default function ListaProtocolos() {
       {/* Kanban Board */}
       <DragDropContext onDragEnd={onDragEnd}>
         <div className="flex-1 overflow-x-auto pb-4">
-          <div className="flex gap-6 min-w-[1500px] h-full px-1">
+          {/* 🟢 O min-w aumentou para 1800px para caber a 6ª coluna sem amassar as outras */}
+          <div className="flex gap-6 min-w-[1800px] h-full px-1">
             {COLUNAS.map(coluna => {
               const cards = protocolos.filter(p => (p.status || 'A_FAZER') === coluna.id);
               const corBadge = getBadgeColor(coluna.id);

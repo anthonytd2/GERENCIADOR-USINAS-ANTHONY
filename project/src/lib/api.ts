@@ -208,6 +208,18 @@ export const api = {
     update: (id: number, data: any) => axiosInstance.put(`/fechamentos/${id}`, data).then((res: any) => res.data),
     delete: (id: number) => axiosInstance.delete(`/fechamentos/${id}`).then((res: any) => res.data),
   },
+  
+fluxoCaixa: {
+    list: (mes: string) => axiosInstance.get(`/fluxo-caixa?mes=${mes}`).then((res: any) => res.data),
+    create: (data: any) => axiosInstance.post('/fluxo-caixa', data).then((res: any) => res.data),
+    update: (id: number, data: any) => axiosInstance.put(`/fluxo-caixa/${id}`, data).then((res: any) => res.data),
+    delete: (id: number) => axiosInstance.delete(`/fluxo-caixa/${id}`).then((res: any) => res.data),
+    conciliar: (ids: number[]) => axiosInstance.post('/fluxo-caixa/conciliar', { ids }).then((res: any) => res.data),
+    desconciliar: (codigo: string) => axiosInstance.post('/fluxo-caixa/desconciliar', { codigo }).then((res: any) => res.data),
+    fecharMes: (data: any) => axiosInstance.post('/fluxo-caixa/fechar-mes', data).then((res: any) => res.data),
+    // 🟢 Rota nova para reabrir o cadeado
+    reabrirMes: (mes: string) => axiosInstance.delete(`/fluxo-caixa/reabrir-mes/${mes}`).then((res: any) => res.data),
+  },
 
   get: (url: string) => axiosInstance.get(url).then((res: any) => res.data),
   post: (url: string, data: any) => axiosInstance.post(url, data).then((res: any) => res.data),

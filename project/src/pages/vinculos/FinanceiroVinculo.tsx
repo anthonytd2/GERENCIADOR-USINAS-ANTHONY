@@ -19,15 +19,19 @@ export default function FinanceiroVinculo() {
   const [modalExclusaoAberto, setModalExclusaoAberto] = useState(false);
   const [idParaExcluir, setIdParaExcluir] = useState<number | null>(null);
 
+  // 🟢 1. Adicionado os 4 novos campos aqui no formInicial
   const formInicial = {
-    tipo_relatorio: 'consumo' as 'consumo' | 'injetado' | 'usina_consumo',
+    tipo_relatorio: 'consumo' as 'consumo' | 'injetado' | 'usina_consumo' | 'consumo_com_geracao',
     mes_referencia: '', unidade_consumidora_id: '', unidade_geradora: '',
+    energia_te: '', energia_tusd: '', quanto_pagaria: '', economia_real_cliente: '',
     energia_consumida: '', energia_compensada: '', valor_tarifa: '', outras_taxas: '', iluminacao_publica: '', injecao_propria: '', desconto_bandeira_injecao: '', valor_pago_fatura: '', economia_fatura: '', desconto_economia: '', valor_economizado_solar: '', total_receber: '', energia_acumulada: '',
     leitura_anterior: '', leitura_atual: '', qtd_injetada: '', qtd_compensada_geradora: '', saldo_transferido: '', valor_kwh_bruto: '', valor_kwh_fio_b: '', valor_kwh_liquido: '', valor_pagar: '', valor_fatura_geradora: '', valor_liquido_pagar: '', total_bruto: '', dif_tusd_fio_b: '',
     arquivo: null as File | null, recibo: null as File | null, arquivo_url_existente: null as string | null, recibo_url_existente: null as string | null
   };
 
   const [formData, setFormData] = useState(formInicial);
+
+  const isConsumoType = formData.tipo_relatorio === 'consumo' || formData.tipo_relatorio === 'consumo_com_geracao';
 
   const carregarDados = async () => {
     try {
@@ -92,8 +96,8 @@ export default function FinanceiroVinculo() {
       const payload = {
         vinculo_id: Number(id),
         ...formData,
-        unidade_consumidora_id: formData.tipo_relatorio === 'consumo' ? (formData.unidade_consumidora_id || null) : null,
-        unidade_geradora: formData.tipo_relatorio !== 'consumo' ? (formData.unidade_geradora || null) : null,
+        unidade_consumidora_id: isConsumoType ? (formData.unidade_consumidora_id || null) : null,
+        unidade_geradora: !isConsumoType ? (formData.unidade_geradora || null) : null,
         arquivo_url: finalPlanilha,
         recibo_url: finalRecibo
       };
@@ -132,6 +136,21 @@ export default function FinanceiroVinculo() {
     { name: 'energia_consumida', label: 'Energia Consumida', suffix: 'kWh' }, { name: 'energia_compensada', label: 'Energia Compensada', suffix: 'kWh' }, { name: 'injecao_propria', label: 'Injeção Própria', suffix: 'kWh' }, { name: 'energia_acumulada', label: 'Energia Acumulada', suffix: 'kWh' }, { name: 'valor_tarifa', label: 'Valor Tarifa', prefix: 'R$' }, { name: 'iluminacao_publica', label: 'Iluminação Pública', prefix: 'R$' }, { name: 'outras_taxas', label: 'Outras Taxas', prefix: 'R$' }, { name: 'desconto_bandeira_injecao', label: 'Desc. Bandeira / Inj. Própria', prefix: 'R$' }, { name: 'valor_pago_fatura', label: 'Valor Pago na Fatura', prefix: 'R$' }, { name: 'economia_fatura', label: 'Economia na Fatura', prefix: 'R$' }, { name: 'desconto_economia', label: 'Desconto s/ Economia', prefix: 'R$' }, { name: 'valor_economizado_solar', label: 'Valor Economizado Solar', prefix: 'R$' }, { name: 'total_receber', label: 'Total a Receber', prefix: 'R$', highlight: true },
   ];
 
+// 🟢 2. Lista EXATA com todos os campos em Reais (R$)
+  const camposConsumoComGeracao = [
+    { name: 'energia_te', label: 'Energia TE', prefix: 'R$' }, 
+    { name: 'energia_tusd', label: 'Energia TUSD', prefix: 'R$' }, 
+    { name: 'iluminacao_publica', label: 'Ilumin. Pública', prefix: 'R$' }, 
+    { name: 'injecao_propria', label: 'Energia Injeção Própria', prefix: 'R$' }, 
+    { name: 'outras_taxas', label: 'Outras Taxas', prefix: 'R$' }, 
+    { name: 'desconto_bandeira_injecao', label: 'Desconto Bandeira Própria', prefix: 'R$' }, 
+    { name: 'quanto_pagaria', label: 'Quanto Pagaria', prefix: 'R$' }, 
+    { name: 'valor_pago_fatura', label: 'Quanto Pagou', prefix: 'R$' }, 
+    { name: 'economia_fatura', label: 'Economia', prefix: 'R$' }, 
+    { name: 'valor_pagar', label: 'Valor A Pagar', prefix: 'R$', highlight: true }, 
+    { name: 'economia_real_cliente', label: 'Economia Real Cliente', prefix: 'R$', highlight: true },
+  ];
+
   const camposInjetado = [
     { name: 'leitura_anterior', label: 'Leitura Anterior', suffix: 'kWh' }, { name: 'leitura_atual', label: 'Leitura Atual', suffix: 'kWh' }, { name: 'qtd_injetada', label: 'Qtd Injetada', suffix: 'kWh' }, { name: 'qtd_compensada_geradora', label: 'Compensada Geradora', suffix: 'kWh' }, { name: 'saldo_transferido', label: 'Saldo Transferido', suffix: 'kWh' }, { name: 'valor_kwh_bruto', label: 'Valor kWh Bruto', prefix: 'R$' }, { name: 'valor_kwh_fio_b', label: 'Valor kWh Fio B', prefix: 'R$' }, { name: 'valor_kwh_liquido', label: 'Valor kWh Líquido', prefix: 'R$' }, { name: 'valor_pagar', label: 'Valor a Pagar', prefix: 'R$' }, { name: 'valor_fatura_geradora', label: 'Valor Fatura Geradora', prefix: 'R$' }, { name: 'valor_liquido_pagar', label: 'Valor Líquido a Pagar', prefix: 'R$', highlight: true },
   ];
@@ -140,13 +159,21 @@ export default function FinanceiroVinculo() {
     { name: 'energia_consumida', label: 'Energia Consumida da Rede', suffix: 'kWh' }, { name: 'energia_compensada', label: 'Energia Compensada', suffix: 'kWh' }, { name: 'valor_tarifa', label: 'Valor kW', prefix: 'R$' }, { name: 'total_bruto', label: 'Total Bruto', prefix: 'R$' }, { name: 'valor_kwh_fio_b', label: 'Fio B', prefix: 'R$' }, { name: 'dif_tusd_fio_b', label: 'DIF TUSD Sem Imposto (Fio B)', prefix: 'R$' }, { name: 'valor_fatura_geradora', label: 'Valor Fatura UC Geradora', prefix: 'R$' }, { name: 'valor_liquido_pagar', label: 'Total Líquido a Pagar', prefix: 'R$', highlight: true },
   ];
 
-  const renderField = (campo: any, color: string) => (
+const renderField = (campo: any, color: string) => (
     <div key={campo.name} className={`${campo.highlight ? `col-span-full md:col-span-3 bg-${color}-100 p-4 rounded-xl border border-${color}-300` : ''}`}>
       <label className="block text-[11px] font-bold uppercase mb-1 text-gray-600">{campo.label}</label>
       <div className="relative flex items-center">
-        {campo.prefix && <span className="absolute left-3 text-sm font-bold text-gray-400">{campo.prefix}</span>}
-        <input type="number" step="any" name={campo.name} className={`w-full py-2.5 pl-${campo.prefix ? '9' : '3'} pr-${campo.suffix ? '12' : '3'} border border-gray-200 rounded-lg outline-none font-semibold focus:ring-2 focus:ring-${color}-500`} value={(formData as any)[campo.name] || ''} onChange={handleChange} />
-        {campo.suffix && <span className="absolute right-3 text-[11px] font-bold text-gray-400 uppercase">{campo.suffix}</span>}
+        {campo.prefix && <span className="absolute left-3.5 text-sm font-bold text-gray-400 z-10">{campo.prefix}</span>}
+        <input 
+          type="number" 
+          step="any" 
+          name={campo.name} 
+          // 🟢 AJUSTE DE UI: padding-left de pl-9 para pl-12 para dar espaço ao R$
+          className={`w-full py-2.5 pl-${campo.prefix ? '12' : '3'} pr-${campo.suffix ? '12' : '3'} border border-gray-200 rounded-lg outline-none font-semibold focus:ring-2 focus:ring-${color}-500 transition-all text-gray-900 z-0 relative`} 
+          value={(formData as any)[campo.name] || ''} 
+          onChange={handleChange} 
+        />
+        {campo.suffix && <span className="absolute right-3.5 text-[11px] font-bold text-gray-400 uppercase z-10">{campo.suffix}</span>}
       </div>
     </div>
   );
@@ -178,10 +205,15 @@ export default function FinanceiroVinculo() {
           <form onSubmit={handleSalvar} className="space-y-6">
             {!editingId && (
               <div className="flex flex-wrap gap-4 p-2 bg-gray-50 rounded-lg w-max mb-6">
-                {['consumo', 'injetado', 'usina_consumo'].map(tipo => (
-                  <label key={tipo} className={`px-4 py-2 rounded-md cursor-pointer font-bold transition-all ${formData.tipo_relatorio === tipo ? 'bg-white shadow text-blue-600 border border-gray-200' : 'text-gray-500'}`}>
-                    <input type="radio" name="tipo_relatorio" value={tipo} checked={formData.tipo_relatorio === tipo} onChange={handleChange} className="hidden"/>
-                    {tipo.replace('_', ' ').toUpperCase()}
+                {[
+                  { value: 'consumo', label: 'CONSUMIDOR (PADRÃO)' },
+                  { value: 'consumo_com_geracao', label: 'CONSUMIDOR (COM GERAÇÃO)' },
+                  { value: 'injetado', label: 'USINA (INJETADO)' },
+                  { value: 'usina_consumo', label: 'USINA (CONSUMO)' }
+                ].map(tipo => (
+                  <label key={tipo.value} className={`px-4 py-2 rounded-md cursor-pointer font-bold transition-all ${formData.tipo_relatorio === tipo.value ? 'bg-white shadow text-blue-600 border border-gray-200' : 'text-gray-500'}`}>
+                    <input type="radio" name="tipo_relatorio" value={tipo.value} checked={formData.tipo_relatorio === tipo.value} onChange={handleChange} className="hidden"/>
+                    {tipo.label}
                   </label>
                 ))}
               </div>
@@ -193,8 +225,8 @@ export default function FinanceiroVinculo() {
                 <input required type="month" name="mes_referencia" className="w-full p-3 bg-white border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 font-semibold" value={formData.mes_referencia} onChange={handleChange} />
               </div>
               <div>
-                <label className="block text-xs font-bold text-gray-500 uppercase mb-2">{formData.tipo_relatorio === 'consumo' ? 'Unidade Consumidora (UC)' : 'Unidade Geradora'}</label>
-                {formData.tipo_relatorio === 'consumo' ? (
+                <label className="block text-xs font-bold text-gray-500 uppercase mb-2">{isConsumoType ? 'Unidade Consumidora (UC)' : 'Unidade Geradora'}</label>
+                {isConsumoType ? (
                   <select name="unidade_consumidora_id" className="w-full p-3 bg-white border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 font-semibold" value={formData.unidade_consumidora_id} onChange={handleChange}>
                     <option value="">Selecione UC...</option>
                     {ucsVinculadas.map(u => <option key={u.id} value={u.unidade_consumidora_id}>UC {u.unidades_consumidoras.codigo_uc}</option>)}
@@ -206,6 +238,7 @@ export default function FinanceiroVinculo() {
             </div>
 
             {formData.tipo_relatorio === 'consumo' && <div className="grid grid-cols-1 md:grid-cols-3 gap-4">{camposConsumo.map(c => renderField(c, 'blue'))}</div>}
+            {formData.tipo_relatorio === 'consumo_com_geracao' && <div className="grid grid-cols-1 md:grid-cols-3 gap-4">{camposConsumoComGeracao.map(c => renderField(c, 'purple'))}</div>}
             {formData.tipo_relatorio === 'injetado' && <div className="grid grid-cols-1 md:grid-cols-3 gap-4">{camposInjetado.map(c => renderField(c, 'orange'))}</div>}
             {formData.tipo_relatorio === 'usina_consumo' && <div className="grid grid-cols-1 md:grid-cols-3 gap-4">{camposUsinaConsumo.map(c => renderField(c, 'green'))}</div>}
 
@@ -247,27 +280,36 @@ export default function FinanceiroVinculo() {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
-            {relatorios.map((r) => (
-              <tr key={r.id} className="hover:bg-gray-50 transition-all">
-                <td className="px-6 py-4 font-bold capitalize">{new Date(r.mes_referencia).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric', timeZone: 'UTC' })}</td>
-                <td className="px-6 py-4 text-center">
-                  <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase ${r.tipo_relatorio === 'injetado' ? 'bg-orange-100 text-orange-700' : r.tipo_relatorio === 'usina_consumo' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}`}>
-                    {r.tipo_relatorio.replace('_', ' ')}
-                  </span>
-                </td>
-                <td className="px-6 py-4 text-center flex justify-center gap-3">
-                  {r.arquivo_url && <button onClick={() => handleDownloadSeguro(r.arquivo_url)} className="text-blue-500 hover:scale-110 transition-transform"><FileText /></button>}
-                  {r.recibo_url && <button onClick={() => handleDownloadSeguro(r.recibo_url)} className="text-green-500 hover:scale-110 transition-transform"><Download /></button>}
-                </td>
-                <td className="px-6 py-4 text-right">
-                  <div className="flex justify-end gap-2">
-                    <button onClick={() => gerarRelatorioPDF(r, vinculo)} className={`px-4 py-1.5 rounded-lg text-white font-bold text-xs ${r.tipo_relatorio === 'injetado' ? 'bg-orange-500' : r.tipo_relatorio === 'usina_consumo' ? 'bg-green-600' : 'bg-blue-600'}`}>PDF</button>
-                    <button onClick={() => handleEditar(r)} className="p-2 bg-gray-100 rounded-lg text-gray-600 hover:bg-gray-200"><Edit2 size={16}/></button>
-                    <button onClick={() => { setIdParaExcluir(r.id); setModalExclusaoAberto(true); }} className="p-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200"><Trash2 size={16}/></button>
-                  </div>
-                </td>
-              </tr>
-            ))}
+            {relatorios.map((r) => {
+              let badgeColor = 'bg-blue-100 text-blue-700';
+              let btnColor = 'bg-blue-600';
+              
+              if (r.tipo_relatorio === 'injetado') { badgeColor = 'bg-orange-100 text-orange-700'; btnColor = 'bg-orange-500'; }
+              if (r.tipo_relatorio === 'usina_consumo') { badgeColor = 'bg-green-100 text-green-700'; btnColor = 'bg-green-600'; }
+              if (r.tipo_relatorio === 'consumo_com_geracao') { badgeColor = 'bg-purple-100 text-purple-700'; btnColor = 'bg-purple-600'; }
+
+              return (
+                <tr key={r.id} className="hover:bg-gray-50 transition-all">
+                  <td className="px-6 py-4 font-bold capitalize">{new Date(r.mes_referencia).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric', timeZone: 'UTC' })}</td>
+                  <td className="px-6 py-4 text-center">
+                    <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase ${badgeColor}`}>
+                      {r.tipo_relatorio.replace(/_/g, ' ')}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 text-center flex justify-center gap-3">
+                    {r.arquivo_url && <button onClick={() => handleDownloadSeguro(r.arquivo_url)} className="text-blue-500 hover:scale-110 transition-transform"><FileText /></button>}
+                    {r.recibo_url && <button onClick={() => handleDownloadSeguro(r.recibo_url)} className="text-green-500 hover:scale-110 transition-transform"><Download /></button>}
+                  </td>
+                  <td className="px-6 py-4 text-right">
+                    <div className="flex justify-end gap-2">
+                      <button onClick={() => gerarRelatorioPDF(r, vinculo)} className={`px-4 py-1.5 rounded-lg text-white font-bold text-xs ${btnColor}`}>PDF</button>
+                      <button onClick={() => handleEditar(r)} className="p-2 bg-gray-100 rounded-lg text-gray-600 hover:bg-gray-200"><Edit2 size={16}/></button>
+                      <button onClick={() => { setIdParaExcluir(r.id); setModalExclusaoAberto(true); }} className="p-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200"><Trash2 size={16}/></button>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
         {relatorios.length === 0 && <div className="p-12 text-center text-gray-500">Nenhum relatório para este contrato.</div>}

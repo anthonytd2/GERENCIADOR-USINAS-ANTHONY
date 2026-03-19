@@ -21,14 +21,22 @@ const sanitizeInput = (data) => {
 
 // --- FUNÇÃO PARA CONSTRUIR O PAYLOAD SEGURO ---
 const buildPayload = (body) => {
+  const isConsumoType = body.tipo_relatorio === 'consumo' || body.tipo_relatorio === 'consumo_com_geracao';
+
   return {
     vinculo_id: body.vinculo_id,
     tipo_relatorio: body.tipo_relatorio,
     mes_referencia: body.mes_referencia,
-    unidade_consumidora_id: body.unidade_consumidora_id || null,
-    unidade_geradora: body.unidade_geradora || null,
+    unidade_consumidora_id: isConsumoType ? (body.unidade_consumidora_id || null) : null,
+    unidade_geradora: !isConsumoType ? (body.unidade_geradora || null) : null,
     
-    // Consumo
+    // 🟢 CAMPOS NOVOS ADICIONADOS AQUI
+    energia_te: Number(body.energia_te) || 0,
+    energia_tusd: Number(body.energia_tusd) || 0,
+    quanto_pagaria: Number(body.quanto_pagaria) || 0,
+    economia_real_cliente: Number(body.economia_real_cliente) || 0,
+
+    // Campos Existentes
     energia_consumida: Number(body.energia_consumida) || 0,
     energia_compensada: Number(body.energia_compensada) || 0,
     valor_tarifa: Number(body.valor_tarifa) || 0,
@@ -42,8 +50,6 @@ const buildPayload = (body) => {
     valor_economizado_solar: Number(body.valor_economizado_solar) || 0,
     total_receber: Number(body.total_receber) || 0,
     energia_acumulada: Number(body.energia_acumulada) || 0,
-    
-    // Injetado / Usina
     leitura_anterior: Number(body.leitura_anterior) || 0,
     leitura_atual: Number(body.leitura_atual) || 0,
     qtd_injetada: Number(body.qtd_injetada) || 0,
@@ -58,7 +64,6 @@ const buildPayload = (body) => {
     total_bruto: Number(body.total_bruto) || 0,
     dif_tusd_fio_b: Number(body.dif_tusd_fio_b) || 0,
     
-    // Arquivos (Se não tiver, salva como nulo)
     arquivo_url: body.arquivo_url || null,
     recibo_url: body.recibo_url || null
   };

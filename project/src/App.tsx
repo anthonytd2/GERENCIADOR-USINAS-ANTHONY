@@ -15,7 +15,6 @@ import ListaVinculos from './pages/vinculos/ListaVinculos';
 import FormularioVinculo from './pages/vinculos/FormularioVinculo';
 import DetalheVinculo from './pages/vinculos/DetalheVinculo';
 import FinanceiroVinculo from './pages/vinculos/FinanceiroVinculo';
-import FechamentoMensal from './pages/financeiro/FechamentoMensal';
 import GerenciadorRecibos from './pages/recibos/GerenciadorRecibos';
 import ListaPropostas from './pages/propostas/ListaPropostas';
 import NovoSimulador from './pages/propostas/NovoSimulador';
@@ -23,6 +22,7 @@ import RelatorioRentabilidade from './pages/relatorios/RelatorioRentabilidade';
 import EmitirMinuta from './pages/financeiro/EmitirMinuta';
 import ListaProtocolos from './pages/protocolos/ListaProtocolos';
 import { useAutoLogout } from './hooks/useAutoLogout';
+import FluxoCaixa from './pages/financeiro/FluxoCaixa';
 
 function App() {
   useAutoLogout();
@@ -66,12 +66,12 @@ function App() {
             <Route path="/propostas/:id" element={<NovoSimulador />} />
 
             {/* --- MÓDULO FINANCEIRO & RELATÓRIOS --- */}
-            <Route path="/financeiro" element={<FechamentoMensal />} />
+    
             <Route path="/financeiro/minutas" element={<EmitirMinuta />} />
             <Route path="/relatorios" element={<RelatorioRentabilidade />} />
             <Route path="/recibos" element={<GerenciadorRecibos />} />
             <Route path="/protocolos" element={<ListaProtocolos />} />
-
+            <Route path="/financeiro" element={<FluxoCaixa />} />
             {/* Redirecionamento de segurança para rotas inexistentes */}
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>

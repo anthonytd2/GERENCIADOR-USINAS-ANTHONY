@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Sun, Users, Link as LinkIcon, FileText, Calculator, LogOut, BarChart3 } from 'lucide-react';
+import { LayoutDashboard, Sun, Users, Link as LinkIcon, FileText, Calculator, LogOut, BarChart3, Wallet } from 'lucide-react';
 // 1. IMPORTAMOS O CLIENTE E O TOAST PARA FEEDBACK
 import { supabaseClient } from '../lib/supabaseClient'; 
 import toast from 'react-hot-toast';
@@ -26,6 +26,8 @@ export default function Sidebar() {
 
   const menuItems = [
     { icon: LayoutDashboard, label: 'Dashboard', path: '/' },
+    // 🟢 NOVA ROTA ADICIONADA AQUI
+    { icon: Wallet, label: 'Caixa / Financeiro', path: '/financeiro' },
     { icon: Users, label: 'Consumidores', path: '/consumidores' },
     { icon: Sun, label: 'Usinas', path: '/usinas' },
     { icon: LinkIcon, label: 'Vínculos', path: '/vinculos' },

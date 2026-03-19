@@ -16,11 +16,12 @@ import {
   Undo2,
   PieChart,
   Printer,
-  X,
-  FileText,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import ModalConfirmacao from "../../components/ModalConfirmacao";
+import EspelhoConciliacao, {
+  Transacao,
+} from "../../components/EspelhoConciliacao";
 
 const CATEGORIAS_ENTRADA = [
   "RECEBIMENTO CONSUMIDOR",
@@ -43,7 +44,8 @@ export default function FluxoCaixa() {
   const [mesFiltro, setMesFiltro] = useState(
     new Date().toISOString().slice(0, 7),
   );
-  const [transacoes, setTransacoes] = useState<any[]>([]);
+
+  const [transacoes, setTransacoes] = useState<Transacao[]>([]);
   const [saldoAnterior, setSaldoAnterior] = useState({
     conta_0: 0,
     conta_6: 0,
@@ -57,8 +59,9 @@ export default function FluxoCaixa() {
   const [idParaExcluir, setIdParaExcluir] = useState<number | null>(null);
   const [editingId, setEditingId] = useState<number | null>(null);
 
-  // 🟢 ESTADO PARA IMPRESSÃO DO PDF
-  const [dadosImpressao, setDadosImpressao] = useState<any[] | null>(null);
+  const [dadosImpressao, setDadosImpressao] = useState<Transacao[] | null>(
+    null,
+  );
 
   const formInicial = {
     conta: "CONTA_0",
@@ -76,6 +79,8 @@ export default function FluxoCaixa() {
 
   useEffect(() => {
     carregarDados();
+    // 🟢 Aviso para o Linter ignorar a falta do carregarDados aqui e não dar erro
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mesFiltro]);
 
   const carregarDados = async () => {
@@ -87,13 +92,16 @@ export default function FluxoCaixa() {
       setIsFechado(data.isFechado);
       setSelecionados([]);
     } catch (error) {
+      console.error(error);
       toast.error("Erro ao carregar caixa.");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleChange = (e: any) => {
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
+  ) => {
     const { name, value } = e.target;
     if (name === "tipo") {
       setFormData((prev) => ({
@@ -135,6 +143,7 @@ export default function FluxoCaixa() {
       setEditingId(null);
       carregarDados();
     } catch (error) {
+      console.error(error);
       toast.error("Erro ao salvar.", { id: toastId });
     } finally {
       setIsSubmitting(false);
@@ -150,6 +159,7 @@ export default function FluxoCaixa() {
       toast.success("Conciliação perfeita!", { id: toastId });
       carregarDados();
     } catch (error) {
+      console.error(error);
       toast.error("Erro ao conciliar.", { id: toastId });
     }
   };
@@ -167,11 +177,11 @@ export default function FluxoCaixa() {
       toast.success("Desfeito com sucesso!", { id: toastId });
       carregarDados();
     } catch (error) {
+      console.error(error);
       toast.error("Erro ao desfazer.", { id: toastId });
     }
   };
 
-  // 🟢 FUNÇÃO PARA BUSCAR E ABRIR O ESPELHO DA CONCILIAÇÃO
   const handleAbrirImpressao = async (codigo: string) => {
     const toastId = toast.loading("Gerando relatório...");
     try {
@@ -179,6 +189,7 @@ export default function FluxoCaixa() {
       setDadosImpressao(dados);
       toast.success("Relatório pronto!", { id: toastId });
     } catch (error) {
+      console.error(error);
       toast.error("Erro ao buscar dados da conciliação.", { id: toastId });
     }
   };
@@ -195,6 +206,7 @@ export default function FluxoCaixa() {
       toast.success("Mês fechado e protegido!", { id: toastId });
       carregarDados();
     } catch (error) {
+      console.error(error);
       toast.error("Erro ao fechar.", { id: toastId });
     }
   };
@@ -212,6 +224,7 @@ export default function FluxoCaixa() {
       toast.success("Mês reaberto! Edições liberadas.", { id: toastId });
       carregarDados();
     } catch (error) {
+      console.error(error);
       toast.error("Erro ao reabrir.", { id: toastId });
     }
   };
@@ -223,15 +236,15 @@ export default function FluxoCaixa() {
     );
   };
 
-  const handleEditar = (item: any) => {
-    setEditingId(item.id);
+  const handleEditar = (item: Transacao) => {
+    setEditingId(item.id || null);
     setFormData({
       conta: item.conta || "CONTA_0",
       tipo: item.tipo,
       descricao: item.descricao,
-      valor: item.valor,
+      valor: String(item.valor),
       data_operacao: item.data_operacao,
-      status: item.status,
+      status: item.status || "PAGO",
       pessoa: item.pessoa || "",
       categoria:
         item.categoria ||
@@ -252,7 +265,8 @@ export default function FluxoCaixa() {
       await api.fluxoCaixa.delete(idParaExcluir);
       toast.success("Excluído.");
       carregarDados();
-    } catch (e) {
+    } catch (error) {
+      console.error(error);
       toast.error("Erro ao excluir.");
     } finally {
       setModalExclusaoAberto(false);
@@ -266,11 +280,10 @@ export default function FluxoCaixa() {
       currency: "BRL",
     }).format(valor);
 
-  // --- CÁLCULOS: SALDO EVOLUTIVO ---
   let running0 = saldoAnterior.conta_0;
   let running6 = saldoAnterior.conta_6;
 
-  const transacoesComSaldo = transacoes.map((t) => {
+  const transacoesComSaldo = transacoes.map((t: Transacao) => {
     const val = Number(t.valor) || 0;
     if (t.conta === "CONTA_0") {
       if (t.tipo === "ENTRADA") running0 += val;
@@ -285,43 +298,45 @@ export default function FluxoCaixa() {
   const saldoFinal0 = running0;
   const saldoFinal6 = running6;
 
-  // --- CÁLCULOS: DASHBOARD POR CATEGORIA ---
   const resumoCategorias = transacoes.reduce(
-    (acc, t) => {
+    (acc: Record<string, { tipo: string; total: number }>, t: Transacao) => {
       const cat = t.categoria || "OUTROS";
       if (!acc[cat]) acc[cat] = { tipo: t.tipo, total: 0 };
       acc[cat].total += Number(t.valor) || 0;
       return acc;
     },
-    {} as Record<string, { tipo: string; total: number }>,
+    {},
   );
 
   const categoriasEntrada = Object.entries(resumoCategorias).filter(
-    ([cat, c]: [string, any]) =>
+    ([cat, c]) =>
       c.tipo === "ENTRADA" &&
       cat !== "LUCRO / SPREAD" &&
       cat !== "TRANSFERÊNCIA INTERNA",
   );
+
   const categoriasSaida = Object.entries(resumoCategorias).filter(
-    ([cat, c]: [string, any]) =>
+    ([cat, c]) =>
       c.tipo === "SAIDA" &&
       cat !== "LUCRO / SPREAD" &&
       cat !== "TRANSFERÊNCIA INTERNA",
   );
 
+  // 🟢 Removido o "_" aqui! Agora usamos 'item' para buscar o valor total sem gerar erro.
   const totalEntradasMes = categoriasEntrada.reduce(
-    (sum, [_, c]: any) => sum + c.total,
+    (sum, item) => sum + item[1].total,
     0,
   );
+
   const totalSaidasMes = categoriasSaida.reduce(
-    (sum, [_, c]: any) => sum + c.total,
+    (sum, item) => sum + item[1].total,
     0,
   );
+
   const spreadMes = resumoCategorias["LUCRO / SPREAD"];
 
   return (
     <>
-      {/* 🟢 TELA PRINCIPAL (ESCONDIDA DURANTE A IMPRESSÃO) */}
       <div className="max-w-7xl mx-auto space-y-6 pb-20 animate-fade-in-down print:hidden">
         {/* CABEÇALHO E MÊS VIGENTE */}
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-4 mb-2">
@@ -387,7 +402,7 @@ export default function FluxoCaixa() {
           </div>
         </div>
 
-        {/* DASHBOARD: RESUMO POR CATEGORIA (3 COLUNAS) */}
+        {/* DASHBOARD: RESUMO POR CATEGORIA */}
         {transacoes.length > 0 && (
           <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
             <h3 className="font-bold text-gray-700 flex items-center gap-2 mb-4">
@@ -405,7 +420,7 @@ export default function FluxoCaixa() {
                   </span>
                 </div>
                 <div className="space-y-3 mt-3">
-                  {categoriasEntrada.map(([cat, dados]: [string, any]) => (
+                  {categoriasEntrada.map(([cat, dados]) => (
                     <div key={cat}>
                       <div className="flex justify-between text-[10px] font-bold text-gray-600 mb-1">
                         <span>{cat}</span>
@@ -433,7 +448,7 @@ export default function FluxoCaixa() {
                   </span>
                 </div>
                 <div className="space-y-3 mt-3">
-                  {categoriasSaida.map(([cat, dados]: [string, any]) => (
+                  {categoriasSaida.map(([cat, dados]) => (
                     <div key={cat}>
                       <div className="flex justify-between text-[10px] font-bold text-red-400 mb-1">
                         <span>{cat}</span>
@@ -756,7 +771,7 @@ export default function FluxoCaixa() {
                 ) : (
                   transacoesComSaldo.map((t) => {
                     const isEntrada = t.tipo === "ENTRADA";
-                    const isSelecionado = selecionados.includes(t.id);
+                    const isSelecionado = selecionados.includes(t.id as number);
                     const isC6 = t.conta === "CONTA_6";
 
                     return (
@@ -769,7 +784,7 @@ export default function FluxoCaixa() {
                             <input
                               type="checkbox"
                               checked={isSelecionado}
-                              onChange={() => toggleSelecao(t.id)}
+                              onChange={() => toggleSelecao(t.id as number)}
                               className="w-4 h-4 text-blue-600 rounded border-gray-300 cursor-pointer"
                             />
                           ) : t.conciliado ? (
@@ -840,7 +855,8 @@ export default function FluxoCaixa() {
                         <td
                           className={`px-4 py-3.5 text-right font-black whitespace-nowrap ${t.conciliado ? "text-gray-500" : isEntrada ? "text-green-600" : "text-red-600"}`}
                         >
-                          {isEntrada ? "+" : "-"} {formatarMoeda(t.valor)}
+                          {isEntrada ? "+" : "-"}{" "}
+                          {formatarMoeda(Number(t.valor))}
                         </td>
 
                         <td className="px-4 py-3.5 text-right font-mono">
@@ -848,20 +864,22 @@ export default function FluxoCaixa() {
                             className={`text-xs font-bold px-2 py-1 rounded ${isC6 ? "bg-blue-50 text-blue-700" : "bg-gray-100 text-gray-700"}`}
                           >
                             {formatarMoeda(
-                              isC6 ? t.saldo_momento_6 : t.saldo_momento_0,
+                              isC6
+                                ? Number(t.saldo_momento_6)
+                                : Number(t.saldo_momento_0),
                             )}
                           </span>
                         </td>
 
                         <td className="px-4 py-3.5 text-right">
                           <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                            {/* 🟢 BOTÃO DE IMPRIMIR (SÓ APARECE NAS LINHAS CONCILIADAS E SE FOR O SPREAD) */}
+                            {/* 🟢 BOTÃO DE IMPRIMIR */}
                             {t.conciliado &&
                               t.categoria === "LUCRO / SPREAD" &&
                               t.codigo_conciliacao && (
                                 <button
                                   onClick={() =>
-                                    handleAbrirImpressao(t.codigo_conciliacao)
+                                    handleAbrirImpressao(t.codigo_conciliacao!)
                                   }
                                   className="p-1.5 text-blue-500 hover:text-blue-700 hover:bg-blue-50 rounded transition-colors"
                                   title="Imprimir Demonstrativo PDF"
@@ -879,7 +897,7 @@ export default function FluxoCaixa() {
                             </button>
                             <button
                               onClick={() => {
-                                setIdParaExcluir(t.id);
+                                setIdParaExcluir(t.id as number);
                                 setModalExclusaoAberto(true);
                               }}
                               className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
@@ -894,7 +912,7 @@ export default function FluxoCaixa() {
                                 <button
                                   onClick={() =>
                                     handleDesfazerConciliacao(
-                                      t.codigo_conciliacao,
+                                      t.codigo_conciliacao!,
                                     )
                                   }
                                   className="p-1.5 text-purple-400 hover:text-purple-700 hover:bg-purple-50 rounded transition-colors flex items-center gap-1 font-bold text-[10px] uppercase tracking-wider"
@@ -924,235 +942,12 @@ export default function FluxoCaixa() {
         />
       </div>
 
-      {/* 🟢 TELA DE IMPRESSÃO DO PDF (SÓ APARECE QUANDO CLICA NA IMPRESSORA) */}
+      {/* 🟢 TELA DE IMPRESSÃO DO PDF */}
       {dadosImpressao && (
-        <div className="fixed inset-0 z-[9999] bg-gray-900/80 flex justify-center overflow-y-auto print:bg-white print:static print:block backdrop-blur-sm">
-          <div className="bg-white w-full max-w-4xl min-h-screen my-8 p-12 print:m-0 print:p-0 print:shadow-none shadow-2xl relative animate-fade-in-down">
-            {/* Botões de Ação (Não saem na impressão) */}
-            <div className="print:hidden absolute top-6 right-6 flex gap-3">
-              <button
-                onClick={() => window.print()}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-lg font-bold flex items-center gap-2 shadow-md transition-all"
-              >
-                <Printer size={18} /> Salvar PDF / Imprimir
-              </button>
-              <button
-                onClick={() => setDadosImpressao(null)}
-                className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2.5 rounded-lg font-bold flex items-center gap-2 transition-all"
-              >
-                <X size={18} /> Fechar
-              </button>
-            </div>
-
-            {/* Cabeçalho do Documento */}
-            <div className="border-b-2 border-gray-800 pb-6 mb-8 mt-4">
-              <div className="flex justify-between items-start">
-                <div>
-                  <h1 className="text-3xl font-black text-gray-900 flex items-center gap-2 mb-1">
-                    <Wallet className="text-gray-800" size={32} /> Solar
-                    Locações
-                  </h1>
-                  <h2 className="text-xl font-bold text-gray-500 uppercase tracking-widest">
-                    Demonstrativo de Operação (Conciliação)
-                  </h2>
-                </div>
-                <div className="text-right">
-                  <p className="text-xs font-bold text-gray-400 uppercase mb-1">
-                    Código de Autenticação
-                  </p>
-                  <p className="font-mono text-sm bg-gray-100 px-3 py-1.5 rounded-lg border border-gray-200 font-bold text-gray-700">
-                    {dadosImpressao[0]?.codigo_conciliacao}
-                  </p>
-                  <p className="text-[10px] text-gray-400 mt-2">
-                    Emitido em: {new Date().toLocaleDateString("pt-BR")} às{" "}
-                    {new Date().toLocaleTimeString("pt-BR")}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Corpo do Relatório */}
-            <div className="space-y-8">
-              {/* Entradas (Receitas) */}
-              <div>
-                <h3 className="text-lg font-bold text-green-700 flex items-center gap-2 border-b border-green-200 pb-2 mb-4">
-                  <ArrowUpCircle size={20} /> 1. Origem dos Recursos (Entradas)
-                </h3>
-                <table className="w-full text-sm">
-                  <thead className="text-left text-gray-500 text-xs">
-                    <tr>
-                      <th className="pb-2 w-24">Data</th>
-                      <th className="pb-2">Descrição</th>
-                      <th className="pb-2">Categoria</th>
-                      <th className="pb-2 text-right">Valor</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100">
-                    {dadosImpressao
-                      .filter(
-                        (t) =>
-                          t.tipo === "ENTRADA" &&
-                          t.categoria !== "LUCRO / SPREAD",
-                      )
-                      .map((t) => (
-                        <tr key={t.id}>
-                          <td className="py-2.5 text-gray-600 font-mono text-xs">
-                            {new Date(
-                              t.data_operacao + "T12:00:00Z",
-                            ).toLocaleDateString("pt-BR")}
-                          </td>
-                          <td className="py-2.5 font-bold text-gray-800">
-                            {t.descricao}{" "}
-                            {t.pessoa && (
-                              <span className="text-gray-500 font-normal">
-                                ({t.pessoa})
-                              </span>
-                            )}
-                          </td>
-                          <td className="py-2.5 text-gray-500 text-xs">
-                            {t.categoria}
-                          </td>
-                          <td className="py-2.5 text-right font-black text-green-600">
-                            {formatarMoeda(t.valor)}
-                          </td>
-                        </tr>
-                      ))}
-                  </tbody>
-                  <tfoot>
-                    <tr>
-                      <td
-                        colSpan={3}
-                        className="text-right pt-4 font-bold text-gray-600 uppercase text-xs"
-                      >
-                        Total de Entradas:
-                      </td>
-                      <td className="text-right pt-4 font-black text-lg text-green-700">
-                        {formatarMoeda(
-                          dadosImpressao
-                            .filter(
-                              (t) =>
-                                t.tipo === "ENTRADA" &&
-                                t.categoria !== "LUCRO / SPREAD",
-                            )
-                            .reduce((acc, t) => acc + Number(t.valor), 0),
-                        )}
-                      </td>
-                    </tr>
-                  </tfoot>
-                </table>
-              </div>
-
-              {/* Saídas (Custos) */}
-              <div>
-                <h3 className="text-lg font-bold text-red-700 flex items-center gap-2 border-b border-red-200 pb-2 mb-4">
-                  <ArrowDownCircle size={20} /> 2. Destinação dos Recursos
-                  (Custos / Repasses)
-                </h3>
-                <table className="w-full text-sm">
-                  <thead className="text-left text-gray-500 text-xs">
-                    <tr>
-                      <th className="pb-2 w-24">Data</th>
-                      <th className="pb-2">Descrição</th>
-                      <th className="pb-2">Categoria</th>
-                      <th className="pb-2 text-right">Valor</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100">
-                    {dadosImpressao
-                      .filter(
-                        (t) =>
-                          t.tipo === "SAIDA" &&
-                          t.categoria !== "LUCRO / SPREAD",
-                      )
-                      .map((t) => (
-                        <tr key={t.id}>
-                          <td className="py-2.5 text-gray-600 font-mono text-xs">
-                            {new Date(
-                              t.data_operacao + "T12:00:00Z",
-                            ).toLocaleDateString("pt-BR")}
-                          </td>
-                          <td className="py-2.5 font-bold text-gray-800">
-                            {t.descricao}{" "}
-                            {t.pessoa && (
-                              <span className="text-gray-500 font-normal">
-                                ({t.pessoa})
-                              </span>
-                            )}
-                          </td>
-                          <td className="py-2.5 text-gray-500 text-xs">
-                            {t.categoria}
-                          </td>
-                          <td className="py-2.5 text-right font-black text-red-600">
-                            - {formatarMoeda(t.valor)}
-                          </td>
-                        </tr>
-                      ))}
-                  </tbody>
-                  <tfoot>
-                    <tr>
-                      <td
-                        colSpan={3}
-                        className="text-right pt-4 font-bold text-gray-600 uppercase text-xs"
-                      >
-                        Total de Saídas:
-                      </td>
-                      <td className="text-right pt-4 font-black text-lg text-red-700">
-                        -{" "}
-                        {formatarMoeda(
-                          dadosImpressao
-                            .filter(
-                              (t) =>
-                                t.tipo === "SAIDA" &&
-                                t.categoria !== "LUCRO / SPREAD",
-                            )
-                            .reduce((acc, t) => acc + Number(t.valor), 0),
-                        )}
-                      </td>
-                    </tr>
-                  </tfoot>
-                </table>
-              </div>
-
-              {/* Resultado Final (Spread) */}
-              <div className="mt-12 bg-gray-50 border-2 border-gray-800 p-8 rounded-2xl flex items-center justify-between">
-                <div>
-                  <h3 className="text-xl font-black text-gray-900 flex items-center gap-2">
-                    <FileText className="text-blue-600" /> 3. Resultado Líquido
-                    da Operação
-                  </h3>
-                  <p className="text-gray-500 text-sm mt-1">
-                    Lucro real (Spread) auferido e transferido para a Conta 6
-                    (Cofre).
-                  </p>
-                </div>
-                <div className="text-right bg-white px-8 py-4 rounded-xl border-2 border-blue-500 shadow-md transform rotate-1">
-                  <span className="block text-xs font-bold text-blue-500 uppercase tracking-widest mb-1">
-                    Lucro Líquido (Spread)
-                  </span>
-                  <span className="text-4xl font-black text-blue-700">
-                    {formatarMoeda(
-                      dadosImpressao.find(
-                        (t) => t.categoria === "LUCRO / SPREAD",
-                      )?.valor || 0,
-                    )}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Rodapé do Documento */}
-            <div className="mt-16 pt-8 border-t border-gray-200 text-center text-xs text-gray-400 font-medium">
-              <p>
-                Documento gerado eletronicamente pelo Sistema de Gestão Solar
-                Locações.
-              </p>
-              <p>
-                A autenticidade dos valores pode ser verificada no Livro Razão
-                mediante o Código de Autenticação.
-              </p>
-            </div>
-          </div>
-        </div>
+        <EspelhoConciliacao
+          dados={dadosImpressao}
+          onClose={() => setDadosImpressao(null)}
+        />
       )}
     </>
   );

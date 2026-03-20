@@ -53,7 +53,8 @@ export default function FormularioConsumidor() {
     setValue('cep', valor.substring(0, 9), { shouldDirty: true, shouldValidate: true });
   };
 
-  const [tipoCobranca, setTipoCobranca] = useState<'desconto' | 'fixo'>('desconto');
+  // 🟢 ESTADO: Controla qual botão está selecionado visualmente
+  const [tipoCobranca, setTipoCobranca] = useState<'porcentagem' | 'valor_fixo'>('porcentagem');
 
   useEffect(() => {
     if (id && id !== 'novo') {
@@ -77,16 +78,21 @@ export default function FormularioConsumidor() {
             setValue('observacao', data.observacao);
             setValue('rg', data.rg);
             setValue('inscricao_estadual', data.inscricao_estadual);
-            
-            // 🟢 Dados da Copel
             setValue('login_copel', data.login_copel);
             setValue('senha_copel', data.senha_copel);
 
-            // Lógica para definir o tipo de cobrança visual
-            if (Number(data.valor_kw) > 0 && Number(data.percentual_desconto) === 0) {
-              setTipoCobranca('fixo');
+            // 🟢 Lógica corrigida: Lê o tipo_desconto salvo no banco, fallback para adivinhação se for nulo
+            if (data.tipo_desconto === 'valor_fixo') {
+                setTipoCobranca('valor_fixo');
+            } else if (data.tipo_desconto === 'porcentagem') {
+                setTipoCobranca('porcentagem');
             } else {
-              setTipoCobranca('desconto');
+                // Fallback de segurança para dados antigos
+                if (Number(data.valor_kw) > 0 && Number(data.percentual_desconto) === 0) {
+                    setTipoCobranca('valor_fixo');
+                } else {
+                    setTipoCobranca('porcentagem');
+                }
             }
 
             toast.dismiss(toastId);
@@ -103,11 +109,11 @@ export default function FormularioConsumidor() {
     const toastId = toast.loading('Salvando consumidor...');
 
     try {
-      // Lógica de limpeza dos dados financeiros
-      let valorFinalKw = 0;
-      let valorFinalDesconto = 0;
+      // Limpeza de campos não selecionados para evitar lixo no banco
+      let valorFinalKw = null;
+      let valorFinalDesconto = null;
 
-      if (tipoCobranca === 'fixo') {
+      if (tipoCobranca === 'valor_fixo') {
         valorFinalKw = Number(data.valor_kw) || 0;
         valorFinalDesconto = 0;
       } else {
@@ -124,9 +130,10 @@ export default function FormularioConsumidor() {
         media_consumo: Number(data.media_consumo) || 0,
         valor_kw: valorFinalKw,
         percentual_desconto: valorFinalDesconto,
-        // 🟢 Enviando dados da Copel
         login_copel: data.login_copel || null,
         senha_copel: data.senha_copel || null,
+        // 🟢 Enviando o tipo exato para o banco salvar na coluna tipo_desconto
+        tipo_desconto: tipoCobranca
       };
 
       if (id && id !== 'novo') {
@@ -346,7 +353,7 @@ export default function FormularioConsumidor() {
           </div>
         </div>
 
-        {/* 🟢 3. ACESSO COPEL (NOVO CARD) */}
+        {/* 3. ACESSO COPEL (CARD) */}
         <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-200">
           <h3 className="text-lg font-bold text-gray-900 mb-6 flex items-center gap-2 pb-4 border-b border-gray-100">
             <Lock className="w-5 h-5 text-slate-600" />
@@ -407,42 +414,45 @@ export default function FormularioConsumidor() {
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-3 ml-1">Como este cliente será cobrado?</label>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                
+                {/* 🟢 BOTÃO DESCONTO */}
                 <button
                   type="button"
                   onClick={() => {
-                    setTipoCobranca('desconto');
+                    setTipoCobranca('porcentagem');
                     setValue('valor_kw', '');
                   }}
-                  className={`relative p-4 rounded-xl border-2 text-left transition-all ${tipoCobranca === 'desconto'
+                  className={`relative p-4 rounded-xl border-2 text-left transition-all ${tipoCobranca === 'porcentagem'
                     ? 'border-blue-500 bg-blue-50 ring-1 ring-blue-500'
                     : 'border-gray-200 hover:border-blue-200 hover:bg-gray-50'
                     }`}
                 >
                   <div className="flex items-center gap-3 mb-2">
-                    <div className={`p-2 rounded-full ${tipoCobranca === 'desconto' ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-500'}`}>
+                    <div className={`p-2 rounded-full ${tipoCobranca === 'porcentagem' ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-500'}`}>
                       <Percent className="w-5 h-5" />
                     </div>
-                    <span className={`font-bold ${tipoCobranca === 'desconto' ? 'text-blue-700' : 'text-gray-700'}`}>Desconto Garantido</span>
+                    <span className={`font-bold ${tipoCobranca === 'porcentagem' ? 'text-blue-700' : 'text-gray-700'}`}>Desconto Garantido</span>
                   </div>
                   <p className="text-xs text-gray-500">O cliente recebe um desconto percentual sobre a tarifa da concessionária.</p>
                 </button>
 
+                {/* 🟢 BOTÃO VALOR FIXO */}
                 <button
                   type="button"
                   onClick={() => {
-                    setTipoCobranca('fixo');
+                    setTipoCobranca('valor_fixo');
                     setValue('percentual_desconto', '');
                   }}
-                  className={`relative p-4 rounded-xl border-2 text-left transition-all ${tipoCobranca === 'fixo'
+                  className={`relative p-4 rounded-xl border-2 text-left transition-all ${tipoCobranca === 'valor_fixo'
                     ? 'border-green-500 bg-green-50 ring-1 ring-green-500'
                     : 'border-gray-200 hover:border-green-200 hover:bg-gray-50'
                     }`}
                 >
                   <div className="flex items-center gap-3 mb-2">
-                    <div className={`p-2 rounded-full ${tipoCobranca === 'fixo' ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-500'}`}>
+                    <div className={`p-2 rounded-full ${tipoCobranca === 'valor_fixo' ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-500'}`}>
                       <DollarSign className="w-5 h-5" />
                     </div>
-                    <span className={`font-bold ${tipoCobranca === 'fixo' ? 'text-green-700' : 'text-gray-700'}`}>Valor Fixo kWh</span>
+                    <span className={`font-bold ${tipoCobranca === 'valor_fixo' ? 'text-green-700' : 'text-gray-700'}`}>Valor Fixo kWh</span>
                   </div>
                   <p className="text-xs text-gray-500">O cliente paga um valor fixo em reais por cada kWh consumido.</p>
                 </button>
@@ -451,7 +461,7 @@ export default function FormularioConsumidor() {
 
             {/* INPUT CONDICIONAL (COM ANIMAÇÃO) */}
             <div className="p-6 bg-gray-50 rounded-2xl border border-gray-100 animate-fade-in-down">
-              {tipoCobranca === 'desconto' ? (
+              {tipoCobranca === 'porcentagem' ? (
                 <div>
                   <label className="block text-sm font-bold text-blue-700 mb-1.5 ml-1">Percentual de Desconto (%)</label>
                   <div className="relative">

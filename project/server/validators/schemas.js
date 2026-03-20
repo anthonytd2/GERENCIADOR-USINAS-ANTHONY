@@ -84,9 +84,12 @@ export const consumidorSchema = z.object({
   uf: optionalString,
   observacao: optionalString,
 
-  // 🟢 ADICIONADO AQUI: Credenciais da Copel
+  // Credenciais da Copel
   login_copel: optionalString,
   senha_copel: optionalString,
+
+  // 🟢 A CORREÇÃO DE OURO ESTÁ AQUI: Avisando o validador que este campo existe e pode passar!
+  tipo_desconto: optionalString,
 
   // Numéricos (Opcionais pois dependem do tipo de contrato do cliente)
   media_consumo: z.preprocess(cleanNumber, z.number().nonnegative().optional()),

@@ -24,6 +24,7 @@ import EspelhoConciliacao, {
 } from "../../components/EspelhoConciliacao";
 
 const CATEGORIAS_ENTRADA = [
+  "SALDO INICIAL", // 🟢 Adicionado para você lançar o saldo de hoje
   "RECEBIMENTO CONSUMIDOR",
   "ADIANTAMENTO / DEVOLUÇÃO",
   "TRANSFERÊNCIA INTERNA",
@@ -31,6 +32,7 @@ const CATEGORIAS_ENTRADA = [
 ];
 
 const CATEGORIAS_SAIDA = [
+  "AJUSTE DE CAIXA (SAÍDA)", // 🟢 Adicionado caso o saldo inicial seja negativo
   "REPASSE / ALUGUEL USINA",
   "PAGAMENTO FATURA (CONCESSIONÁRIA)",
   "COMISSÃO VENDEDORES",
@@ -322,7 +324,6 @@ export default function FluxoCaixa() {
       cat !== "TRANSFERÊNCIA INTERNA",
   );
 
-  // 🟢 Removido o "_" aqui! Agora usamos 'item' para buscar o valor total sem gerar erro.
   const totalEntradasMes = categoriasEntrada.reduce(
     (sum, item) => sum + item[1].total,
     0,

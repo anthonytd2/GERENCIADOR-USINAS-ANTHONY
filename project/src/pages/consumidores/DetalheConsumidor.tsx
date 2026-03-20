@@ -1,20 +1,19 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { createPortal } from 'react-dom'; // 🟢 NOVO: Importamos o createPortal
+import { createPortal } from 'react-dom';
 import { api } from '../../lib/api';
 import { ArrowLeft, Edit, Trash2, User, Zap, Plus, Building2, Phone, Mail, MapPin, Lock, Eye, EyeOff } from 'lucide-react';
 import GerenciadorDocumentos from "../../components/GerenciadorDocumentos";
 import ModalConfirmacao from '../../components/ModalConfirmacao';
 import { formatarDocumento } from '../../components/formatters';
 
-// 🟢 MÁSCARA EXCLUSIVA PARA RG
 const formatarRG = (valor?: string) => {
   if (!valor) return '-';
-  if (/[a-zA-Z]/.test(valor)) return valor; 
+  if (/[a-zA-Z]/.test(valor)) return valor;
   const apenasNumeros = valor.replace(/\D/g, '');
   if (apenasNumeros.length === 9) return apenasNumeros.replace(/(\d{2})(\d{3})(\d{3})(\d{1})/, '$1.$2.$3-$4');
   if (apenasNumeros.length === 8) return apenasNumeros.replace(/(\d{1})(\d{3})(\d{3})(\d{1})/, '$1.$2.$3-$4');
-  return valor; 
+  return valor;
 };
 
 export default function DetalheConsumidor() {
@@ -24,14 +23,11 @@ export default function DetalheConsumidor() {
   const [unidades, setUnidades] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Controle de visualização de senha
   const [showSenha, setShowSenha] = useState(false);
 
-  // Controle dos Modais de Exclusão
   const [modalExcluirOpen, setModalExcluirOpen] = useState(false);
-  const [ucParaExcluir, setUcParaExcluir] = useState<number | null>(null); // 🟢 NOVO: Controle de exclusão da UC
+  const [ucParaExcluir, setUcParaExcluir] = useState<number | null>(null);
 
-  // Estado para o Modal de Nova UC
   const [showModalUC, setShowModalUC] = useState(false);
   const [formUC, setFormUC] = useState({
     codigo_uc: '',
@@ -63,7 +59,6 @@ export default function DetalheConsumidor() {
     }
   }
 
-  // --- EXCLUSÃO DO CONSUMIDOR ---
   const handleDelete = async () => {
     try {
       await api.consumidores.delete(Number(id));
@@ -75,7 +70,6 @@ export default function DetalheConsumidor() {
     }
   };
 
-  // --- EXCLUSÃO DA UC (🟢 Atualizado para usar o modal bonitão) ---
   const confirmarExclusaoUC = async () => {
     if (!ucParaExcluir) return;
     try {
@@ -88,7 +82,6 @@ export default function DetalheConsumidor() {
     }
   };
 
-  // --- CRIAÇÃO DA UC ---
   const handleSaveUC = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!id) return;
@@ -192,11 +185,17 @@ export default function DetalheConsumidor() {
               <p className="text-xl font-black text-gray-900">{consumidor.media_consumo?.toLocaleString('pt-BR')} <span className="text-sm text-gray-500">kWh</span></p>
             </div>
             <div className="col-span-2">
-              {Number(consumidor.valor_kw) > 0 ? (
+              {/* 🟢 Lógica corrigida no Detalhe para mostrar a caixa verde ou azul corretamente */}
+              {consumidor.tipo_desconto === 'valor_fixo' ? (
                 <div className="p-4 bg-green-50 rounded-xl border border-green-100 w-full">
                   <p className="text-xs text-green-700 font-bold uppercase mb-1">Valor Fixo</p>
                   <p className="text-xl font-black text-green-800">
-                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 4 }).format(Number(consumidor.valor_kw))}
+                    {new Intl.NumberFormat('pt-BR', {
+                      style: 'currency',
+                      currency: 'BRL',
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2
+                    }).format(Number(consumidor.valor_kw))}
                     <span className="text-sm ml-1">/kWh</span>
                   </p>
                 </div>
@@ -235,8 +234,8 @@ export default function DetalheConsumidor() {
                   {consumidor.senha_copel ? (showSenha ? consumidor.senha_copel : '••••••••••••') : <span className="text-gray-400 italic">Não informada</span>}
                 </div>
                 {consumidor.senha_copel && (
-                  <button 
-                    onClick={() => setShowSenha(!showSenha)} 
+                  <button
+                    onClick={() => setShowSenha(!showSenha)}
                     className="p-2 bg-slate-100 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors border border-slate-200"
                     title={showSenha ? "Ocultar senha" : "Mostrar senha"}
                   >
@@ -286,8 +285,8 @@ export default function DetalheConsumidor() {
                     <td className="px-4 py-4 text-gray-500">{uc.cidade}/{uc.uf}</td>
                     <td className="px-4 py-4 text-right text-gray-900 font-medium">{uc.media_consumo} kWh</td>
                     <td className="px-4 py-4 text-right">
-                      <button 
-                        onClick={() => setUcParaExcluir(uc.id)} // 🟢 Agora abre o Modal bonitão
+                      <button
+                        onClick={() => setUcParaExcluir(uc.id)}
                         className="text-gray-400 hover:text-red-600 p-2 hover:bg-red-50 rounded-lg transition-all"
                         title="Excluir UC"
                       >
@@ -307,12 +306,12 @@ export default function DetalheConsumidor() {
         <GerenciadorDocumentos tipoEntidade="consumidor" entidadeId={Number(id)} />
       </div>
 
-      {/* --- MODAL NOVA UC (🟢 CORRIGIDO COM PORTAL E BG-WHITE) --- */}
+      {/* --- MODAL NOVA UC --- */}
       {showModalUC && createPortal(
         <div className="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 transform transition-all scale-100 border border-slate-100">
             <h3 className="text-xl font-bold mb-6 text-slate-900 flex items-center gap-2">
-               <Building2 className="text-purple-600" /> Adicionar Nova UC
+              <Building2 className="text-purple-600" /> Adicionar Nova UC
             </h3>
             <form onSubmit={handleSaveUC} className="space-y-4">
               <div>
@@ -363,7 +362,7 @@ export default function DetalheConsumidor() {
         confirmText="Sim, Excluir"
       />
 
-      {/* 🟢 NOVO: Modal de Confirmação de Exclusão da UC */}
+      {/* Modal de Confirmação de Exclusão da UC */}
       <ModalConfirmacao
         isOpen={ucParaExcluir !== null}
         onClose={() => setUcParaExcluir(null)}

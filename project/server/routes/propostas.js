@@ -56,26 +56,23 @@ router.post('/', async (req, res) => {
   try {
     // 🟢 SEGURANÇA APLICADA: Lavamos os dados recebidos antes de extrair
     const dadosLimpos = sanitizeInput(req.body);
-    const { consumidor_id, nome_cliente_prospect, concessionaria_id, dados_simulacao, status, cpf_cnpj, telefone, email } = dadosLimpos;
 
+    // 🟢 CORREÇÃO: Em vez de desestruturar, enviamos o objeto limpo direto.
+    // O Supabase vai ignorar o que não pertence à tabela automaticamente.
     const { data, error } = await supabase
       .from('propostas')
-      .insert([{
-        consumidor_id,
-        nome_cliente_prospect,
-        concessionaria_id,
-        dados_simulacao,
-        status,
-        cpf_cnpj, 
-        telefone, 
-        email
-      }])
+      .insert([dadosLimpos])
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {
+      console.error("Erro do Supabase ao criar proposta:", error);
+      throw error;
+    }
+    
     res.status(201).json(data);
   } catch (error) {
+    console.error("Erro interno no POST /propostas:", error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -84,32 +81,26 @@ router.post('/', async (req, res) => {
 router.put('/:id', async (req, res) => {
   try {
     // 🟢 SEGURANÇA APLICADA: Lavamos os dados recebidos antes de atualizar
-    const body = sanitizeInput(req.body);
+    const dadosLimpos = sanitizeInput(req.body);
     
-    const payload = {
-      updated_at: new Date()
-    };
-
-    if (body.status) payload.status = body.status;
-    if (body.dados_simulacao) payload.dados_simulacao = body.dados_simulacao;
-    if (body.nome_cliente_prospect) payload.nome_cliente_prospect = body.nome_cliente_prospect;
-    if (body.consumidor_id) payload.consumidor_id = body.consumidor_id;
-    if (body.concessionaria_id) payload.concessionaria_id = body.concessionaria_id;
-    
-    if (body.cpf_cnpj) payload.cpf_cnpj = body.cpf_cnpj;
-    if (body.telefone) payload.telefone = body.telefone;
-    if (body.email) payload.email = body.email;
+    // Adicionamos a data de atualização
+    dadosLimpos.updated_at = new Date().toISOString();
 
     const { data, error } = await supabase
       .from('propostas')
-      .update(payload) 
+      .update(dadosLimpos) 
       .eq('id', req.params.id)
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {
+      console.error("Erro do Supabase ao atualizar proposta:", error);
+      throw error;
+    }
+    
     res.json(data);
   } catch (error) {
+    console.error("Erro interno no PUT /propostas:", error);
     res.status(500).json({ error: error.message });
   }
 });

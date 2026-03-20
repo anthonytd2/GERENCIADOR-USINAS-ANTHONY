@@ -7,6 +7,7 @@ import {
 import toast from 'react-hot-toast';
 import Skeleton from '../../components/Skeleton';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
+import ModalConfirmacao from '../../components/ModalConfirmacao';
 
 // --- INTERFACES ---
 interface Proposta {
@@ -42,6 +43,10 @@ export default function ListaPropostas() {
   
   const [modalVendaOpen, setModalVendaOpen] = useState(false);
   const [propostaParaConverter, setPropostaParaConverter] = useState<number | null>(null);
+
+  // 🟢 NOVO: Estados para controlar o Modal Bonito de Exclusão
+  const [modalExclusaoOpen, setModalExclusaoOpen] = useState(false);
+  const [propostaParaExcluir, setPropostaParaExcluir] = useState<number | null>(null);
 
   const navigate = useNavigate();
 
@@ -150,14 +155,18 @@ export default function ListaPropostas() {
     }
   };
 
-  const handleDelete = async (id: number) => {
-    if(!confirm('Excluir proposta permanentemente?')) return;
+  // 🟢 NOVO: Função de confirmação de exclusão pelo Modal
+  const confirmarExclusao = async () => {
+    if (!propostaParaExcluir) return;
     try {
-      await api.propostas.delete(id);
-      setPropostas(prev => prev.filter(p => p.id !== id));
-      toast.success("Excluída.");
+      await api.propostas.delete(propostaParaExcluir);
+      setPropostas(prev => prev.filter(p => p.id !== propostaParaExcluir));
+      toast.success("Proposta excluída com sucesso.");
     } catch (error) {
-      toast.error('Erro ao excluir.');
+      toast.error('Erro ao excluir proposta.');
+    } finally {
+      setModalExclusaoOpen(false);
+      setPropostaParaExcluir(null);
     }
   };
 
@@ -281,7 +290,6 @@ export default function ListaPropostas() {
                                              || item.dados_simulacao?.usinaSelecionada?.nome 
                                              || 'Usina N/A';
                               
-                              // IDEA 3: Pegando o consumo
                               const consumo = item.dados_simulacao?.consumoMedia || item.dados_simulacao?.consumoKwh || 0;
                               
                               const tempoEtapa = getTempoNaEtapa(item.updated_at || item.created_at);
@@ -309,7 +317,7 @@ export default function ListaPropostas() {
                                         </div>
                                       </div>
 
-                                      {/* NOVO: Pílulas de Contexto Técnico (Consumo e Usina) */}
+                                      {/* Pílulas de Contexto Técnico (Consumo e Usina) */}
                                       <div className="flex flex-wrap items-center gap-1.5 mb-3">
                                          {consumo > 0 && (
                                             <span className="bg-slate-100 text-slate-600 border border-slate-200 text-[10px] font-bold px-2 py-0.5 rounded-md flex items-center gap-1">
@@ -343,7 +351,9 @@ export default function ListaPropostas() {
                                               <button onClick={() => window.open(`https://wa.me/?text=Olá ${item.nome_cliente_prospect}`, '_blank')} className="p-1.5 text-emerald-500 hover:text-emerald-700 hover:bg-emerald-50 rounded-md transition-colors" title="WhatsApp">
                                                 <MessageCircle size={14}/>
                                               </button>
-                                              <button onClick={() => handleDelete(item.id)} className="p-1.5 text-slate-300 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors" title="Excluir">
+                                              
+                                              {/* 🟢 AQUI ESTÁ O BOTÃO ATUALIZADO PARA ABRIR O MODAL BONITO */}
+                                              <button onClick={() => { setPropostaParaExcluir(item.id); setModalExclusaoOpen(true); }} className="p-1.5 text-slate-300 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors" title="Excluir">
                                                 <Trash2 size={14}/>
                                               </button>
                                           </div>
@@ -372,6 +382,18 @@ export default function ListaPropostas() {
           </div>
         </DragDropContext>
       )}
+
+      {/* 🟢 NOVO: COMPONENTE DO MODAL BONITO DE CONFIRMAÇÃO */}
+      <ModalConfirmacao
+        isOpen={modalExclusaoOpen}
+        onClose={() => { setModalExclusaoOpen(false); setPropostaParaExcluir(null); }}
+        onConfirm={confirmarExclusao}
+        title="Apagar Proposta?"
+        message="Tem certeza que deseja excluir esta proposta permanentemente? Esta ação não pode ser desfeita."
+        confirmText="Sim, Excluir"
+        isDestructive={true}
+      />
+
     </div>
   );
 }

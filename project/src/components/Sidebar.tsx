@@ -52,8 +52,8 @@ export default function Sidebar() {
         </div>
       </div>
 
-      <nav className="flex-1 py-6 px-3 space-y-2 overflow-y-auto">
-        {menuItems.map((item) => {
+{/* 🟢 Barra de rolagem estilizada, invisível até passar o mouse */}
+      <nav className="flex-1 py-6 px-3 space-y-2 overflow-y-auto [&::-webkit-scrollbar]:w-3.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-blue-800/30 hover:[&::-webkit-scrollbar-thumb]:bg-blue-600 [&::-webkit-scrollbar-thumb]:rounded-full">        {menuItems.map((item) => {
           const active = isActive(item.path);
           return (
             <Link

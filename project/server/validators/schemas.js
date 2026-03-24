@@ -51,7 +51,7 @@ export const usinaSchema = z.object({
     .nullish()
     .transform(val => val ? val.replace(/\D/g, '') : null),
 
-  // Numéricos (Potência é obrigatória para não quebrar cálculos)
+  dia_vencimento_fatura: z.number().min(1).max(31).optional().nullable(),
   potencia: z.preprocess(cleanNumber, z.number({ required_error: "Potência é obrigatória" }).nonnegative()),
   valor_kw_bruto: z.preprocess(cleanNumber, z.number().nonnegative()),
   geracao_estimada: z.preprocess(cleanNumber, z.number().nonnegative()),

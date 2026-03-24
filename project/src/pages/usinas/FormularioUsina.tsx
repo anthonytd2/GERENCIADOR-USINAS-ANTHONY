@@ -81,20 +81,20 @@ export default function FormularioUsina() {
             const tipo = data.tipo_pagamento ? data.tipo_pagamento.toUpperCase() : '';
             setValue('tipo_pagamento', tipo);
             setTipoPagamentoVisual(tipo);
-
+            setValue('dia_vencimento_fatura', data.dia_vencimento_fatura);
             setValue('documento', data.documento || data.cpf_cnpj);
             setValue('rg', data.rg);
             setValue('inscricao_estadual', data.inscricao_estadual); // 🟢 Puxa IE do banco
             setValue('telefone', data.telefone);
             setValue('email', data.email);
-            
+
             // 🟢 CARREGA OS NOVOS CAMPOS DE ENDEREÇO
             setValue('cep', data.cep);
-            setValue('endereco', data.endereco_proprietario || data.endereco); 
+            setValue('endereco', data.endereco_proprietario || data.endereco);
             setValue('bairro', data.bairro);
             setValue('cidade', data.cidade);
             setValue('uf', data.uf);
-            
+
             setValue('observacao', data.observacao);
           }
         })
@@ -121,9 +121,9 @@ export default function FormularioUsina() {
         nome: data.nome,
         numero_uc: data.numero_uc,
         tipo: data.tipo,
-        
-        // 🟢 ENVIA OS NOVOS CAMPOS DE ENDEREÇO
-        endereco_proprietario: data.endereco, 
+
+        dia_vencimento_fatura: data.dia_vencimento_fatura ? Number(data.dia_vencimento_fatura) : null,
+        endereco_proprietario: data.endereco,
         cep: data.cep ? data.cep.replace(/\D/g, '') : null,
         bairro: data.bairro,
         cidade: data.cidade,
@@ -335,7 +335,7 @@ export default function FormularioUsina() {
               )}
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5 ml-1">Início do Contrato</label>
                 <div className="relative">
@@ -355,6 +355,22 @@ export default function FormularioUsina() {
                     type="date"
                     {...register('vencimento_contrato')}
                     className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-gray-600"
+                  />
+                </div>
+              </div>
+
+              {/* 🟢 O NOVO CAMPO AQUI: */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5 ml-1">Dia Fatura Copel</label>
+                <div className="relative">
+                  <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <input
+                    type="number"
+                    min="1"
+                    max="31"
+                    {...register('dia_vencimento_fatura')}
+                    placeholder="Dia (1 a 31)"
+                    className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all font-bold text-gray-800"
                   />
                 </div>
               </div>
@@ -382,7 +398,7 @@ export default function FormularioUsina() {
                   />
                 </div>
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5 ml-1">RG</label>
                 <div className="relative">
@@ -408,7 +424,7 @@ export default function FormularioUsina() {
                   />
                 </div>
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5 ml-1">Telefone</label>
                 <div className="relative">

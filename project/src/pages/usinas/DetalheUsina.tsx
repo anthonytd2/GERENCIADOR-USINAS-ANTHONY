@@ -272,17 +272,22 @@ export default function DetalheUsina() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4 bg-gray-50 p-4 rounded-xl border border-gray-100">
+            <div className="grid grid-cols-3 gap-4 bg-gray-50 p-4 rounded-xl border border-gray-100">
               <div>
                 <p className="text-xs text-gray-500 flex items-center gap-1 mb-1"><Calendar className="w-3 h-3" /> Início</p>
                 <p className="text-sm font-bold text-gray-900">{formatDate(usina.inicio_contrato)}</p>
               </div>
               <div>
-                <p className="text-xs text-gray-500 flex items-center gap-1 mb-1"><Calendar className="w-3 h-3" /> Vencimento</p>
+                <p className="text-xs text-gray-500 flex items-center gap-1 mb-1"><Calendar className="w-3 h-3" /> Término</p>
                 <p className="text-sm font-bold text-gray-900">{formatDate(usina.vencimento_contrato)}</p>
               </div>
-            </div>
 
+              {/* 🟢 O NOVO CAMPO AQUI: */}
+              <div>
+                <p className="text-xs text-gray-500 flex items-center gap-1 mb-1"><FileText className="w-3 h-3" /> Fatura Copel</p>
+                <p className="text-sm font-bold text-blue-700">Dia {usina.dia_vencimento_fatura || '--'}</p>
+              </div>
+            </div>
             <div>
               <p className="text-xs text-gray-500 mb-1">Valor do kW (Base)</p>
               <p className="text-2xl font-bold text-gray-900">{formatMoeda(usina.valor_kw_bruto || 0)}</p>
@@ -326,11 +331,11 @@ export default function DetalheUsina() {
                 <p className="text-xs text-gray-500 mb-1">RG</p>
                 <span className="text-sm font-medium text-gray-700">{formatarRG(usina.rg) || '-'}</span>
               </div>
-              
+
               {/* 🟢 INSCRIÇÃO ESTADUAL AQUI */}
               <div className="col-span-2">
-                 <p className="text-xs text-gray-500 mb-1">INSCRIÇÃO ESTADUAL</p>
-                 <span className="text-sm font-medium text-gray-700">{usina.inscricao_estadual || '-'}</span>
+                <p className="text-xs text-gray-500 mb-1">INSCRIÇÃO ESTADUAL</p>
+                <span className="text-sm font-medium text-gray-700">{usina.inscricao_estadual || '-'}</span>
               </div>
             </div>
 

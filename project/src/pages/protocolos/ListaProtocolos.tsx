@@ -90,7 +90,7 @@ export default function ListaProtocolos() {
     }
   };
 
-  // --- SEMÁFORO DE PRAZOS ---
+// --- SEMÁFORO DE PRAZOS ---
   const getStatusPrazo = (dataLimite: string, status: string) => {
     // 🟢 REGRA ATUALIZADA: Se estiver Concluído OU Injetada, o prazo para de contar (Finalizado)
     if (status === 'CONCLUIDO' || status === 'INJETANDO') {
@@ -99,17 +99,20 @@ export default function ListaProtocolos() {
     
     if (!dataLimite) return { style: 'border-l-4 border-slate-200 bg-gray-50-card text-slate-400', icon: Calendar, label: 'S/ Prazo' };
 
+    // 🟢 CORREÇÃO DO FUSO HORÁRIO: Forçamos o horário para o meio-dia (T12:00:00) na hora de ler a string do banco
     const hoje = new Date();
     hoje.setHours(0, 0, 0, 0);
-    const limite = new Date(dataLimite);
+    
+    const limite = new Date(dataLimite + 'T12:00:00');
     limite.setHours(0, 0, 0, 0);
 
-    const diffDias = (limite.getTime() - hoje.getTime()) / (1000 * 3600 * 24);
+    const diffDias = Math.round((limite.getTime() - hoje.getTime()) / (1000 * 3600 * 24));
 
     if (diffDias < 0) return { style: 'border-l-4 border-red-500 bg-red-50 text-red-700 font-bold', icon: AlertCircle, label: 'VENCIDO' };
     if (diffDias <= 2) return { style: 'border-l-4 border-amber-500 bg-amber-50 text-amber-600 font-bold', icon: AlertTriangle, label: 'Vence Logo' };
     
-    return { style: 'border-l-4 border-blue-300 bg-gray-50-card text-blue-600', icon: Clock, label: new Date(dataLimite).toLocaleDateString('pt-BR') };
+    // Agora usamos a própria variável "limite" (já corrigida com o meio-dia) para exibir na tela
+    return { style: 'border-l-4 border-blue-300 bg-gray-50-card text-blue-600', icon: Clock, label: limite.toLocaleDateString('pt-BR') };
   };
 
   const onDragEnd = async (result: DropResult) => {

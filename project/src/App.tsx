@@ -23,6 +23,8 @@ import EmitirMinuta from './pages/financeiro/EmitirMinuta';
 import ListaProtocolos from './pages/protocolos/ListaProtocolos';
 import { useAutoLogout } from './hooks/useAutoLogout';
 import FluxoCaixa from './pages/financeiro/FluxoCaixa';
+import MapaAlocacao from './pages/alocacao/MapaAlocacao';
+import SimuladorViabilidade from './pages/simuladorviabilidade/SimuladorViabilidade';
 
 function App() {
   useAutoLogout();
@@ -30,7 +32,7 @@ function App() {
     <BrowserRouter>
       {/* Notificações globais do sistema */}
       <Toaster position="top-right" toastOptions={{ duration: 4000 }} />
-      
+
       <Routes>
         {/* 1. ROTA PÚBLICA: Acessível por qualquer pessoa */}
         <Route path="/login" element={<Login />} />
@@ -64,14 +66,15 @@ function App() {
             <Route path="/propostas" element={<ListaPropostas />} />
             <Route path="/propostas/novo" element={<NovoSimulador />} />
             <Route path="/propostas/:id" element={<NovoSimulador />} />
-
+            <Route path="/simulador" element={<SimuladorViabilidade />} />
             {/* --- MÓDULO FINANCEIRO & RELATÓRIOS --- */}
-    
+
             <Route path="/financeiro/minutas" element={<EmitirMinuta />} />
             <Route path="/relatorios" element={<RelatorioRentabilidade />} />
             <Route path="/recibos" element={<GerenciadorRecibos />} />
             <Route path="/protocolos" element={<ListaProtocolos />} />
             <Route path="/financeiro" element={<FluxoCaixa />} />
+            <Route path="/alocacao" element={<MapaAlocacao />} />
             {/* Redirecionamento de segurança para rotas inexistentes */}
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>

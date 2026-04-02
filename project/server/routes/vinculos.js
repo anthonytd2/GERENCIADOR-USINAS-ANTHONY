@@ -1,11 +1,11 @@
 import express from 'express';
 import { supabase } from '../db.js';
 import { z } from 'zod';
-import xss from 'xss'; // 🟢 NOVO: Importando a biblioteca de sanitização
+import xss from 'xss'; 
 
 const router = express.Router();
 
-// 🟢 NOVO: Função de Segurança (Varredor de XSS)
+// 🟢 Função de Segurança (Varredor de XSS)
 const sanitizeInput = (data) => {
   if (typeof data !== 'object' || data === null) return data;
   const sanitized = Array.isArray(data) ? [] : {};
@@ -21,21 +21,11 @@ const sanitizeInput = (data) => {
   return sanitized;
 };
 
-const vinculoSchema = z.object({
-  usina_id: z.number().int().positive(),
-  consumidor_id: z.number().int().positive(),
-  percentual: z.number().min(0).max(100),
-  data_inicio: z.string().min(1),
-  status_id: z.number().int().positive(),
-  data_fim: z.string().optional().nullable(),
-  observacoes: z.string().optional().nullable()
-});
-
 // ==========================================
 // ROTAS PRINCIPAIS (CRUD VÍNCULOS)
 // ==========================================
 
-// 1. LISTAR TODOS (Mantém supabase global)
+// 1. LISTAR TODOS
 router.get('/', async (req, res) => {
   try {
     const { data, error } = await supabase
@@ -46,7 +36,7 @@ router.get('/', async (req, res) => {
         consumidores (consumidor_id, nome, cidade, uf),
         status (*)
       `)
-      .is('deleted_at', null) // 🟢 Filtro do Soft Delete
+      .is('deleted_at', null)
       .order('created_at', { ascending: false });
 
     if (error) throw error;
@@ -57,17 +47,16 @@ router.get('/', async (req, res) => {
   }
 });
 
-// 2. BUSCAR UM (DETALHES) (Mantém supabase global)
+// 2. BUSCAR UM (DETALHES)
 router.get('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-
     const { data, error } = await supabase
       .from('vinculos')
       .select(`
         *,
         status:status_id (*),
-consumidores:consumidor_id (
+        consumidores:consumidor_id (
             consumidor_id, nome, documento, endereco, bairro, cidade, uf, cep, percentual_desconto, media_consumo
         ),
         usinas:usina_id (id, nome, tipo, potencia, endereco_proprietario, valor_kw_bruto),
@@ -95,19 +84,15 @@ consumidores:consumidor_id (
         cpf_cnpj: data.consumidores?.documento
       }
     };
-
     res.json(vinculoMapeado);
-
   } catch (error) {
-    console.error('Erro detalhe vínculo:', error);
     res.status(500).json({ error: 'Erro ao buscar vínculo' });
   }
 });
 
-// 3. CRIAR VÍNCULO (🟢 CORRIGIDO E À PROVA DE BALAS)
+// 3. CRIAR VÍNCULO (🟢 ATUALIZADO: MULTI-USINA POR CONSUMIDOR)
 router.post('/', async (req, res) => {
   try {
-    // 🟢 SEGURANÇA APLICADA
     const body = sanitizeInput(req.body);
 
     let dataInicio = body.data_inicio;
@@ -123,7 +108,7 @@ router.post('/', async (req, res) => {
       observacao: body.observacao || body.observacoes
     };
 
-    // 🟢 VERIFICAÇÃO 1: Usina já locada?
+    // 🟢 VERIFICAÇÃO: Usina já locada? (A Usina é exclusiva)
     const { data: usinaOcupada, error: errUsina } = await req.supabase
       .from('vinculos')
       .select('id')
@@ -136,20 +121,9 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ error: 'Atenção: Esta Usina já possui um contrato ativo no sistema.' });
     }
 
-    // 🟢 VERIFICAÇÃO 2: Consumidor já locado?
-    const { data: consumidorOcupado, error: errConsumidor } = await req.supabase
-      .from('vinculos')
-      .select('id')
-      .eq('consumidor_id', payload.consumidor_id)
-      .neq('status_id', 2)
-      .is('deleted_at', null);
+    // ❌ TRAVA DO CONSUMIDOR REMOVIDA DAQUI PARA PERMITIR MÚLTIPLAS USINAS NO MESMO CLIENTE
 
-    if (errConsumidor) throw errConsumidor;
-    if (consumidorOcupado && consumidorOcupado.length > 0) {
-      return res.status(400).json({ error: 'Atenção: Este Consumidor já possui um contrato ativo no sistema.' });
-    }
-
-    // 🟢 INSERÇÃO SE TUDO ESTIVER LIVRE
+    // 🟢 INSERÇÃO DO VÍNCULO
     const { data: novoVinculo, error: errInsert } = await req.supabase
       .from('vinculos')
       .insert([payload])
@@ -158,6 +132,7 @@ router.post('/', async (req, res) => {
 
     if (errInsert) throw errInsert;
 
+    // Vincula unidades se houver
     const unidadesSelecionadas = body.unidades_selecionadas || [];
     if (unidadesSelecionadas.length > 0 && novoVinculo) {
       const ucsParaInserir = unidadesSelecionadas.map(ucId => ({
@@ -171,27 +146,15 @@ router.post('/', async (req, res) => {
     res.status(201).json(novoVinculo);
   } catch (error) {
     console.error('Erro criar vínculo:', error);
-    
-    // Tratamento de falha final caso passe pela barreira
-    if (error.code === '23505') {
-        if (error.message?.includes('usina')) {
-            return res.status(400).json({ error: 'Atenção: O banco de dados detetou que esta Usina já está locada.' });
-        }
-        return res.status(400).json({ error: 'Bloqueio de Segurança: Este vínculo já existe no sistema.' });
-    }
-
     res.status(500).json({ error: 'Erro interno ao criar vínculo.' });
   }
 });
 
-// 4. ATUALIZAR (🟢 MUDOU PARA req.supabase)
+// 4. ATUALIZAR
 router.put('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    
-    // 🟢 SEGURANÇA APLICADA
     const body = sanitizeInput(req.body);
-
     const dados = {
       status_id: body.status_id,
       observacao: body.observacao,
@@ -207,19 +170,16 @@ router.put('/:id', async (req, res) => {
     if (error) throw error;
     res.json(data);
   } catch (error) {
-    console.error('Erro ao atualizar vínculo:', error);
     res.status(500).json({ error: 'Erro ao atualizar vínculo' });
   }
 });
 
-// 5. ENCERRAR (🟢 MUDOU PARA req.supabase)
+// 5. ENCERRAR
 router.put('/:id/encerrar', async (req, res) => {
   try {
     const { id } = req.params;
-    // 🟢 SEGURANÇA APLICADA
     const body = sanitizeInput(req.body);
     const { data_fim } = body;
-
     const { data, error } = await req.supabase
       .from('vinculos')
       .update({ data_fim, status_id: 2 })
@@ -233,14 +193,13 @@ router.put('/:id/encerrar', async (req, res) => {
   }
 });
 
-// 6. DELETAR / SOFT DELETE (🟢 MUDOU PARA req.supabase)
+// 6. DELETAR / SOFT DELETE
 router.delete('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    
     const { error } = await req.supabase
       .from('vinculos')
-      .update({ deleted_at: new Date().toISOString() }) // Ao invés de .delete()
+      .update({ deleted_at: new Date().toISOString() })
       .eq('id', id);
 
     if (error) throw error;
@@ -254,7 +213,6 @@ router.delete('/:id', async (req, res) => {
 // ROTAS DE AUDITORIA 
 // ==========================================
 
-// 1. LISTAR AUDITORIAS DO VÍNCULO (Mantém supabase global)
 router.get('/:id/auditorias', async (req, res) => {
   try {
     const { data, error } = await supabase
@@ -262,14 +220,7 @@ router.get('/:id/auditorias', async (req, res) => {
       .select(`
         *,
         faturas:auditorias_faturas (
-          id,
-          unidade_id,
-          percentual_aplicado,
-          saldo_anterior,
-          creditos_injetados,
-          creditos_consumidos,
-          saldo_final,
-          data_leitura,
+          id, unidade_id, percentual_aplicado, saldo_anterior, creditos_injetados, creditos_consumidos, saldo_final, data_leitura,
           unidades_consumidoras (codigo_uc, endereco)
         )
       `)
@@ -283,23 +234,15 @@ router.get('/:id/auditorias', async (req, res) => {
   }
 });
 
-// 2. CRIAR NOVA AUDITORIA (🟢 MUDOU PARA req.supabase)
 router.post('/:id/auditorias', async (req, res) => {
   try {
     const vinculo_id = req.params.id;
-    // 🟢 SEGURANÇA APLICADA
     const body = sanitizeInput(req.body);
     const { faturas, ...dadosCabecalho } = body;
 
-    let totalInjetado = 0;
-    let totalConsumido = 0;
-    let saldoFinalTotal = 0;
-
-    if (faturas && Array.isArray(faturas)) {
-        totalInjetado = faturas.reduce((acc, f) => acc + (Number(f.creditos_injetados) || 0), 0);
-        totalConsumido = faturas.reduce((acc, f) => acc + (Number(f.creditos_consumidos) || 0), 0);
-        saldoFinalTotal = faturas.reduce((acc, f) => acc + (Number(f.saldo_final) || 0), 0);
-    }
+    let totalInjetado = faturas?.reduce((acc, f) => acc + (Number(f.creditos_injetados) || 0), 0) || 0;
+    let totalConsumido = faturas?.reduce((acc, f) => acc + (Number(f.creditos_consumidos) || 0), 0) || 0;
+    let saldoFinalTotal = faturas?.reduce((acc, f) => acc + (Number(f.saldo_final) || 0), 0) || 0;
 
     const dadosParaSalvar = {
         ...dadosCabecalho,
@@ -312,8 +255,7 @@ router.post('/:id/auditorias', async (req, res) => {
     const { data: auditoria, error: errAuditoria } = await req.supabase
       .from('auditorias_vinculos')
       .insert([dadosParaSalvar])
-      .select()
-      .single();
+      .select().single();
 
     if (errAuditoria) throw errAuditoria;
 
@@ -328,39 +270,24 @@ router.post('/:id/auditorias', async (req, res) => {
         saldo_final: item.saldo_final || 0,
         data_leitura: item.data_leitura || (dadosCabecalho.mes_referencia + '-01')
       }));
-
-      const { error: errFaturas } = await req.supabase
-        .from('auditorias_faturas')
-        .insert(itensParaSalvar);
-
-      if (errFaturas) console.error('Erro ao salvar faturas:', errFaturas);
+      await req.supabase.from('auditorias_faturas').insert(itensParaSalvar);
     }
 
     res.status(201).json(auditoria);
   } catch (error) {
-    if (error.code === '23505') {
-      return res.status(400).json({ error: 'Já existe uma auditoria para este mês neste vínculo.' });
-    }
     res.status(500).json({ error: error.message });
   }
 });
 
-// 3. ATUALIZAR AUDITORIA (🟢 MUDOU PARA req.supabase)
+// ATUALIZAR AUDITORIA
 router.put('/auditorias/:auditoriaId', async (req, res) => {
   try {
-    // 🟢 SEGURANÇA APLICADA
     const body = sanitizeInput(req.body);
     const { faturas, ...dadosCabecalho } = body;
 
-    let totalInjetado = 0;
-    let totalConsumido = 0;
-    let saldoFinalTotal = 0;
-
-    if (faturas && Array.isArray(faturas)) {
-        totalInjetado = faturas.reduce((acc, f) => acc + (Number(f.creditos_injetados) || 0), 0);
-        totalConsumido = faturas.reduce((acc, f) => acc + (Number(f.creditos_consumidos) || 0), 0);
-        saldoFinalTotal = faturas.reduce((acc, f) => acc + (Number(f.saldo_final) || 0), 0);
-    }
+    let totalInjetado = faturas?.reduce((acc, f) => acc + (Number(f.creditos_injetados) || 0), 0) || 0;
+    let totalConsumido = faturas?.reduce((acc, f) => acc + (Number(f.creditos_consumidos) || 0), 0) || 0;
+    let saldoFinalTotal = faturas?.reduce((acc, f) => acc + (Number(f.saldo_final) || 0), 0) || 0;
 
     const dadosParaAtualizar = {
         ...dadosCabecalho,
@@ -399,7 +326,7 @@ router.put('/auditorias/:auditoriaId', async (req, res) => {
   }
 });
 
-// 4. DELETAR AUDITORIA (🟢 MUDOU PARA req.supabase)
+// DELETAR AUDITORIA
 router.delete('/auditorias/:auditoriaId', async (req, res) => {
   try {
     const { error } = await req.supabase
@@ -414,44 +341,31 @@ router.delete('/auditorias/:auditoriaId', async (req, res) => {
   }
 });
 
-// ==========================================
 // ROTAS DE RATEIO
-// ==========================================
-
-// (🟢 MUDOU PARA req.supabase)
 router.post('/:id/unidades', async (req, res) => {
   try {
-    const vinculo_id = req.params.id;
-    // 🟢 SEGURANÇA APLICADA
     const body = sanitizeInput(req.body);
-    const { unidade_consumidora_id, percentual_rateio } = body;
-
     const { data, error } = await req.supabase
       .from('unidades_vinculadas')
-      .insert([{ vinculo_id, unidade_consumidora_id, percentual_rateio }])
+      .insert([{ vinculo_id: req.params.id, ...body }])
       .select().single();
     if (error) throw error;
     res.status(201).json(data);
   } catch (error) { res.status(500).json({ error: error.message }); }
 });
 
-// (🟢 MUDOU PARA req.supabase)
 router.put('/unidades_vinculadas/:linkId', async (req, res) => {
   try {
-    // 🟢 SEGURANÇA APLICADA
     const body = sanitizeInput(req.body);
-    const { percentual_rateio } = body;
-
     const { error } = await req.supabase
       .from('unidades_vinculadas')
-      .update({ percentual_rateio })
+      .update({ percentual_rateio: body.percentual_rateio })
       .eq('id', req.params.linkId);
     if (error) throw error;
     res.json({ message: 'Rateio atualizado' });
   } catch (error) { res.status(500).json({ error: error.message }); }
 });
 
-// (🟢 MUDOU PARA req.supabase)
 router.delete('/unidades_vinculadas/:linkId', async (req, res) => {
   try {
     const { error } = await req.supabase.from('unidades_vinculadas').delete().eq('id', req.params.linkId);

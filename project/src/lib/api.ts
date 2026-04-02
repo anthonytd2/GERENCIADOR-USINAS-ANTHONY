@@ -383,6 +383,14 @@ export const api = {
         .then((res: any) => res.data),
   },
 
+  simulacoes: {
+    list: () => axiosInstance.get('/simulacoes').then(res => res.data),
+    get: (id: number) => axiosInstance.get(`/simulacoes/${id}`).then(res => res.data),
+    create: (data: any) => axiosInstance.post('/simulacoes', data).then(res => res.data),
+    update: (id: number, data: any) => axiosInstance.put(`/simulacoes/${id}`, data).then(res => res.data),
+    delete: (id: number) => axiosInstance.delete(`/simulacoes/${id}`).then(res => res.data),
+  },
+
   get: (url: string) => axiosInstance.get(url).then((res: any) => res.data),
   post: (url: string, data: any) =>
     axiosInstance.post(url, data).then((res: any) => res.data),

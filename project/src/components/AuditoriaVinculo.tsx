@@ -2,30 +2,28 @@ import { useEffect, useState } from 'react';
 import { api } from '../lib/api';
 import toast from 'react-hot-toast';
 import {
-  Plus, Trash2, AlertTriangle, CheckCircle, Zap, FileText, Calendar, Activity, Pencil, Users, Calculator
+  Plus, Trash2, AlertTriangle, CheckCircle, Zap, FileText, Calendar, Activity, Pencil, Users, Calculator, TrendingUp, TrendingDown, Wallet
 } from 'lucide-react';
 import { AuditoriaVinculo, AuditoriaFatura } from '../types';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ReferenceLine } from 'recharts';
 
 interface Props {
   vinculoId: number;
-  percentualVinculo: number;
 }
 
-export default function AuditoriaVinculoComponent({ vinculoId, percentualVinculo }: Props) {
+export default function AuditoriaVinculoComponent({ vinculoId }: Props) {
   const [auditorias, setAuditorias] = useState<AuditoriaVinculo[]>([]);
   const [unidadesDoContrato, setUnidadesDoContrato] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
 
-  // Estado do Formulário
+
   const [form, setForm] = useState({
-    mes_referencia: new Date().toISOString().slice(0, 7), // YYYY-MM
+    mes_referencia: new Date().toISOString().slice(0, 7),
     data_leitura_gerador: '',
     geracao_usina: '',
     consumo_proprio_usina: '',
     observacao: '',
-    // A lista de faturas agora terá um campo interno '_tempId' para o React não se perder
     faturas: [] as any[]
   });
 
@@ -39,45 +37,32 @@ export default function AuditoriaVinculoComponent({ vinculoId, percentualVinculo
   });
 
   useEffect(() => {
-    // Se o modal estiver aberto, recarrega as configurações para garantir que pegamos alterações recentes no Rateio
     if (modalOpen) {
       loadConfiguracaoUnidades();
     }
-    // Carrega o histórico sempre que o ID mudar ou o modal fechar (para atualizar a lista)
     loadAuditorias();
-  }, [vinculoId, modalOpen]); // <--- ADICIONAMOS modalOpen AQUI
+  }, [vinculoId, modalOpen]);
 
-  // --- FUNÇÃO SEGURA PARA DATA ---
-  // Converte qualquer formato vindo do banco para YYYY-MM-DD
   const safeDate = (val: string | null | undefined) => {
     if (!val) return '';
-    // Pega apenas os 10 primeiros caracteres se for ISO string
     return String(val).substring(0, 10);
   };
 
   const loadAuditorias = async () => {
     try {
-      setLoading(true);
       const data = await api.vinculos.getAuditorias(vinculoId);
       setAuditorias(data || []);
     } catch (error) {
       console.error(error);
-    } finally {
-      setLoading(false);
     }
   };
 
   const loadConfiguracaoUnidades = async () => {
     try {
       const vinculoData = await api.vinculos.get(vinculoId);
-
-      // Aqui tratamos a gambiarra do backend: Se vier ID 0, ignoramos ou tratamos
-      // O ideal é confiar na lista 'unidades_vinculadas' se ela existir e tiver IDs reais
       if (vinculoData.unidades_vinculadas && vinculoData.unidades_vinculadas.length > 0) {
         setUnidadesDoContrato(vinculoData.unidades_vinculadas);
       } else {
-        // Se realmente não tiver nada (nem fallback do backend), pegamos os dados do consumidor
-        // Mas evitamos criar IDs falsos aqui para não confundir a lógica
         setUnidadesDoContrato([]);
       }
     } catch (error) {
@@ -85,24 +70,14 @@ export default function AuditoriaVinculoComponent({ vinculoId, percentualVinculo
     }
   };
 
-  // CÁLCULOS ATUALIZADOS (Respeitando a soma dos rateios das UCs)
   useEffect(() => {
     const geracao = Number(form.geracao_usina) || 0;
     const consumoProprio = Number(form.consumo_proprio_usina) || 0;
 
-    // 1. Calcula o Excedente Real (O Bolo)
     const liquidoUsina = Math.max(0, geracao - consumoProprio);
-
-    // 2. Soma quanto % foi distribuído nas faturas (Ex: 50%)
     const somaPercentuais = form.faturas.reduce((acc: number, f: any) => acc + (Number(f.percentual_aplicado) || 0), 0);
-
-    // 3. O "Esperado" é calculado sobre essa soma, não sobre o contrato total
     const direitoClienteTotal = liquidoUsina * (somaPercentuais / 100);
-
-    // 4. O Real é o que foi digitado
     const totalInjetadoReal = form.faturas.reduce((acc: number, f: any) => acc + (Number(f.creditos_injetados) || 0), 0);
-
-    // 5. Diferença
     const diferencaGeracao = direitoClienteTotal - totalInjetadoReal;
 
     let status = 'OK';
@@ -114,44 +89,38 @@ export default function AuditoriaVinculoComponent({ vinculoId, percentualVinculo
       totalInjetadoReal,
       diferencaGeracao,
       status,
-      somaPercentuais // Salva para mostrar na tela
+      somaPercentuais
     });
-
-  }, [form]); // Removemos 'percentualVinculo' da dependência pois agora usamos a soma das faturas
+  }, [form]);
 
   const abrirModalNovo = async () => {
     setEditingId(null);
     const hoje = new Date().toISOString().slice(0, 10);
 
-    // --- BLOCO NOVO: Força busca atualizada no banco antes de abrir ---
     const toastLoad = toast.loading('Verificando contrato...');
     let listaUcs = [];
 
     try {
       const vinculoData = await api.vinculos.get(vinculoId);
-      // Pega exatamente o que está no banco (sem criar fakes)
       listaUcs = vinculoData.unidades_vinculadas || [];
-      setUnidadesDoContrato(listaUcs); // Atualiza o estado local também
+      setUnidadesDoContrato(listaUcs);
     } catch (e) {
       console.error("Erro ao buscar UCs frescas", e);
-      listaUcs = unidadesDoContrato; // Fallback para o cache se der erro de rede
+      listaUcs = unidadesDoContrato;
     } finally {
       toast.dismiss(toastLoad);
     }
 
-    // Se a lista vier vazia, avisa e NÃO ABRE o modal (força o usuário a configurar)
     if (listaUcs.length === 0) {
       toast.error('Configure o rateio na aba Detalhes antes de criar uma conferência.');
       return;
     }
-    // ------------------------------------------------------------------
 
     const faturasIniciais = listaUcs.map((uc: any) => ({
       unidade_id: uc.unidade_consumidora_id,
       percentual_aplicado: uc.percentual_rateio,
       codigo_uc: uc.unidades_consumidoras?.codigo_uc,
       endereco: uc.unidades_consumidoras?.endereco,
-
       data_leitura: hoje,
       saldo_anterior: 0,
       creditos_injetados: 0,
@@ -170,29 +139,21 @@ export default function AuditoriaVinculoComponent({ vinculoId, percentualVinculo
     setModalOpen(true);
   };
 
-  // --- MODO EDIÇÃO ---
   const abrirModalEdicao = (item: AuditoriaVinculo) => {
     setEditingId(item.id);
 
     const mesFormatado = item.mes_referencia ? item.mes_referencia.substring(0, 7) : '';
     let faturasParaOForm = [];
 
-    // CENÁRIO A: Auditoria Nova (Já tem faturas salvas na tabela filha)
     if (item.faturas && item.faturas.length > 0) {
       faturasParaOForm = item.faturas.map((f: AuditoriaFatura) => ({
         ...f,
-        _tempId: `db_${f.id}`, // ID único baseado no banco
+        _tempId: `db_${f.id}`,
         data_leitura: safeDate(f.data_leitura),
         codigo_uc: f.unidades_consumidoras?.codigo_uc || f.codigo_uc,
         endereco: f.unidades_consumidoras?.endereco || f.endereco
       }));
-    }
-    // CENÁRIO B: Auditoria Antiga (Legado 1.0 - Sem faturas filhas)
-    else {
-      // Precisamos "recriar" as faturas baseadas no que temos hoje no contrato
-      // e tentar preencher com os dados totais que foram salvos antigamente.
-
-      // Se a lista de UCs do contrato estiver vazia (caso extremo), criamos um item fake para recuperação
+    } else {
       const listaBase = unidadesDoContrato.length > 0 ? unidadesDoContrato : [{
         unidade_consumidora_id: 0,
         percentual_rateio: 100,
@@ -207,9 +168,7 @@ export default function AuditoriaVinculoComponent({ vinculoId, percentualVinculo
         percentual_aplicado: uc.percentual_rateio,
         codigo_uc: uc.unidades_consumidoras?.codigo_uc,
         endereco: uc.unidades_consumidoras?.endereco,
-
         data_leitura: dataPadrao,
-        // Distribui o valor total na primeira UC encontrada (melhor que perder o dado)
         saldo_anterior: Number(item.saldo_anterior) || 0,
         creditos_injetados: Number(item.creditos_injetados) || 0,
         creditos_consumidos: Number(item.creditos_consumidos) || 0,
@@ -238,9 +197,7 @@ export default function AuditoriaVinculoComponent({ vinculoId, percentualVinculo
     e.preventDefault();
     const toastId = toast.loading('Salvando conferência...');
 
-    // Validação básica
     if (form.faturas.some(f => !f.unidade_id && f.unidade_id !== 0)) {
-      // Se unidade_id for undefined ou null (mas permitimos 0 para legado)
       toast.error('Erro: Algumas faturas não estão vinculadas a uma UC válida.', { id: toastId });
       return;
     }
@@ -293,6 +250,62 @@ export default function AuditoriaVinculoComponent({ vinculoId, percentualVinculo
     }
   };
 
+  // 🟢 LÓGICA DO BALANÇO E DO GRÁFICO 🟢
+  let saldoAcumuladoGlobal = 0;
+  let totalInjetadoGlobal = 0;
+  let totalConsumidoGlobal = 0;
+
+  // 1. Prepara a lista com saldos calculados
+  const auditoriasComBalanco = auditorias.map(item => {
+    const injetado = item.faturas && item.faturas.length > 0
+      ? item.faturas.reduce((acc, f) => acc + (Number(f.creditos_injetados) || 0), 0)
+      : (Number(item.creditos_injetados) || 0);
+
+    const consumido = item.faturas && item.faturas.length > 0
+      ? item.faturas.reduce((acc, f) => acc + (Number(f.creditos_consumidos) || 0), 0)
+      : (Number(item.creditos_consumidos) || 0);
+
+    const saldoMes = injetado - consumido;
+
+    totalInjetadoGlobal += injetado;
+    totalConsumidoGlobal += consumido;
+    saldoAcumuladoGlobal += saldoMes;
+
+    return {
+      ...item,
+      injetadoTotal: injetado,
+      consumidoTotal: consumido,
+      saldoMes
+    };
+  });
+
+  // 2. Prepara os dados para o Gráfico (Ordenados do mais antigo pro mais novo, max 12 meses)
+  const dadosGrafico = [...auditoriasComBalanco]
+    .sort((a, b) => new Date(a.mes_referencia).getTime() - new Date(b.mes_referencia).getTime())
+    .slice(-12) // Pega apenas os últimos 12 registros para o gráfico não espremer muito
+    .map(item => ({
+      mes: new Date(item.mes_referencia).toLocaleDateString('pt-BR', { month: 'short', year: '2-digit', timeZone: 'UTC' }).toUpperCase(),
+      Injetado: item.injetadoTotal,
+      Consumido: item.consumidoTotal,
+      Balanço: item.saldoMes
+    }));
+
+  // 🟢 NOVA LÓGICA: SALDO ACUMULADO ATUAL (ÚLTIMO MÊS LANÇADO) 🟢
+  let saldoAtualBanco = 0;
+  if (auditorias.length > 0) {
+    // 1. Encontra a auditoria com a data mais recente
+    const auditoriaMaisRecente = [...auditorias].sort(
+      (a, b) => new Date(b.mes_referencia).getTime() - new Date(a.mes_referencia).getTime()
+    )[0];
+
+    // 2. Soma o saldo_final de todas as filiais (faturas) desse último mês
+    if (auditoriaMaisRecente.faturas && auditoriaMaisRecente.faturas.length > 0) {
+      saldoAtualBanco = auditoriaMaisRecente.faturas.reduce((acc, f) => acc + (Number(f.saldo_final) || 0), 0);
+    } else {
+      saldoAtualBanco = Number(auditoriaMaisRecente.saldo_final) || 0; // (Para os dados antigos/legado)
+    }
+  }
+
   return (
     <div className="space-y-6 animate-fade-in-down">
 
@@ -308,12 +321,10 @@ export default function AuditoriaVinculoComponent({ vinculoId, percentualVinculo
           </p>
         </div>
 
-        {/* LÓGICA DO BOTÃO: Se não tiver unidades, mostra botão amarelo de verificação */}
         {unidadesDoContrato.length === 0 ? (
           <button
-            onClick={abrirModalNovo} // <--- Ao clicar, ele força uma nova busca no banco
+            onClick={abrirModalNovo}
             className="px-6 py-3 bg-amber-500/10 border border-amber-500 text-amber-400 font-bold rounded-xl flex items-center gap-2 hover:bg-amber-500/20 transition-all cursor-pointer"
-            title="Clique aqui para atualizar se você acabou de configurar o rateio"
           >
             <AlertTriangle className="w-5 h-5" />
             <span>Atualizar Configuração de Rateio</span>
@@ -328,12 +339,109 @@ export default function AuditoriaVinculoComponent({ vinculoId, percentualVinculo
         )}
       </div>
 
+      {/* 🟢 DASHBOARD DE BALANÇO ACUMULADO COM GRÁFICO 🟢 */}
+      {auditorias.length > 0 && (
+        <div className="space-y-4">
+          {/* Cartões Resumo */}
+          {/* Cartões Resumo (Agora com 4 colunas) */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+
+            <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+              <div>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Injetado Acumulado</p>
+                <p className="text-xl font-black text-slate-800">{totalInjetadoGlobal.toLocaleString()} <span className="text-xs font-medium text-slate-400">kWh</span></p>
+              </div>
+              <div className="p-2.5 bg-blue-50 text-blue-600 rounded-full"><Zap size={20} /></div>
+            </div>
+
+            <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+              <div>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Consumo Acumulado</p>
+                <p className="text-xl font-black text-slate-800">{totalConsumidoGlobal.toLocaleString()} <span className="text-xs font-medium text-slate-400">kWh</span></p>
+              </div>
+              <div className="p-2.5 bg-orange-50 text-orange-600 rounded-full"><Activity size={20} /></div>
+            </div>
+
+            {/* 🟢 NOVO CARTÃO: SALDO ATUAL EM BANCO 🟢 */}
+            <div className="bg-white p-4 rounded-xl border border-indigo-200 shadow-sm flex items-center justify-between relative overflow-hidden">
+              <div className="absolute -right-4 -bottom-4 opacity-5"><Wallet size={80} /></div>
+              <div className="relative z-10">
+                <p className="text-[10px] font-bold text-indigo-500 uppercase tracking-widest mb-1">Saldo em Banco (Atual)</p>
+                <p className="text-xl font-black text-indigo-700">{saldoAtualBanco.toLocaleString()} <span className="text-xs font-medium text-indigo-400">kWh</span></p>
+              </div>
+              <div className="p-2.5 bg-indigo-50 text-indigo-600 rounded-full relative z-10"><Wallet size={20} /></div>
+            </div>
+
+            <div className={`p-4 rounded-xl border shadow-sm flex items-center justify-between ${saldoAcumuladoGlobal >= 0 ? 'bg-emerald-50 border-emerald-200' : 'bg-red-50 border-red-200'}`}>
+              <div>
+                <p className={`text-[10px] font-bold uppercase tracking-widest mb-1 ${saldoAcumuladoGlobal >= 0 ? 'text-emerald-700' : 'text-red-700'}`}>
+                  Balanço (Geral)
+                </p>
+                <p className={`text-2xl font-black ${saldoAcumuladoGlobal >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                  {saldoAcumuladoGlobal > 0 ? '+' : ''}{saldoAcumuladoGlobal.toLocaleString()} <span className="text-xs font-medium">kWh</span>
+                </p>
+              </div>
+              <div className={`p-2.5 rounded-full ${saldoAcumuladoGlobal >= 0 ? 'bg-emerald-100 text-emerald-600' : 'bg-red-100 text-red-600'}`}>
+                {saldoAcumuladoGlobal >= 0 ? <TrendingUp size={24} /> : <TrendingDown size={24} />}
+              </div>
+            </div>
+          </div>
+
+          {/* Gráfico de Barras */}
+          <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+            <h4 className="text-sm font-bold text-slate-700 mb-4 flex items-center gap-2">
+              <Activity className="w-4 h-4 text-indigo-500" />
+              Histórico Mensal: Injeção vs Consumo
+            </h4>
+
+            {/* O "h-72" (altura fixa) resolve o erro do width(-1) height(-1) do Recharts! */}
+            <div className="h-72 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={dadosGrafico} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
+
+                  <XAxis
+                    dataKey="mes"
+                    tick={{ fontSize: 11, fill: '#64748b', fontWeight: 600 }}
+                    axisLine={false}
+                    tickLine={false}
+                    dy={10}
+                  />
+
+                  <YAxis
+                    tick={{ fontSize: 11, fill: '#94a3b8' }}
+                    axisLine={false}
+                    tickLine={false}
+                    tickFormatter={(value) => `${value}k`}
+                  />
+
+                  <Tooltip
+                    cursor={{ fill: '#F1F5F9' }}
+                    contentStyle={{ borderRadius: '12px', border: '1px solid #E2E8F0', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
+                    formatter={(value: any, name: any) => [`${Number(value || 0).toLocaleString('pt-BR')} kWh`, String(name)]}
+                  />
+
+                  <Legend iconType="circle" wrapperStyle={{ fontSize: '12px', paddingTop: '20px' }} />
+
+                  {/* Linha Zero (Base do Gráfico) */}
+                  <ReferenceLine y={0} stroke="#94a3b8" strokeWidth={2} />
+
+                  {/* 🟢 EXATAMENTE 2 BARRINHAS LADO A LADO POR MÊS */}
+                  <Bar dataKey="Injetado" name="Injetado (+)" fill="#3B82F6" radius={[4, 4, 0, 0]} maxBarSize={30} />
+                  <Bar dataKey="Consumido" name="Consumido (-)" fill="#F97316" radius={[4, 4, 0, 0]} maxBarSize={30} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* LISTA (HISTÓRICO) */}
       <div className="space-y-3">
-        {auditorias.map((item) => (
-          <div key={item.id} className="bg-gray-50-card p-5 rounded-lg border border-gray-200 shadow-sm hover:shadow-sm transition-all flex flex-col md:flex-row items-center gap-6 group">
+        {auditoriasComBalanco.map((item) => (
+          <div key={item.id} className="bg-gray-50-card p-5 rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-all flex flex-col md:flex-row items-center gap-6 group">
 
-            <div className="flex-shrink-0 text-center md:text-left min-w-[100px]">
+            <div className="flex-shrink-0 text-center md:text-left min-w-[120px]">
               <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Referência</p>
               <div className="flex items-center gap-2">
                 <div className="p-2 bg-blue-50 text-blue-600 rounded-lg"><Calendar size={20} /></div>
@@ -341,27 +449,28 @@ export default function AuditoriaVinculoComponent({ vinculoId, percentualVinculo
                   {new Date(item.mes_referencia).toLocaleDateString('pt-BR', { timeZone: 'UTC', month: 'short', year: 'numeric' }).toUpperCase()}
                 </span>
               </div>
+
+              {/* ETIQUETA DE SALDO DO MÊS ESPECÍFICO */}
+              <div className={`mt-2 text-[10px] font-bold px-2 py-1 rounded border inline-block ${item.saldoMes >= 0 ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-red-50 text-red-700 border-red-200'}`}>
+                {item.saldoMes >= 0 ? `Sobra: +${item.saldoMes} kWh` : `Falta: ${item.saldoMes} kWh`}
+              </div>
             </div>
 
             <div className="flex-1 w-full grid grid-cols-3 gap-2 text-center border-x border-gray-200 px-4">
               <div>
                 <p className="text-[10px] uppercase text-gray-500 font-bold">Total Injetado</p>
-                <p className="text-sm font-bold text-emerald-600">
-                  {item.faturas && item.faturas.length > 0
-                    ? item.faturas.reduce((acc, f) => acc + (f.creditos_injetados || 0), 0).toLocaleString('pt-BR')
-                    : Number(item.creditos_injetados).toLocaleString('pt-BR')} kWh
+                <p className="text-sm font-bold text-blue-600">
+                  {item.injetadoTotal.toLocaleString('pt-BR')} kWh
                 </p>
               </div>
               <div>
                 <p className="text-[10px] uppercase text-gray-500 font-bold">Total Consumido</p>
-                <p className="text-sm font-bold text-red-500">
-                  -{item.faturas && item.faturas.length > 0
-                    ? item.faturas.reduce((acc, f) => acc + (f.creditos_consumidos || 0), 0).toLocaleString('pt-BR')
-                    : Number(item.creditos_consumidos).toLocaleString('pt-BR')} kWh
+                <p className="text-sm font-bold text-orange-500">
+                  -{item.consumidoTotal.toLocaleString('pt-BR')} kWh
                 </p>
               </div>
               <div>
-                <p className="text-[10px] uppercase text-gray-500 font-bold">Saldo Final</p>
+                <p className="text-[10px] uppercase text-gray-500 font-bold">Saldo Final Acumulado (Fatura)</p>
                 <p className="text-lg font-black text-gray-900">
                   {item.faturas && item.faturas.length > 0
                     ? item.faturas.reduce((acc, f) => acc + (f.saldo_final || 0), 0).toLocaleString('pt-BR')
@@ -370,13 +479,13 @@ export default function AuditoriaVinculoComponent({ vinculoId, percentualVinculo
               </div>
             </div>
 
-            <div className="min-w-[140px] text-center">
+            <div className="min-w-[140px] text-center flex flex-col gap-2">
               {item.status === 'OK' ? (
-                <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-100 text-emerald-700 text-xs font-bold border border-emerald-200">
+                <div className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-100 text-emerald-700 text-xs font-bold border border-emerald-200">
                   <CheckCircle size={14} /> Auditado OK
                 </div>
               ) : (
-                <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-red-100 text-red-700 text-xs font-bold border border-red-200 animate-pulse">
+                <div className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-full bg-red-100 text-red-700 text-xs font-bold border border-red-200 animate-pulse">
                   <AlertTriangle size={14} /> Divergência
                 </div>
               )}
@@ -440,7 +549,6 @@ export default function AuditoriaVinculoComponent({ vinculoId, percentualVinculo
                     </div>
                     <div className="p-3 bg-amber-50 rounded-xl border border-amber-100">
                       <div className="flex justify-between items-center pt-1">
-                        {/* Mostra a soma real das porcentagens (ex: 50%) */}
                         <span className="text-xs font-bold text-amber-700 uppercase">
                           A enviar ({simulacao.somaPercentuais}%)
                         </span>
@@ -448,7 +556,6 @@ export default function AuditoriaVinculoComponent({ vinculoId, percentualVinculo
                           {simulacao.direitoClienteTotal.toFixed(0)}
                         </span>
                       </div>
-                      {/* Mostra dica se não estiver em 100% */}
                       {simulacao.somaPercentuais < 100 && (
                         <p className="text-[10px] text-amber-600 mt-1 text-right">
                           * {100 - simulacao.somaPercentuais}% fica na Geradora
@@ -474,19 +581,13 @@ export default function AuditoriaVinculoComponent({ vinculoId, percentualVinculo
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {form.faturas.map((fatura, index) => {
 
-                      // === 1. LÓGICA MATEMÁTICA (PROVA REAL) ===
                       const saldoAnt = Number(fatura.saldo_anterior) || 0;
                       const injetado = Number(fatura.creditos_injetados) || 0;
                       const consumido = Number(fatura.creditos_consumidos) || 0;
                       const finalDeclarado = Number(fatura.saldo_final) || 0;
-
-                      // A conta: O que tinha + O que entrou - O que saiu
                       const saldoCalculado = saldoAnt + injetado - consumido;
-
-                      // Verifica se bate (com margem de erro de 1 kWh para arredondamentos)
                       const diferencaConta = saldoCalculado - finalDeclarado;
                       const isContaErrada = Math.abs(diferencaConta) > 1;
-                      // ===========================================
 
                       return (
                         <div key={fatura._tempId || index} className="bg-gray-50-card p-4 rounded-lg border border-blue-100 shadow-sm relative group hover:border-blue-300 transition-colors">
@@ -503,35 +604,30 @@ export default function AuditoriaVinculoComponent({ vinculoId, percentualVinculo
                           </div>
 
                           <div className="space-y-2">
-                            {/* DATA */}
                             <div className="flex items-center gap-2">
                               <label className="w-20 text-[10px] font-bold text-gray-500 uppercase text-right">Data</label>
                               <input type="date" className="flex-1 p-1.5 border border-gray-200 rounded text-xs"
                                 value={fatura.data_leitura} onChange={e => updateFaturaField(index, 'data_leitura', e.target.value)} />
                             </div>
 
-                            {/* SALDO ANTERIOR */}
                             <div className="flex items-center gap-2">
                               <label className="w-20 text-[10px] font-bold text-gray-500 uppercase text-right">Saldo Ant.</label>
                               <input type="number" className="flex-1 p-1.5 border border-gray-200 rounded text-right text-sm text-gray-500" placeholder="0"
                                 value={fatura.saldo_anterior} onChange={e => updateFaturaField(index, 'saldo_anterior', e.target.value)} />
                             </div>
 
-                            {/* INJETADO */}
                             <div className="flex items-center gap-2">
                               <label className="w-20 text-[10px] font-bold text-blue-600 uppercase text-right">Injetado (+)</label>
                               <input type="number" className="flex-1 p-1.5 border border-blue-200 rounded text-right text-sm font-bold text-blue-700 bg-blue-50/30" placeholder="0"
                                 value={fatura.creditos_injetados} onChange={e => updateFaturaField(index, 'creditos_injetados', e.target.value)} />
                             </div>
 
-                            {/* CONSUMIDO */}
                             <div className="flex items-center gap-2">
                               <label className="w-20 text-[10px] font-bold text-red-500 uppercase text-right">Consumido (-)</label>
                               <input type="number" className="flex-1 p-1.5 border border-red-200 rounded text-right text-sm font-bold text-red-600 bg-red-50/30" placeholder="0"
                                 value={fatura.creditos_consumidos} onChange={e => updateFaturaField(index, 'creditos_consumidos', e.target.value)} />
                             </div>
 
-                            {/* SALDO FINAL (COM VALIDAÇÃO VISUAL) */}
                             <div className="border-t border-gray-200 my-1 pt-1">
                               <div className="flex items-center gap-2">
                                 <label className="w-20 text-[10px] font-bold text-gray-900 uppercase text-right">Final (=)</label>
@@ -548,7 +644,6 @@ export default function AuditoriaVinculoComponent({ vinculoId, percentualVinculo
                                 />
                               </div>
 
-                              {/* MENSAGEM DE ERRO SE A CONTA NÃO BATER */}
                               {isContaErrada && (
                                 <div className="text-[10px] text-red-600 text-right mt-1 font-bold flex justify-end items-center gap-1 animate-pulse">
                                   <Calculator size={10} /> A conta correta é: {saldoCalculado}

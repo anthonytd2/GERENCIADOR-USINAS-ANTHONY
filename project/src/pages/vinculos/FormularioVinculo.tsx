@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
-import { useNavigate, Link, useParams } from 'react-router-dom';
+import { useNavigate, Link, useParams, useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { api } from '../../lib/api';
 import toast from 'react-hot-toast';
 import { ArrowLeft, Save, FileText, Activity } from 'lucide-react';
+
 
 interface VinculoFormInput {
   usina_id: string | number;
@@ -18,9 +19,8 @@ interface VinculoFormInput {
 export default function FormularioVinculo() {
   const navigate = useNavigate();
   const { id } = useParams(); 
-  
+  const [searchParams] = useSearchParams();
   const { register, handleSubmit, setValue, reset, formState: { isSubmitting } } = useForm<VinculoFormInput>(); 
-
   const [usinas, setUsinas] = useState<any[]>([]);
   const [consumidores, setConsumidores] = useState<any[]>([]);
   const [statusList, setStatusList] = useState<any[]>([]); 
@@ -39,7 +39,7 @@ export default function FormularioVinculo() {
         setConsumidores(Array.isArray(cData) ? cData : []);
         setStatusList(Array.isArray(sData) ? sData : []);
 
-        if (id) {
+if (id) {
           const vinculo = await api.vinculos.get(Number(id));
           if (vinculo) {
             reset({
@@ -52,6 +52,16 @@ export default function FormularioVinculo() {
               observacoes: vinculo.observacao || vinculo.observacoes
             });
           }
+        } else {
+          // 🟢 INTELIGÊNCIA NOVA AQUI: Lendo a URL vinda do Mapa de Alocações
+          const urlUsina = searchParams.get('usina');
+          const urlConsumidor = searchParams.get('consumidor');
+          
+          if (urlUsina) setValue('usina_id', urlUsina);
+          if (urlConsumidor) setValue('consumidor_id', urlConsumidor);
+          
+          // Opcional: Já preenche a Data de Início com o dia de hoje para poupar tempo
+          setValue('data_inicio', new Date().toISOString().split('T')[0]);
         }
       } catch (err) {
         console.error(err);

@@ -32,7 +32,7 @@ export function PropostaPDF({ form, resultado }: PropostaPDFProps) {
           <p className="text-emerald-400 font-bold text-2xl mb-4 uppercase tracking-widest">Estudo de Viabilidade</p>
           <h1 className="text-8xl font-black leading-none mb-8 tracking-tight">
             Simulação <br />
-            <span className="text-slate-400">Alguel usina solar</span>
+            <span className="text-slate-400">Aluguel usina solar</span>
           </h1>
           <p className="text-2xl text-slate-300 max-w-xl leading-relaxed border-l-4 border-emerald-500 pl-6">
             A forma mais inteligente de reduzir seus custos. Sem investimento, sem obras e com economia garantida.
@@ -90,7 +90,7 @@ export function PropostaPDF({ form, resultado }: PropostaPDFProps) {
 
           {/* Card 3 */}
           <div className="bg-slate-800 p-5 rounded-lg shadow-sm flex flex-col justify-between h-36 text-white">
-            <p className="text-slate-400 font-bold uppercase text-xs tracking-wider">Redução na Conta</p>
+            <p className="text-slate-400 font-bold uppercase text-xs tracking-wider">Redução</p>
             <div className="text-emerald-400 font-black text-4xl tracking-tight">{fmtP(form.descontoBionova)}</div>
             <p className="text-xs text-slate-400 ">Desconto sobre a economia</p>
           </div>
@@ -107,8 +107,8 @@ export function PropostaPDF({ form, resultado }: PropostaPDFProps) {
               <thead>
                 <tr className="bg-slate-100 text-slate-600 uppercase text-xs tracking-wider">
                   <th className="p-3 text-left font-extrabold w-[40%]">Descrição do Custo</th>
-                  <th className="p-3 text-right font-extrabold text-red-900 bg-red-100/50 w-[30%] border-l border-slate-200">Sem Solar</th>
-                  <th className="p-3 text-right font-extrabold text-emerald-900 bg-emerald-100/50 w-[30%] border-l border-slate-200">Com Solar</th>
+                  <th className="p-3 text-right font-extrabold text-red-900 bg-red-100/50 w-[30%] border-l border-slate-200">Hoje</th>
+                  <th className="p-3 text-right font-extrabold text-emerald-900 bg-emerald-100/50 w-[30%] border-l border-slate-200">Com Usina</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 text-base">
@@ -163,8 +163,8 @@ export function PropostaPDF({ form, resultado }: PropostaPDFProps) {
             </div>
             
             <div className="flex justify-between items-center px-6 py-4 border-b border-slate-100 bg-slate-50">
-              <span className="text-slate-600 font-bold uppercase text-xs">Valor Assinatura Solar Locações:</span>
-              <span className="text-lg font-bold text-slate-800">+ {fmt(resultado.pagamentoUsina)}</span>
+              <span className="text-slate-600 font-bold uppercase text-xs">Valor Aluguel Usina:</span>
+              <span className="text-lg font-bold text-slate-800"> {fmt(resultado.pagamentoUsina)}</span>
             </div>
             
             <div className="flex justify-between items-center px-6 py-4 border-b border-emerald-200 bg-emerald-50">
@@ -183,10 +183,10 @@ export function PropostaPDF({ form, resultado }: PropostaPDFProps) {
         <div className="mt-4 border-t border-slate-200 pt-4">
           <div className="flex justify-between items-center text-slate-500">
             <div className="flex items-center gap-2 font-bold text-sm">
-              <Globe size={18} className="text-blue-600" /> www.SolarLocacoes.com.br
+              <Globe size={18} className="text-blue-600" /> https://bionovasolar.com.br/
             </div>
             <div className="flex items-center gap-2 font-bold text-sm">
-              <Phone size={18} className="text-emerald-600" /> (44) 99999-9999
+              <Phone size={18} className="text-emerald-600" /> (45) 998190349
             </div>
           </div>
         </div>

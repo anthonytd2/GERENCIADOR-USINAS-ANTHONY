@@ -23,7 +23,6 @@ import relatoriosFinanceirosRoutes from "./routes/relatorios_financeiros.js";
 import fluxoCaixaRoutes from './routes/fluxo_caixa.js';
 import simulacoesRoutes from './routes/simulacoes.js';
 
-// 1. PRIMEIRO criamos o App!
 const app = express();
 
 // Configuração OBRIGATÓRIA para nuvem (Render, Heroku, etc)
@@ -31,33 +30,6 @@ app.set('trust proxy', 1);
 
 // 🟢 HELMET: Protege cabeçalhos HTTP e oculta que o servidor usa Express
 app.use(helmet()); 
-
-// 🟢 CORS BLINDADO E CORRIGIDO: Única configuração de CORS do arquivo
-const allowedOrigins = [
-  process.env.FRONTEND_URL ? process.env.FRONTEND_URL.replace(/\/$/, "") : null,
-  "https://gerenciador-usinas-anthony.vercel.app", 
-  "http://localhost:5173",
-].filter(Boolean);
-
-app.use(
-  cors({
-    origin: function (origin, callback) {
-      // Permite requisições sem origem (como ferramentas internas) ou origens listadas
-      if (!origin || allowedOrigins.includes(origin.replace(/\/$/, ""))) {
-        callback(null, true);
-      } else {
-        console.warn(`🚨 CORS BLOQUEADO: Tentativa de acesso do domínio -> ${origin}`);
-        callback(new Error("Bloqueado pelo CORS: Origem não permitida"));
-      }
-    },
-    credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"], 
-    allowedHeaders: ["Content-Type", "Authorization"], 
-  })
-);
-
-// 🟢 PAYLOAD LIMIT: Prevenção contra ataques de negação de serviço (DoS) por memória
-app.use(express.json({ limit: '10mb' })); 
 
 // 🟢 MASCARAMENTO: Função para nunca exibir senhas ou tokens nos logs do console
 const maskSensitiveData = (obj) => {
@@ -85,9 +57,51 @@ app.use((req, res, next) => {
   if (req.method !== 'GET' && req.method !== 'OPTIONS') {
     const cleanBody = maskSensitiveData(req.body);
     console.log(`[${new Date().toISOString()}] ${req.method} ${req.url} - Payload verificado.`);
+    // Opcional: console.log('Dados recebidos (limpos):', cleanBody);
   }
   next();
 });
+
+app.get('/health', (req, res) => {
+  res.status(200).json({ 
+    status: 'OK',
+    message: 'Servidor Solar Locações operando normalmente' 
+  });
+});
+const port = process.env.PORT || 3000;
+
+// 🟢 CORS BLINDADO: Apenas origens autorizadas
+const allowedOrigins = [
+  process.env.FRONTEND_URL ? process.env.FRONTEND_URL.replace(/\/$/, "") : null,
+  "https://gerenciador-usinas-anthony.vercel.app", 
+  "http://localhost:5173",
+].filter(Boolean);
+
+app.use(
+  cors({
+    origin: function (origin, callback) {
+      if (!origin) {
+         console.warn(`🚨 CORS BLOQUEADO: Tentativa de acesso sem origem definida (Postman/Scripts)`);
+         return callback(new Error("Bloqueado pelo CORS: Acesso por API externa não autorizado"));
+      }
+
+      const cleanOrigin = origin.replace(/\/$/, "");
+
+      if (allowedOrigins.includes(cleanOrigin)) {
+        callback(null, true);
+      } else {
+        console.warn(`🚨 CORS BLOQUEADO: Tentativa de acesso do domínio -> ${origin}`);
+        callback(new Error("Bloqueado pelo CORS: Origem não permitida"));
+      }
+    },
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"], 
+    allowedHeaders: ["Content-Type", "Authorization"], 
+  }),
+);
+
+// 🟢 PAYLOAD LIMIT: Prevenção contra ataques de negação de serviço (DoS) por memória
+app.use(express.json({ limit: '10mb' })); 
 
 // 🟢 RATE LIMIT: Proteção contra ataques de força bruta e robôs
 const apiLimiter = rateLimit({
@@ -100,10 +114,9 @@ const apiLimiter = rateLimit({
   }
 });
 
-// Aplica o Rate Limit em todas as rotas de API
 app.use("/api/", apiLimiter);
 
-// 🟢 REGISTRO DAS ROTAS
+// Registro das Rotas na API
 app.use("/api/usinas", verificarToken, usinasRoutes);
 app.use("/api/vinculos", verificarToken, vinculosRoutes);
 app.use("/api/consumidores", verificarToken, consumidoresRoutes);
@@ -123,11 +136,6 @@ app.use('/api/relatorios_financeiros', verificarToken, relatoriosFinanceirosRout
 app.use('/api/fluxo-caixa', fluxoCaixaRoutes);
 app.use('/api/simulacoes', verificarToken, simulacoesRoutes);
 
-// Rota de Health Check e Base
-app.get('/health', (req, res) => {
-  res.status(200).json({ status: 'OK', message: 'Servidor Solar Locações operando normalmente' });
-});
-
 app.get("/", (req, res) => {
   res.json({ message: "API Gestão Usinas Solar Online 🚀" });
 });
@@ -144,8 +152,6 @@ app.use((err, req, res, next) => {
         detail: isDev ? err.message : "Contate o suporte técnico." 
     });
 });
-
-const port = process.env.PORT || 3000;
 
 app.listen(port, () => {
   console.log(`⚡ Servidor blindado e monitorado rodando na porta ${port}`);

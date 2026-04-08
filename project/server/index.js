@@ -25,11 +25,38 @@ import simulacoesRoutes from './routes/simulacoes.js';
 
 const app = express();
 
+// ==========================================
+// 1. CORS NO TOPO (Corrige erro Vercel/Render)
+// ==========================================
+const allowedOrigins = [
+  process.env.FRONTEND_URL ? process.env.FRONTEND_URL.replace(/\/$/, "") : null,
+  "https://gerenciador-usinas-anthony.vercel.app", 
+  "http://localhost:5173",
+].filter(Boolean);
+
+const corsOptions = {
+  origin: allowedOrigins,
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"], 
+  allowedHeaders: ["Content-Type", "Authorization"],
+  credentials: true,
+};
+
+app.use(cors(corsOptions));
+// 🟢 LIBERA O PREFLIGHT (Usa /.*/ para evitar o erro do Express 5)
+app.options(/.*/, cors(corsOptions));
+
+// ==========================================
+// 2. CONFIGURAÇÕES DE SEGURANÇA (Seu código intacto)
+// ==========================================
+
 // Configuração OBRIGATÓRIA para nuvem (Render, Heroku, etc)
 app.set('trust proxy', 1);
 
 // 🟢 HELMET: Protege cabeçalhos HTTP e oculta que o servidor usa Express
 app.use(helmet()); 
+
+// 🟢 PAYLOAD LIMIT: Prevenção contra ataques de negação de serviço (DoS) por memória
+app.use(express.json({ limit: '10mb' })); 
 
 // 🟢 MASCARAMENTO: Função para nunca exibir senhas ou tokens nos logs do console
 const maskSensitiveData = (obj) => {
@@ -57,10 +84,14 @@ app.use((req, res, next) => {
   if (req.method !== 'GET' && req.method !== 'OPTIONS') {
     const cleanBody = maskSensitiveData(req.body);
     console.log(`[${new Date().toISOString()}] ${req.method} ${req.url} - Payload verificado.`);
-    // Opcional: console.log('Dados recebidos (limpos):', cleanBody);
   }
   next();
 });
+
+// ==========================================
+// 3. ROTAS E RATE LIMIT
+// ==========================================
+const port = process.env.PORT || 3000;
 
 app.get('/health', (req, res) => {
   res.status(200).json({ 
@@ -68,40 +99,6 @@ app.get('/health', (req, res) => {
     message: 'Servidor Solar Locações operando normalmente' 
   });
 });
-const port = process.env.PORT || 3000;
-
-// 🟢 CORS BLINDADO: Apenas origens autorizadas
-const allowedOrigins = [
-  process.env.FRONTEND_URL ? process.env.FRONTEND_URL.replace(/\/$/, "") : null,
-  "https://gerenciador-usinas-anthony.vercel.app", 
-  "http://localhost:5173",
-].filter(Boolean);
-
-app.use(
-  cors({
-    origin: function (origin, callback) {
-      if (!origin) {
-         console.warn(`🚨 CORS BLOQUEADO: Tentativa de acesso sem origem definida (Postman/Scripts)`);
-         return callback(new Error("Bloqueado pelo CORS: Acesso por API externa não autorizado"));
-      }
-
-      const cleanOrigin = origin.replace(/\/$/, "");
-
-      if (allowedOrigins.includes(cleanOrigin)) {
-        callback(null, true);
-      } else {
-        console.warn(`🚨 CORS BLOQUEADO: Tentativa de acesso do domínio -> ${origin}`);
-        callback(new Error("Bloqueado pelo CORS: Origem não permitida"));
-      }
-    },
-    credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"], 
-    allowedHeaders: ["Content-Type", "Authorization"], 
-  }),
-);
-
-// 🟢 PAYLOAD LIMIT: Prevenção contra ataques de negação de serviço (DoS) por memória
-app.use(express.json({ limit: '10mb' })); 
 
 // 🟢 RATE LIMIT: Proteção contra ataques de força bruta e robôs
 const apiLimiter = rateLimit({

@@ -3,13 +3,15 @@ import { Plus, Trash2, Calculator, Activity, Save, FolderOpen, Download } from '
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ReferenceLine } from 'recharts';
 import toast from 'react-hot-toast';
 import { api } from '../../lib/api';
-import { PDFDownloadLink } from '@react-pdf/renderer';
+import { pdf } from '@react-pdf/renderer';
+import html2canvas from 'html2canvas';
 import { RelatorioSimulacaoPDF } from './RelatorioSimulacaoPDF';
 
 interface MesSimulacao {
   id: string;
   mes: string;
   geracao: string;
+  geracao_propria: string;
   consumo: string;
 }
 
@@ -18,13 +20,16 @@ export default function SimuladorViabilidade() {
   const [clienteAvulso, setClienteAvulso] = useState('');
   const [usinaAvulsa, setUsinaAvulsa] = useState('');
 
+  const [temGeracaoPropria, setTemGeracaoPropria] = useState(false);
+
   const [meses, setMeses] = useState<MesSimulacao[]>([
-    { id: Math.random().toString(36), mes: '', geracao: '', consumo: '' }
+    { id: Math.random().toString(36), mes: '', geracao: '', geracao_propria: '', consumo: '' }
   ]);
 
   const [listaSalvas, setListaSalvas] = useState<any[]>([]);
   const [simulacaoAtualId, setSimulacaoAtualId] = useState<number | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [isGerandoPDF, setIsGerandoPDF] = useState(false);
 
   const [listaUsinas, setListaUsinas] = useState<any[]>([]);
   const [listaConsumidores, setListaConsumidores] = useState<any[]>([]);
@@ -34,7 +39,6 @@ export default function SimuladorViabilidade() {
 
   const [consumidorId, setConsumidorId] = useState<number | ''>('');
   const [usinaId, setUsinaId] = useState<number | ''>('');
-  const [modalExcluirAberto, setModalExcluirAberto] = useState(false);
 
   useEffect(() => {
     carregarListaSalvas();
@@ -63,53 +67,53 @@ export default function SimuladorViabilidade() {
     }
   };
 
-  // 🟢 A MÁGICA DO PREENCHIMENTO AUTOMÁTICO (MESCLAGEM DE DADOS)
   const preencherDadosHistoricos = (tipo: 'consumidor' | 'usina', idSelecionado: number) => {
     if (!idSelecionado) return;
 
-    // 1. Acha todos os estudos passados que têm essa entidade
     const estudosComEssaEntidade = listaSalvas.filter(sim =>
       tipo === 'consumidor' ? sim.consumidor_id === idSelecionado : sim.usina_id === idSelecionado
     );
 
-    // 2. Pega o mais recente salvo
     const ultimoEstudo = estudosComEssaEntidade[0];
 
     if (ultimoEstudo && ultimoEstudo.dados_mensais && ultimoEstudo.dados_mensais.length > 0) {
       toast.success(`Histórico de ${tipo === 'consumidor' ? 'consumo' : 'geração'} encontrado e preenchido!`);
 
       setMeses(mesesAtuais => {
-        // Transforma a tabela atual num mapa para mesclar fácil
         const mapaMeses = new Map(mesesAtuais.map(m => [m.mes, { ...m }]));
+        let ligarChavinha = false;
 
         ultimoEstudo.dados_mensais.forEach((dadoHistorico: any) => {
           if (!dadoHistorico.mes) return;
+          
+          if (Number(dadoHistorico.geracao_propria) > 0) {
+            ligarChavinha = true;
+          }
 
           const mesExistente = mapaMeses.get(dadoHistorico.mes);
 
           if (mesExistente) {
-            // Se o mês já existe na tabela, só injeta o número novo sem apagar o outro
             if (tipo === 'consumidor') {
               mesExistente.consumo = String(dadoHistorico.consumo || '');
+              mesExistente.geracao_propria = String(dadoHistorico.geracao_propria || '');
             } else {
               mesExistente.geracao = String(dadoHistorico.geracao || '');
             }
             mapaMeses.set(dadoHistorico.mes, mesExistente);
           } else {
-            // Se o mês não existe na tabela, cria a linha do zero
             mapaMeses.set(dadoHistorico.mes, {
               id: Math.random().toString(36),
               mes: dadoHistorico.mes,
               geracao: tipo === 'usina' ? String(dadoHistorico.geracao || '') : '',
+              geracao_propria: tipo === 'consumidor' ? String(dadoHistorico.geracao_propria || '') : '',
               consumo: tipo === 'consumidor' ? String(dadoHistorico.consumo || '') : ''
             });
           }
         });
 
-        // Converte de volta para array ordenado por data
-        const novaLista = Array.from(mapaMeses.values()).sort((a, b) => a.mes.localeCompare(b.mes));
+        if (ligarChavinha) setTemGeracaoPropria(true);
 
-        // Remove aquela linha em branco inicial se o histórico puxou dados reais
+        const novaLista = Array.from(mapaMeses.values()).sort((a, b) => a.mes.localeCompare(b.mes));
         return novaLista.filter(m => m.mes !== '' || novaLista.length === 1);
       });
     }
@@ -125,7 +129,8 @@ export default function SimuladorViabilidade() {
       setUsinaId('');
       setTipoConsumidor('sistema');
       setTipoUsina('sistema');
-      setMeses([{ id: Math.random().toString(36), mes: '', geracao: '', consumo: '' }]);
+      setTemGeracaoPropria(false);
+      setMeses([{ id: Math.random().toString(36), mes: '', geracao: '', geracao_propria: '', consumo: '' }]);
       return;
     }
 
@@ -138,33 +143,31 @@ export default function SimuladorViabilidade() {
       setTitulo(data.titulo_simulacao || '');
 
       if (data.consumidor_id) {
-        setTipoConsumidor('sistema');
-        setConsumidorId(data.consumidor_id);
-        setClienteAvulso('');
+        setTipoConsumidor('sistema'); setConsumidorId(data.consumidor_id); setClienteAvulso('');
       } else {
-        setTipoConsumidor('avulso');
-        setConsumidorId('');
-        setClienteAvulso(data.cliente_avulso || '');
+        setTipoConsumidor('avulso'); setConsumidorId(''); setClienteAvulso(data.cliente_avulso || '');
       }
 
       if (data.usina_id) {
-        setTipoUsina('sistema');
-        setUsinaId(data.usina_id);
-        setUsinaAvulsa('');
+        setTipoUsina('sistema'); setUsinaId(data.usina_id); setUsinaAvulsa('');
       } else {
-        setTipoUsina('avulso');
-        setUsinaId('');
-        setUsinaAvulsa(data.usina_avulsa || '');
+        setTipoUsina('avulso'); setUsinaId(''); setUsinaAvulsa(data.usina_avulsa || '');
       }
 
       if (data.dados_mensais && data.dados_mensais.length > 0) {
-        const mesesDoBanco = data.dados_mensais.map((m: any) => ({
-          id: Math.random().toString(36),
-          mes: m.mes || '',
-          geracao: String(m.geracao || ''),
-          consumo: String(m.consumo || '')
-        }));
+        let temPropriaBanco = false;
+        const mesesDoBanco = data.dados_mensais.map((m: any) => {
+          if (Number(m.geracao_propria) > 0) temPropriaBanco = true;
+          return {
+            id: Math.random().toString(36),
+            mes: m.mes || '',
+            geracao: String(m.geracao || ''),
+            geracao_propria: String(m.geracao_propria || ''),
+            consumo: String(m.consumo || '')
+          };
+        });
         setMeses(mesesDoBanco);
+        setTemGeracaoPropria(temPropriaBanco);
       }
 
       toast.success('Simulação carregada!', { id: toastId });
@@ -186,6 +189,7 @@ export default function SimuladorViabilidade() {
       const dadosMensaisParaSalvar = meses.map(m => ({
         mes: m.mes,
         geracao: Number(m.geracao) || 0,
+        geracao_propria: temGeracaoPropria ? (Number(m.geracao_propria) || 0) : 0,
         consumo: Number(m.consumo) || 0
       }));
 
@@ -216,6 +220,8 @@ export default function SimuladorViabilidade() {
     }
   };
 
+  const [modalExcluirAberto, setModalExcluirAberto] = useState(false);
+
   const handleExcluir = async () => {
     if (!simulacaoAtualId) return;
 
@@ -224,10 +230,9 @@ export default function SimuladorViabilidade() {
       await api.simulacoes.delete(simulacaoAtualId);
       toast.success('Estudo removido!', { id: toastId });
 
-      // Reseta a tela e atualiza a lista
       handleSelecionarSimulacao('');
       carregarListaSalvas();
-      setModalExcluirAberto(false); // 🟢 Fecha o modal bonito
+      setModalExcluirAberto(false);
     } catch (error) {
       toast.error('Erro ao excluir.');
     }
@@ -235,30 +240,85 @@ export default function SimuladorViabilidade() {
 
   const dadosCalculados = useMemo(() => {
     let saldoAcumulado = 0;
-    let totalGerado = 0;
+    let totalGeradoUsinaNova = 0;
     let totalConsumido = 0;
+    let totalGeracaoPropria = 0;
 
     const detalhado = meses.map(m => {
-      const geracao = Number(m.geracao) || 0;
+      const geracaoNova = Number(m.geracao) || 0;
       const consumo = Number(m.consumo) || 0;
-      const balancoMes = geracao - consumo;
+      const geracaoPropria = temGeracaoPropria ? (Number(m.geracao_propria) || 0) : 0;
+      
+      const consumoResidual = consumo - geracaoPropria; 
+      const balancoMes = geracaoNova - consumoResidual;
 
       saldoAcumulado += balancoMes;
-      totalGerado += geracao;
+      totalGeradoUsinaNova += geracaoNova;
+      totalGeracaoPropria += geracaoPropria;
       totalConsumido += consumo;
 
       return {
         ...m,
-        geracaoNum: geracao,
+        geracaoNum: geracaoNova,
         consumoNum: consumo,
+        geracaoPropriaNum: geracaoPropria,
+        consumoResidual,
         balancoMes,
         saldoAcumulado,
         mesGrafico: m.mes ? new Date(m.mes + '-01T00:00:00').toLocaleDateString('pt-BR', { month: 'short' }).toUpperCase() : '?'
       };
     });
 
-    return { detalhado, saldoAcumulado, totalGerado, totalConsumido };
-  }, [meses]);
+    return { 
+      detalhado, 
+      saldoAcumulado, 
+      totalGerado: totalGeradoUsinaNova, 
+      totalConsumido, 
+      totalGeracaoPropria,
+      temGeracaoPropria 
+    };
+  }, [meses, temGeracaoPropria]);
+
+  // 🟢 FUNÇÃO DA GAMBIARRA DO PDF COM GRÁFICO
+  const handleGerarPDF = async () => {
+    try {
+      setIsGerandoPDF(true);
+      const toastId = toast.loading('Preparando relatório com gráfico...');
+
+      const elementoGrafico = document.getElementById('grafico-simulacao');
+      let imgData = null;
+      
+      if (elementoGrafico) {
+        const canvas = await html2canvas(elementoGrafico, { scale: 2, backgroundColor: '#ffffff' });
+        imgData = canvas.toDataURL('image/png');
+      }
+
+      const doc = (
+        <RelatorioSimulacaoPDF
+          titulo={titulo}
+          consumidorNome={nomeConsumidorImpresso}
+          usinaNome={nomeUsinaImpressa}
+          dadosCalculados={dadosCalculados}
+          chartImage={imgData}
+        />
+      );
+
+      const blob = await pdf(doc).toBlob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `Simulacao_${titulo || 'Estudo'}.pdf`;
+      link.click();
+      URL.revokeObjectURL(url);
+
+      toast.success('PDF gerado com sucesso!', { id: toastId });
+    } catch (error) {
+      console.error(error);
+      toast.error('Erro ao gerar o PDF.');
+    } finally {
+      setIsGerandoPDF(false);
+    }
+  };
 
   const adicionarMes = () => {
     const ultimoMesPreenchido = meses[meses.length - 1]?.mes;
@@ -267,16 +327,12 @@ export default function SimuladorViabilidade() {
     if (ultimoMesPreenchido) {
       let [ano, mesInt] = ultimoMesPreenchido.split('-').map(Number);
       mesInt -= 1;
-
-      if (mesInt === 0) {
-        mesInt = 12;
-        ano -= 1;
-      }
+      if (mesInt === 0) { mesInt = 12; ano -= 1; }
       const mesFormatado = String(mesInt).padStart(2, '0');
       dataNovoMes = `${ano}-${mesFormatado}`;
     }
 
-    setMeses([...meses, { id: Math.random().toString(36), mes: dataNovoMes, geracao: '', consumo: '' }]);
+    setMeses([...meses, { id: Math.random().toString(36), mes: dataNovoMes, geracao: '', geracao_propria: '', consumo: '' }]);
   };
 
   const removerMes = (idParaRemover: string) => {
@@ -302,7 +358,6 @@ export default function SimuladorViabilidade() {
   return (
     <div className="space-y-6 animate-fade-in-down max-w-6xl mx-auto pb-12">
 
-      {/* CABEÇALHO */}
       <div className="bg-gradient-to-r from-indigo-900 to-slate-800 p-6 rounded-2xl shadow-lg text-white flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h2 className="text-3xl font-black flex items-center gap-3">
@@ -321,29 +376,17 @@ export default function SimuladorViabilidade() {
             <Save size={20} /> {isSaving ? 'Salvando...' : (simulacaoAtualId ? 'Atualizar Projeção' : 'Salvar Projeção')}
           </button>
 
-          <PDFDownloadLink
-            document={
-              <RelatorioSimulacaoPDF
-                titulo={titulo}
-                consumidorNome={nomeConsumidorImpresso}
-                usinaNome={nomeUsinaImpressa}
-                dadosCalculados={dadosCalculados}
-              />
-            }
-            fileName={`Simulacao_${titulo || 'Estudo'}.pdf`}
-            className="bg-slate-700 hover:bg-slate-600 px-6 py-3 rounded-xl font-bold flex items-center gap-2 transition-all shadow-lg shadow-slate-900/50"
+          <button
+            onClick={handleGerarPDF}
+            disabled={isGerandoPDF || isSaving}
+            className="bg-slate-700 hover:bg-slate-600 px-6 py-3 rounded-xl font-bold flex items-center gap-2 transition-all shadow-lg shadow-slate-900/50 disabled:opacity-50"
           >
-            {({ loading }) => (
-              <>
-                <Download size={20} />
-                {loading ? 'Gerando...' : 'Baixar PDF'}
-              </>
-            )}
-          </PDFDownloadLink>
+            <Download size={20} />
+            {isGerandoPDF ? 'Gerando PDF...' : 'Baixar PDF'}
+          </button>
         </div>
       </div>
 
-      {/* 🟢 BARRA DE ABRIR / EXCLUIR ESTUDO SALVO (MOVIDA PARA O TOPO) */}
       <div className="bg-white p-4 rounded-2xl border border-indigo-100 shadow-sm flex flex-col md:flex-row items-center gap-4">
         <div className="flex items-center gap-2 min-w-max">
           <FolderOpen size={20} className="text-indigo-600" />
@@ -363,16 +406,15 @@ export default function SimuladorViabilidade() {
             ))}
           </select>
 
-
           {simulacaoAtualId && (
             <button
               type="button"
               onClick={(e) => {
                 e.preventDefault();
-                setModalExcluirAberto(true); // 🟢 Agora ele abre o modal bonito!
+                setModalExcluirAberto(true);
               }}
               className="p-2.5 bg-red-50 text-red-600 rounded-xl hover:bg-red-600 hover:text-white transition-all shadow-sm border border-red-100 flex items-center justify-center"
-              title="Excluir estudo"
+              title="Excluir estudo permanentemente"
             >
               <Trash2 size={20} />
             </button>
@@ -382,9 +424,7 @@ export default function SimuladorViabilidade() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-        {/* COLUNA ESQUERDA: ENTRADA DE DADOS */}
         <div className="lg:col-span-1 space-y-4">
-
           <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-5">
             <h3 className="font-bold text-slate-800 border-b pb-2">Identificação do Estudo</h3>
 
@@ -450,11 +490,24 @@ export default function SimuladorViabilidade() {
           </div>
 
           <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
-            <div className="flex justify-between items-center border-b pb-2">
+            <div className="flex justify-between items-center border-b pb-2 flex-wrap gap-2">
               <h3 className="font-bold text-slate-800">Lançamento de Meses</h3>
-              <button onClick={adicionarMes} className="text-xs bg-indigo-50 text-indigo-700 px-3 py-1.5 rounded-lg font-bold flex items-center gap-1 hover:bg-indigo-100">
-                <Plus size={14} /> Add Mês
-              </button>
+              
+              <div className="flex items-center gap-3">
+                <label className="flex items-center gap-1.5 cursor-pointer text-[10px] font-bold text-slate-500 bg-slate-100 px-2 py-1.5 rounded-lg hover:bg-slate-200 transition-colors">
+                  <input 
+                    type="checkbox" 
+                    className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 w-3 h-3"
+                    checked={temGeracaoPropria}
+                    onChange={(e) => setTemGeracaoPropria(e.target.checked)}
+                  />
+                  Possui Geração
+                </label>
+
+                <button onClick={adicionarMes} className="text-[10px] bg-indigo-50 text-indigo-700 px-2 py-1.5 rounded-lg font-bold flex items-center gap-1 hover:bg-indigo-100">
+                  <Plus size={12} /> Add Mês
+                </button>
+              </div>
             </div>
 
             <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
@@ -469,16 +522,25 @@ export default function SimuladorViabilidade() {
                     <input type="month" className="w-full p-2 text-sm border rounded bg-white"
                       value={mes.mes} onChange={e => atualizarMes(mes.id, 'mes', e.target.value)} />
 
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className={`grid gap-2 ${temGeracaoPropria ? 'grid-cols-3' : 'grid-cols-2'}`}>
                       <div>
-                        <label className="text-[10px] font-bold text-blue-600 uppercase">Geração (+)</label>
-                        <input type="number" className="w-full p-1.5 text-sm border-blue-200 bg-blue-50/50 rounded font-bold text-blue-700" placeholder="0"
-                          value={mes.geracao} onChange={e => atualizarMes(mes.id, 'geracao', e.target.value)} />
-                      </div>
-                      <div>
-                        <label className="text-[10px] font-bold text-orange-600 uppercase">Consumo (-)</label>
-                        <input type="number" className="w-full p-1.5 text-sm border-orange-200 bg-orange-50/50 rounded font-bold text-orange-700" placeholder="0"
+                        <label className="text-[9px] font-bold text-orange-600 uppercase">Consumo (-)</label>
+                        <input type="number" className="w-full p-1.5 text-xs border-orange-200 bg-orange-50/50 rounded font-bold text-orange-700" placeholder="0"
                           value={mes.consumo} onChange={e => atualizarMes(mes.id, 'consumo', e.target.value)} />
+                      </div>
+
+                      {temGeracaoPropria && (
+                        <div>
+                          <label className="text-[9px] font-bold text-teal-600 uppercase">Geração Própria (-)</label>
+                          <input type="number" className="w-full p-1.5 text-xs border-teal-200 bg-teal-50/50 rounded font-bold text-teal-700" placeholder="0"
+                            value={mes.geracao_propria} onChange={e => atualizarMes(mes.id, 'geracao_propria', e.target.value)} />
+                        </div>
+                      )}
+
+                      <div>
+                        <label className="text-[9px] font-bold text-blue-600 uppercase">Usina (+)</label>
+                        <input type="number" className="w-full p-1.5 text-xs border-blue-200 bg-blue-50/50 rounded font-bold text-blue-700" placeholder="0"
+                          value={mes.geracao} onChange={e => atualizarMes(mes.id, 'geracao', e.target.value)} />
                       </div>
                     </div>
                   </div>
@@ -489,17 +551,18 @@ export default function SimuladorViabilidade() {
 
         </div>
 
-        {/* COLUNA DIREITA: RELATÓRIO E RESULTADOS */}
         <div className="lg:col-span-2 space-y-6">
 
           <div className="grid grid-cols-3 gap-4">
             <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Geração Projetada</p>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Nova Geração Projetada</p>
               <p className="text-2xl font-black text-blue-600">{dadosCalculados.totalGerado.toLocaleString()} <span className="text-xs font-medium text-slate-400">kWh</span></p>
             </div>
             <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Consumo Projetado</p>
-              <p className="text-2xl font-black text-orange-600">{dadosCalculados.totalConsumido.toLocaleString()} <span className="text-xs font-medium text-slate-400">kWh</span></p>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Consumo Residual (Falta)</p>
+              <p className="text-2xl font-black text-orange-600">
+                {(dadosCalculados.totalConsumido - dadosCalculados.totalGeracaoPropria).toLocaleString()} <span className="text-xs font-medium text-slate-400">kWh</span>
+              </p>
             </div>
             <div className={`p-4 rounded-xl border shadow-sm ${dadosCalculados.saldoAcumulado >= 0 ? 'bg-emerald-50 border-emerald-200' : 'bg-red-50 border-red-200'}`}>
               <p className={`text-[10px] font-bold uppercase tracking-widest mb-1 ${dadosCalculados.saldoAcumulado >= 0 ? 'text-emerald-700' : 'text-red-700'}`}>Saldo Final Acumulado</p>
@@ -511,9 +574,9 @@ export default function SimuladorViabilidade() {
 
           <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
             <h4 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
-              <Activity className="w-5 h-5 text-indigo-500" /> Curva de Geração vs Consumo
+              <Activity className="w-5 h-5 text-indigo-500" /> Curva de Geração Nova vs Necessidade Real (O que falta)
             </h4>
-            <div className="h-64 w-full">
+            <div id="grafico-simulacao" className="h-64 w-full p-2 bg-white rounded-lg">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={dadosCalculados.detalhado} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
@@ -522,8 +585,12 @@ export default function SimuladorViabilidade() {
                   <Tooltip cursor={{ fill: '#F1F5F9' }} contentStyle={{ borderRadius: '12px', border: '1px solid #E2E8F0' }} formatter={(value: any, name: any) => [`${Number(value || 0).toLocaleString('pt-BR')} kWh`, String(name)]} />
                   <Legend iconType="circle" wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }} />
                   <ReferenceLine y={0} stroke="#94a3b8" strokeWidth={2} />
-                  <Bar dataKey="geracaoNum" name="Geração (+)" fill="#3B82F6" radius={[4, 4, 0, 0]} maxBarSize={30} />
-                  <Bar dataKey="consumoNum" name="Consumo (-)" fill="#F97316" radius={[4, 4, 0, 0]} maxBarSize={30} />
+
+                  <Bar dataKey="geracaoNum" name="Usina (+)" fill="#3B82F6" radius={[4, 4, 0, 0]} maxBarSize={30} />
+                  {temGeracaoPropria && (
+                    <Bar dataKey="geracaoPropriaNum" name="Ger. Própria (-)" fill="#0d9488" radius={[4, 4, 0, 0]} maxBarSize={30} />
+                  )}
+                  <Bar dataKey="consumoResidual" name={temGeracaoPropria ? "O Que Falta (-)" : "Consumo (-)"} fill="#F97316" radius={[4, 4, 0, 0]} maxBarSize={30} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -536,11 +603,13 @@ export default function SimuladorViabilidade() {
 
             <div className="overflow-x-auto">
               <table className="w-full text-left text-sm">
-                <thead className="bg-slate-100 text-slate-500 text-xs uppercase font-bold">
+                <thead className="bg-slate-100 text-slate-500 text-[10px] uppercase font-bold">
                   <tr>
                     <th className="p-3">Mês</th>
-                    <th className="p-3 text-right">Geração</th>
                     <th className="p-3 text-right">Consumo</th>
+                    {temGeracaoPropria && <th className="p-3 text-right text-teal-600">Geração Própria</th>}
+                    {temGeracaoPropria && <th className="p-3 text-right text-orange-600">O Que Falta</th>}
+                    <th className="p-3 text-right text-blue-600">Usina</th>
                     <th className="p-3 text-center">Balanço do Mês</th>
                     <th className="p-3 text-right">Saldo Acumulado</th>
                   </tr>
@@ -548,11 +617,22 @@ export default function SimuladorViabilidade() {
                 <tbody className="divide-y divide-slate-100">
                   {dadosCalculados.detalhado.map((linha, i) => (
                     <tr key={linha.id} className="hover:bg-slate-50">
-                      <td className="p-3 font-bold text-slate-700">{linha.mesGrafico !== '?' ? linha.mesGrafico : `Mês ${i + 1}`}</td>
-                      <td className="p-3 text-right text-blue-600 font-medium">{linha.geracaoNum.toLocaleString()}</td>
-                      <td className="p-3 text-right text-orange-600 font-medium">{linha.consumoNum.toLocaleString()}</td>
+                      <td className="p-3 font-bold text-slate-700 text-xs">{linha.mesGrafico !== '?' ? linha.mesGrafico : `Mês ${i + 1}`}</td>
+
+                      <td className="p-3 text-right text-slate-600 font-medium">{linha.consumoNum.toLocaleString()}</td>
+
+                      {temGeracaoPropria && (
+                        <td className="p-3 text-right text-teal-600 font-medium">- {linha.geracaoPropriaNum.toLocaleString()}</td>
+                      )}
+
+                      {temGeracaoPropria && (
+                        <td className="p-3 text-right text-orange-600 font-bold">{linha.consumoResidual.toLocaleString()}</td>
+                      )}
+
+                      <td className="p-3 text-right text-blue-600 font-black">{linha.geracaoNum.toLocaleString()}</td>
+
                       <td className="p-3 text-center">
-                        <span className={`px-2 py-1 rounded text-xs font-bold ${linha.balancoMes >= 0 ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
+                        <span className={`px-2 py-1 rounded text-[10px] font-black tracking-widest ${linha.balancoMes >= 0 ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
                           {linha.balancoMes > 0 ? '+' : ''}{linha.balancoMes.toLocaleString()}
                         </span>
                       </td>
@@ -567,7 +647,7 @@ export default function SimuladorViabilidade() {
 
             <div className={`p-5 text-center border-t ${dadosCalculados.saldoAcumulado >= 0 ? 'bg-emerald-50 border-emerald-200' : 'bg-red-50 border-red-200'}`}>
               <span className={`text-lg font-black tracking-wide uppercase ${dadosCalculados.saldoAcumulado >= 0 ? 'text-emerald-700' : 'text-red-700'}`}>
-                Veredito do Período ({meses.length} meses):
+                Veredito da Ampliação ({meses.length} meses):
                 {dadosCalculados.saldoAcumulado >= 0
                   ? ` SOBROU +${dadosCalculados.saldoAcumulado.toLocaleString()} kWh`
                   : ` FALTOU ${Math.abs(dadosCalculados.saldoAcumulado).toLocaleString()} kWh`
@@ -575,14 +655,15 @@ export default function SimuladorViabilidade() {
               </span>
               <p className={`text-xs mt-1 font-bold ${dadosCalculados.saldoAcumulado >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
                 {dadosCalculados.saldoAcumulado >= 0
-                  ? 'A usina dimensionada cobriu 100% da necessidade do cliente neste período.'
-                  : 'A usina dimensionada não foi suficiente. O cliente pagará concessionária no período de déficit.'}
+                  ? 'A Usina Nova cobriu 100% do que faltava na conta do cliente.'
+                  : 'A Usina Nova não foi suficiente para cobrir o déficit atual. O cliente ainda pagará concessionária.'}
               </p>
             </div>
           </div>
 
         </div>
       </div>
+
       {modalExcluirAberto && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
           <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md animate-fade-in-down border border-slate-100">
@@ -617,6 +698,7 @@ export default function SimuladorViabilidade() {
           </div>
         </div>
       )}
+
     </div>
   );
 }

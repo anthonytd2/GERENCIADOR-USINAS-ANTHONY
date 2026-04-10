@@ -221,8 +221,6 @@ export default function FormularioUsina() {
                     {...register('tipo')}
                     className="w-full px-4 py-3 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all appearance-none bg-white cursor-pointer"
                   >
-                    <option value="Solo">Solo</option>
-                    <option value="Telhado">Telhado</option>
                     <option value="GD1">GD1</option>
                     <option value="GD2">GD2</option>
                   </select>

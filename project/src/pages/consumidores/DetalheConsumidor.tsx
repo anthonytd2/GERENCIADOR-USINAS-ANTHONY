@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { createPortal } from 'react-dom';
 import { api } from '../../lib/api';
-import { ArrowLeft, Edit, Trash2, User, Zap, Plus, Building2, Phone, Mail, MapPin, Lock, Eye, EyeOff } from 'lucide-react';
+import { ArrowLeft, Edit, Trash2, User, Zap, Plus, Building2, Phone, Mail, MapPin, Lock, Eye, EyeOff, Copy } from 'lucide-react';
 import GerenciadorDocumentos from "../../components/GerenciadorDocumentos";
 import ModalConfirmacao from '../../components/ModalConfirmacao';
 import { formatarDocumento } from '../../components/formatters';
@@ -110,7 +110,15 @@ export default function DetalheConsumidor() {
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Detalhes do Cliente</h1>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
+            {/* 🟢 NOVO BOTÃO DUPLICAR */}
+            <button
+              onClick={() => navigate('/consumidores/novo', { state: { cloneData: consumidor } })}
+              className="px-4 py-2 bg-indigo-50 border border-indigo-100 text-indigo-600 rounded-lg hover:bg-indigo-100 flex items-center gap-2 transition-colors shadow-sm"
+              title="Clonar este cliente"
+            >
+              <Copy className="w-4 h-4" /> Duplicar
+            </button>
             <Link to={`/consumidores/${id}/editar`} className="px-4 py-2 bg-gray-50 border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-100 flex items-center gap-2 transition-colors shadow-sm">
               <Edit className="w-4 h-4" /> Editar
             </Link>
@@ -185,7 +193,6 @@ export default function DetalheConsumidor() {
               <p className="text-xl font-black text-gray-900">{consumidor.media_consumo?.toLocaleString('pt-BR')} <span className="text-sm text-gray-500">kWh</span></p>
             </div>
             <div className="col-span-2">
-              {/* 🟢 Lógica corrigida no Detalhe para mostrar a caixa verde ou azul corretamente */}
               {consumidor.tipo_desconto === 'valor_fixo' ? (
                 <div className="p-4 bg-green-50 rounded-xl border border-green-100 w-full">
                   <p className="text-xs text-green-700 font-bold uppercase mb-1">Valor Fixo</p>

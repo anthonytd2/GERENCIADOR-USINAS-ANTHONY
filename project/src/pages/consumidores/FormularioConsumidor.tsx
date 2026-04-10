@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate, useParams, Link } from 'react-router-dom';
+import { useNavigate, useParams, Link, useLocation } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { api } from '../../lib/api';
 import {
@@ -11,7 +11,10 @@ import toast from 'react-hot-toast';
 export default function FormularioConsumidor() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { register, handleSubmit, setValue, watch, formState: { errors } } = useForm();
+  const location = useLocation(); 
+  const cloneData = location.state?.cloneData;
+
+  const { register, handleSubmit, setValue, formState: { errors } } = useForm();
   const [loading, setLoading] = useState(false);
 
   // --- MÁSCARAS DE DIGITAÇÃO ---
@@ -53,63 +56,69 @@ export default function FormularioConsumidor() {
     setValue('cep', valor.substring(0, 9), { shouldDirty: true, shouldValidate: true });
   };
 
-  // 🟢 ESTADO: Controla qual botão está selecionado visualmente
   const [tipoCobranca, setTipoCobranca] = useState<'porcentagem' | 'valor_fixo'>('porcentagem');
 
+  // FUNÇÃO PARA PREENCHER OS DADOS NO FORM
+  const preencherFormulario = (data: any, isClone = false) => {
+    setValue('nome', isClone ? `${data.nome} (Cópia)` : data.nome);
+    setValue('documento', data.documento || data.cpf_cnpj);
+    setValue('email', data.email);
+    setValue('telefone', data.telefone);
+    setValue('cep', data.cep);
+    setValue('endereco', data.endereco);
+    setValue('bairro', data.bairro);
+    setValue('cidade', data.cidade);
+    setValue('uf', data.uf);
+    setValue('media_consumo', data.media_consumo);
+    setValue('valor_kw', data.valor_kw);
+    setValue('percentual_desconto', data.percentual_desconto);
+    setValue('observacao', data.observacao);
+    setValue('rg', data.rg);
+    setValue('inscricao_estadual', data.inscricao_estadual);
+    setValue('login_copel', data.login_copel);
+    setValue('senha_copel', data.senha_copel);
+
+    if (data.tipo_desconto === 'valor_fixo') {
+      setTipoCobranca('valor_fixo');
+    } else if (data.tipo_desconto === 'porcentagem') {
+      setTipoCobranca('porcentagem');
+    } else {
+      if (Number(data.valor_kw) > 0 && Number(data.percentual_desconto) === 0) {
+        setTipoCobranca('valor_fixo');
+      } else {
+        setTipoCobranca('porcentagem');
+      }
+    }
+  };
+
   useEffect(() => {
+    // 1. CARREGAMENTO NORMAL PARA EDIÇÃO
     if (id && id !== 'novo') {
       const toastId = toast.loading('Carregando dados...');
-
       api.consumidores.get(Number(id))
         .then(data => {
           if (data) {
-            setValue('nome', data.nome);
-            setValue('documento', data.documento || data.cpf_cnpj);
-            setValue('email', data.email);
-            setValue('telefone', data.telefone);
-            setValue('cep', data.cep);
-            setValue('endereco', data.endereco);
-            setValue('bairro', data.bairro);
-            setValue('cidade', data.cidade);
-            setValue('uf', data.uf);
-            setValue('media_consumo', data.media_consumo);
-            setValue('valor_kw', data.valor_kw);
-            setValue('percentual_desconto', data.percentual_desconto);
-            setValue('observacao', data.observacao);
-            setValue('rg', data.rg);
-            setValue('inscricao_estadual', data.inscricao_estadual);
-            setValue('login_copel', data.login_copel);
-            setValue('senha_copel', data.senha_copel);
-
-            // 🟢 Lógica corrigida: Lê o tipo_desconto salvo no banco, fallback para adivinhação se for nulo
-            if (data.tipo_desconto === 'valor_fixo') {
-                setTipoCobranca('valor_fixo');
-            } else if (data.tipo_desconto === 'porcentagem') {
-                setTipoCobranca('porcentagem');
-            } else {
-                // Fallback de segurança para dados antigos
-                if (Number(data.valor_kw) > 0 && Number(data.percentual_desconto) === 0) {
-                    setTipoCobranca('valor_fixo');
-                } else {
-                    setTipoCobranca('porcentagem');
-                }
-            }
-
+            preencherFormulario(data, false);
             toast.dismiss(toastId);
           }
         })
         .catch(() => {
           toast.error('Erro ao carregar dados do consumidor.', { id: toastId });
         });
+
+    } 
+    // 2. 🟢 CORREÇÃO: Aceita se for "novo" ou se o ID estiver vazio (undefined), desde que tenha dados de clone!
+    else if (cloneData) {
+      preencherFormulario(cloneData, true);
+      toast.success('Dados copiados! Modifique o que precisar antes de salvar.');
     }
-  }, [id, setValue]);
+  }, [id, setValue, cloneData]);
 
   const onSubmit = async (data: any) => {
     setLoading(true);
     const toastId = toast.loading('Salvando consumidor...');
 
     try {
-      // Limpeza de campos não selecionados para evitar lixo no banco
       let valorFinalKw = null;
       let valorFinalDesconto = null;
 
@@ -132,7 +141,6 @@ export default function FormularioConsumidor() {
         percentual_desconto: valorFinalDesconto,
         login_copel: data.login_copel || null,
         senha_copel: data.senha_copel || null,
-        // 🟢 Enviando o tipo exato para o banco salvar na coluna tipo_desconto
         tipo_desconto: tipoCobranca
       };
 
@@ -140,6 +148,7 @@ export default function FormularioConsumidor() {
         await api.consumidores.update(Number(id), payload);
         toast.success('Consumidor atualizado com sucesso!', { id: toastId });
       } else {
+        // Se for novo ou uma CÓPIA, ele cai aqui no CREATE!
         await api.consumidores.create(payload);
         toast.success('Consumidor criado com sucesso!', { id: toastId });
       }
@@ -156,6 +165,9 @@ export default function FormularioConsumidor() {
     }
   };
 
+  // Variável auxiliar para arrumar os textos da tela com o ID undefined
+  const isEdicao = Boolean(id && id !== 'novo');
+
   return (
     <div className="max-w-3xl mx-auto animate-fade-in-down pb-20">
 
@@ -170,7 +182,7 @@ export default function FormularioConsumidor() {
           </div>
           <div>
             <h1 className="text-3xl font-bold text-gray-900">
-              {id ? 'Editar Consumidor' : 'Novo Consumidor'}
+              {!isEdicao ? (cloneData ? 'Clonar Consumidor' : 'Novo Consumidor') : 'Editar Consumidor'}
             </h1>
             <p className="text-gray-500 text-sm mt-1">Preencha os dados abaixo para cadastrar um novo cliente.</p>
           </div>
@@ -519,7 +531,7 @@ export default function FormularioConsumidor() {
           ) : (
             <>
               <Save className="w-6 h-6" />
-              {id ? 'Salvar Alterações' : 'Cadastrar Consumidor'}
+              {!isEdicao ? 'Cadastrar Consumidor' : 'Salvar Alterações'}
             </>
           )}
         </button>

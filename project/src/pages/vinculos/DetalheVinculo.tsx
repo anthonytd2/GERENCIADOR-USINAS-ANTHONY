@@ -109,8 +109,12 @@ export default function DetalheVinculo() {
 
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
-            <div className="flex items-center gap-3">
-              <h1 className="text-3xl font-bold text-gray-900">Alocação</h1>
+            <div className="flex items-center gap-3 flex-wrap">
+              <h1 className="text-2xl md:text-3xl font-black text-gray-900 flex items-center gap-3">
+                <span>{vinculo.usinas?.nome}</span>
+                <span className="text-gray-300 font-light">↔</span>
+                <span className="text-blue-700">{vinculo.consumidores?.nome}</span>
+              </h1>
               <span className={`px-3 py-1 text-sm font-bold rounded-full border flex items-center gap-1 ${statusConfig.style}`}>
                 <StatusIcon className="w-4 h-4" /> {statusConfig.label?.toUpperCase()}
               </span>

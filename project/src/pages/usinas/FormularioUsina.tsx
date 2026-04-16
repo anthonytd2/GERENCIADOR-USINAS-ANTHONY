@@ -46,7 +46,6 @@ export default function FormularioUsina() {
     setValue('rg', valor.substring(0, 12), { shouldDirty: true, shouldValidate: true });
   };
 
-  // 🟢 NOVA MÁSCARA DE CEP
   const aplicarMascaraCEP = (e: React.ChangeEvent<HTMLInputElement>) => {
     let valor = e.target.value.replace(/\D/g, '');
     valor = valor.replace(/^(\d{5})(\d)/, '$1-$2');
@@ -84,11 +83,10 @@ export default function FormularioUsina() {
             setValue('dia_vencimento_fatura', data.dia_vencimento_fatura);
             setValue('documento', data.documento || data.cpf_cnpj);
             setValue('rg', data.rg);
-            setValue('inscricao_estadual', data.inscricao_estadual); // 🟢 Puxa IE do banco
+            setValue('inscricao_estadual', data.inscricao_estadual);
             setValue('telefone', data.telefone);
             setValue('email', data.email);
 
-            // 🟢 CARREGA OS NOVOS CAMPOS DE ENDEREÇO
             setValue('cep', data.cep);
             setValue('endereco', data.endereco_proprietario || data.endereco);
             setValue('bairro', data.bairro);
@@ -131,7 +129,7 @@ export default function FormularioUsina() {
 
         documento: data.documento ? data.documento.replace(/\D/g, '') : null,
         rg: data.rg ? data.rg.replace(/[^0-9X]/g, '') : null,
-        inscricao_estadual: data.inscricao_estadual, // 🟢 Envia IE pro banco
+        inscricao_estadual: data.inscricao_estadual, 
         email: data.email,
         telefone: data.telefone,
         observacao: data.observacao,
@@ -215,28 +213,37 @@ export default function FormularioUsina() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5 ml-1">Tipo da Instalação</label>
+                <label className="block text-sm font-bold text-gray-800 mb-1.5 ml-1">Enquadramento / Tipo</label>
                 <div className="relative">
                   <select
+                    defaultValue=""
                     {...register('tipo')}
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all appearance-none bg-white cursor-pointer"
+                    className={`w-full px-4 py-3 border rounded-xl outline-none focus:ring-2 focus:ring-yellow-400 focus:border-yellow-400 transition-all font-bold appearance-none cursor-pointer shadow-sm ${
+                      watch('tipo') ? 'bg-yellow-50 border-yellow-200 text-yellow-800' : 'bg-white border-gray-200 text-gray-500'
+                    }`}
                   >
-                    <option value="GD1">GD1</option>
-                    <option value="GD2">GD2</option>
+                    <option value="" disabled>✨ Selecione o Tipo...</option>
+                    
+                      <option value="GD1">GD1</option>
+                      <option value="GD2">GD2</option>
+                    
                   </select>
+                  <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none">
+                    <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+                  </div>
                 </div>
               </div>
             </div>
 
             <div className="bg-gray-50 p-6 rounded-xl border border-gray-100 grid grid-cols-1 md:grid-cols-3 gap-6">
               <div>
-                <label className="block text-sm font-bold text-gray-700 mb-1.5 ml-1">Potência (kWp) *</label>
+                <label className="block text-sm font-bold text-gray-700 mb-1.5 ml-1">Potência (kWp)</label>
                 <div className="relative">
                   <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-sm font-bold">kWp</span>
                   <input
                     type="number"
                     step="0.01"
-                    {...register('potencia', { required: true })}
+                    {...register('potencia')}
                     className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-yellow-400 focus:border-yellow-400 transition-all font-bold text-gray-800"
                     placeholder="0.00"
                   />
@@ -244,13 +251,13 @@ export default function FormularioUsina() {
               </div>
 
               <div>
-                <label className="block text-sm font-bold text-gray-700 mb-1.5 ml-1">Geração (kWh/mês) *</label>
+                <label className="block text-sm font-bold text-gray-700 mb-1.5 ml-1">Geração (kWh/mês)</label>
                 <div className="relative">
                   <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-sm font-bold">kWh</span>
                   <input
                     type="number"
                     step="0.01"
-                    {...register('geracao_estimada', { required: true })}
+                    {...register('geracao_estimada')}
                     className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-yellow-400 focus:border-yellow-400 transition-all font-bold text-gray-800"
                     placeholder="0.00"
                   />
@@ -258,13 +265,13 @@ export default function FormularioUsina() {
               </div>
 
               <div>
-                <label className="block text-sm font-bold text-green-700 mb-1.5 ml-1">Valor do kW Bruto (R$) *</label>
+                <label className="block text-sm font-bold text-green-700 mb-1.5 ml-1">Valor do kW Bruto (R$)</label>
                 <div className="relative">
                   <span className="absolute left-4 top-1/2 -translate-y-1/2 text-green-600 font-bold">R$</span>
                   <input
                     type="number"
                     step="0.0001"
-                    {...register('valor_kw_bruto', { required: true })}
+                    {...register('valor_kw_bruto')}
                     className="w-full pl-10 pr-4 py-3 border border-green-200 bg-white rounded-xl outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all font-bold text-green-800 shadow-sm"
                     placeholder="0.0000"
                   />
@@ -282,7 +289,7 @@ export default function FormularioUsina() {
 
           <div className="space-y-6">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-3 ml-1">Modalidade do Contrato *</label>
+              <label className="block text-sm font-medium text-gray-700 mb-3 ml-1">Modalidade do Contrato</label>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <button
@@ -322,15 +329,8 @@ export default function FormularioUsina() {
 
               <input
                 type="hidden"
-                {...register('tipo_pagamento', { required: 'Selecione uma modalidade de contrato' })}
+                {...register('tipo_pagamento')}
               />
-
-              {errors.tipo_pagamento && (
-                <div className="mt-3 p-3 bg-red-50 text-red-700 rounded-lg border border-red-100 flex items-center gap-2 animate-pulse">
-                  <span className="text-xl">⚠️</span>
-                  <span className="font-bold">Atenção: Você precisa selecionar uma modalidade acima!</span>
-                </div>
-              )}
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -357,7 +357,6 @@ export default function FormularioUsina() {
                 </div>
               </div>
 
-              {/* 🟢 O NOVO CAMPO AQUI: */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5 ml-1">Dia Fatura Copel</label>
                 <div className="relative">
@@ -410,7 +409,6 @@ export default function FormularioUsina() {
                 </div>
               </div>
 
-              {/* 🟢 NOVO CAMPO: INSCRIÇÃO ESTADUAL */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5 ml-1">Inscrição Estadual</label>
                 <div className="relative">
@@ -446,7 +444,6 @@ export default function FormularioUsina() {
               </div>
             </div>
 
-            {/* BLOCO DE ENDEREÇO ATUALIZADO */}
             <div className="pt-4 border-t border-gray-100 space-y-5">
               <div className="grid grid-cols-2 gap-5">
                 <div>

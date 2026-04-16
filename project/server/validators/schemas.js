@@ -96,3 +96,11 @@ export const consumidorSchema = z.object({
   percentual_desconto: z.preprocess(cleanNumber, z.number().nonnegative().optional()),
   valor_kw: z.preprocess(cleanNumber, z.number().nonnegative().optional()),
 });
+
+
+export const vinculoSchema = z.object({
+  usina_id: z.number().int().positive(),
+  consumidor_id: z.number().int().positive(),
+  percentual: z.preprocess(cleanNumber, z.number().min(0).max(100).optional()),
+  status: optionalString, 
+});

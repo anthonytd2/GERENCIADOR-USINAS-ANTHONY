@@ -43,14 +43,18 @@ function App() {
             <Route path="/" element={<Dashboard />} />
 
             {/* --- MÓDULO DE USINAS --- */}
+            {/* 🟢 Rotas estáticas primeiro */}
             <Route path="/usinas" element={<ListaUsinas />} />
             <Route path="/usinas/novo" element={<FormularioUsina />} />
+            {/* 🟢 Rotas dinâmicas depois */}
             <Route path="/usinas/:id/editar" element={<FormularioUsina />} />
             <Route path="/usinas/:id" element={<DetalheUsina />} />
 
             {/* --- MÓDULO DE CONSUMIDORES --- */}
+            {/* 🟢 Rotas estáticas primeiro */}
             <Route path="/consumidores" element={<ListaConsumidores />} />
             <Route path="/consumidores/novo" element={<FormularioConsumidor />} />
+            {/* 🟢 Rotas dinâmicas depois */}
             <Route path="/consumidores/:id/editar" element={<FormularioConsumidor />} />
             <Route path="/consumidores/:id" element={<DetalheConsumidor />} />
 
@@ -67,15 +71,14 @@ function App() {
             <Route path="/propostas/novo" element={<NovoSimulador />} />
             <Route path="/propostas/:id" element={<NovoSimulador />} />
             <Route path="/simulador" element={<SimuladorViabilidade />} />
+            
             {/* --- MÓDULO FINANCEIRO & RELATÓRIOS --- */}
-
             <Route path="/financeiro/minutas" element={<EmitirMinuta />} />
             <Route path="/relatorios" element={<RelatorioRentabilidade />} />
             <Route path="/recibos" element={<GerenciadorRecibos />} />
             <Route path="/protocolos" element={<ListaProtocolos />} />
             <Route path="/financeiro" element={<FluxoCaixa />} />
             <Route path="/alocacao" element={<MapaAlocacao />} />
-            {/* Redirecionamento de segurança para rotas inexistentes */}
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>
         </Route>

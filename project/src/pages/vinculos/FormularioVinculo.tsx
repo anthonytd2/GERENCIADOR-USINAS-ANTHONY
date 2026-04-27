@@ -52,16 +52,21 @@ if (id) {
               observacoes: vinculo.observacao || vinculo.observacoes
             });
           }
-        } else {
-          // 🟢 INTELIGÊNCIA NOVA AQUI: Lendo a URL vinda do Mapa de Alocações
+} else {
+          // 🟢 CORREÇÃO: Lendo a URL e esperando a tela desenhar os selects
           const urlUsina = searchParams.get('usina');
           const urlConsumidor = searchParams.get('consumidor');
           
-          if (urlUsina) setValue('usina_id', urlUsina);
-          if (urlConsumidor) setValue('consumidor_id', urlConsumidor);
-          
-          // Opcional: Já preenche a Data de Início com o dia de hoje para poupar tempo
+          // Preenche a data imediatamente (não depende das listas da API)
           setValue('data_inicio', new Date().toISOString().split('T')[0]);
+
+          // Colocamos um pequeno atraso de 100ms. 
+          // Isso dá tempo para a Vercel baixar os dados da API e o React "desenhar" 
+          // os <option> na tela ANTES de tentarmos selecionar o ID.
+          setTimeout(() => {
+            if (urlUsina) setValue('usina_id', urlUsina);
+            if (urlConsumidor) setValue('consumidor_id', urlConsumidor);
+          }, 100); 
         }
       } catch (err) {
         console.error(err);

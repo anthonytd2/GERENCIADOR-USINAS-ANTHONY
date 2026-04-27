@@ -1,4 +1,3 @@
-import { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import Layout from './components/Layout';
@@ -29,33 +28,6 @@ import SimuladorViabilidade from './pages/simuladorviabilidade/SimuladorViabilid
 
 function App() {
   useAutoLogout();
-
-  // 🟢 AQUI COMEÇA O PING CASEIRO (DESPERTADOR)
-  useEffect(() => {
-    const acordarServidor = async () => {
-      try {
-        // Pega a URL da sua API e remove o /api do final para bater na rota principal de saúde
-        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-        const baseUrl = apiUrl.replace(/\/api\/?$/, '');
-
-        // Faz uma requisição silenciosa em segundo plano
-        await fetch(`${baseUrl}/health`);
-        console.log("Ping enviado: Servidor acordado! ⚡");
-      } catch (error) {
-        // Ignora erros silenciosamente para não atrapalhar o uso do cliente
-      }
-    };
-
-    // 1. Dispara o primeiro ping no milissegundo que o site abre
-    acordarServidor();
-
-    // 2. Dispara um novo ping a cada 10 minutos (600000 ms) enquanto a aba estiver aberta
-    const intervaloPing = setInterval(acordarServidor, 10 * 60 * 1000);
-
-    // Limpa o loop se o usuário fechar a página
-    return () => clearInterval(intervaloPing);
-  }, []);
-  // 🟢 FIM DO PING CASEIRO
 
   return (
     <BrowserRouter>
